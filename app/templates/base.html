@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Plataforma de Matemática{% endblock %}</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/ui/xp-coin.png') }}">
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/ui.css') }}">
@@ -42,6 +44,16 @@
       background-attachment: fixed;
     }
 
+    /* Login/register: same forest+castle art used on the battle stage,
+       dimmed enough to keep the form readable, so the entry point already
+       feels like "arriving" in the game world instead of a bare form. */
+    body.auth-body {
+      background:
+        linear-gradient(to bottom, rgba(21, 16, 55, .55), rgba(21, 16, 55, .93) 70%),
+        url("{{ url_for('static', filename='images/backgrounds/forest-castle.png') }}") center 30% / cover no-repeat fixed,
+        var(--color-bg);
+    }
+
     a { color: var(--color-accent); }
 
     .app-shell {
@@ -61,6 +73,10 @@
 
     .navbar a { text-decoration: none; color: var(--color-text); font-weight: 600; }
 
+    .back-link { margin: 0 0 0.75rem; }
+    .back-link a { color: var(--color-text-muted); text-decoration: none; font-size: 0.9rem; }
+    .back-link a:hover { color: var(--color-accent); }
+
     .panel {
       background: var(--color-bg-panel);
       border: 1px solid var(--color-primary);
@@ -78,9 +94,41 @@
       color: #fff;
       font-weight: 600;
       cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
 
-    .btn:hover { background: var(--color-accent-dark); }
+    .btn:hover {
+      background: var(--color-accent-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(255, 140, 94, .35);
+    }
+
+    .btn:active { transform: translateY(0); box-shadow: none; }
+
+    /* RPG-menu styled links (dashboard quick actions) — bolder than .btn,
+       meant for the handful of primary destinations on the panel, not
+       every button on the site. */
+    .menu-tile {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.35rem;
+      border-radius: var(--radius);
+      background: linear-gradient(160deg, var(--color-primary-light) 0%, var(--color-primary) 55%, #150f3d 160%);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, .15);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, .25) inset, 0 4px 10px rgba(3, 33, 188, .25);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .menu-tile:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, .25) inset, 0 8px 20px rgba(255, 140, 94, .45);
+    }
+
+    .menu-tile:active { transform: translateY(-1px) scale(1); }
 
     input[type="text"], input[type="email"], input[type="password"] {
       width: 100%;
@@ -99,7 +147,7 @@
     label { font-size: 0.85rem; color: var(--color-text-muted); }
   </style>
 </head>
-<body>
+<body class="{{ 'auth-body' if request.endpoint in ('auth.login', 'auth.register') else '' }}">
   <nav class="navbar">
     <a href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
       ⚔ Matemática RPG
@@ -118,6 +166,10 @@
   </nav>
 
   <div class="app-shell">
+    {% if current_user.is_authenticated and request.endpoint != 'users.dashboard' %}
+      <p class="back-link"><a href="{{ url_for('users.dashboard') }}">← Voltar ao painel</a></p>
+    {% endif %}
+
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
         <div class="flash flash-{{ category }}">{{ message }}</div>

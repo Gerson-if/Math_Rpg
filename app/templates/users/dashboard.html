@@ -2,32 +2,36 @@
 {% import "_macros.html" as ui %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<div class="panel" style="display:flex;gap:1.5rem;align-items:center;">
-  <div class="hero-sprite" aria-hidden="true"></div>
-  {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
-  <div>
-    <h1 style="margin:0;">Olá, {{ user.profile.display_name if user.profile else user.username }}</h1>
-    <p style="color:var(--color-text-muted);margin:0.25rem 0 0;">
-      Nível {{ user.stats.level.number if user.stats and user.stats.level else 1 }}
-      · {{ user.stats.rank.name if user.stats and user.stats.rank else "Iniciante" }}
-      · <img class="inline-icon" src="{{ url_for('static', filename='images/ui/xp-coin.png') }}" alt="">
-      {{ user.stats.xp if user.stats else 0 }} XP
-      · <img class="inline-icon" src="{{ url_for('static', filename='images/ui/streak-flame.png') }}" alt="">
-      Sequência atual: {{ user.stats.current_streak if user.stats else 0 }}
-    </p>
+<div class="panel">
+  <div class="battle-stage battle-stage--dashboard">
+    <div class="hero-sprite" aria-hidden="true"></div>
+  </div>
+  <div style="display:flex;gap:1.5rem;align-items:center;">
+    {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
+    <div>
+      <h1 style="margin:0;">Olá, {{ user.profile.display_name if user.profile else user.username }}</h1>
+      <p style="color:var(--color-text-muted);margin:0.25rem 0 0;">
+        Nível {{ user.stats.level.number if user.stats and user.stats.level else 1 }}
+        · {{ user.stats.rank.name if user.stats and user.stats.rank else "Iniciante" }}
+        · <img class="inline-icon" src="{{ url_for('static', filename='images/ui/xp-coin.png') }}" alt="">
+        {{ user.stats.xp if user.stats else 0 }} XP
+        · <img class="inline-icon" src="{{ url_for('static', filename='images/ui/streak-flame.png') }}" alt="">
+        Sequência atual: {{ user.stats.current_streak if user.stats else 0 }}
+      </p>
+    </div>
   </div>
 </div>
 
 <div class="panel">
   <h2 style="margin-top:0;">Continuar estudando</h2>
   <p>Escolha um tópico e comece a praticar.</p>
-  <a class="btn" href="{{ url_for('mathematics.index') }}">Ver tópicos</a>
+  <a class="menu-tile" href="{{ url_for('mathematics.index') }}">⚔️ Ver tópicos</a>
 </div>
 
 <div class="panel" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-  <a class="btn" href="{{ url_for('progression.review_queue') }}">📌 Revisão</a>
-  <a class="btn" href="{{ url_for('ranking.index') }}">🏅 Ranking</a>
-  <a class="btn" href="{{ url_for('achievements.index') }}">🏆 Conquistas</a>
-  <a class="btn" href="{{ url_for('chat.index') }}">💬 Chat</a>
+  <a class="menu-tile" href="{{ url_for('progression.review_queue') }}">📌 Revisão</a>
+  <a class="menu-tile" href="{{ url_for('ranking.index') }}">🏅 Ranking</a>
+  <a class="menu-tile" href="{{ url_for('achievements.index') }}">🏆 Conquistas</a>
+  <a class="menu-tile" href="{{ url_for('chat.index') }}">💬 Chat</a>
 </div>
 {% endblock %}

@@ -38,10 +38,24 @@
     {% endif %}
   {% endif %}
 
+  {% set hero_class, guardian_class, portal_class = '', '', '' %}
+  {% if feedback %}
+    {% if feedback.is_correct %}
+      {% set hero_class, guardian_class = ' hero-sprite--attack', ' guardian-statue--hit' %}
+    {% else %}
+      {% set hero_class, guardian_class = ' hero-sprite--defeat', ' guardian-statue--attack' %}
+    {% endif %}
+    {% if feedback.leveled_up %}
+      {% set portal_class = ' portal-sprite--surge' %}
+    {% endif %}
+  {% endif %}
   <div class="panel">
     <div class="battle-stage">
-      <div class="hero-sprite{% if feedback %}{{ ' hero-sprite--attack' if feedback.is_correct else ' hero-sprite--defeat' }}{% endif %}"
-           aria-hidden="true"></div>
+      <div class="hero-sprite{{ hero_class }}" aria-hidden="true"></div>
+      <div class="guardian-wrap">
+        <div class="portal-sprite{{ portal_class }}" aria-hidden="true"></div>
+        <div class="guardian-statue{{ guardian_class }}" aria-hidden="true"></div>
+      </div>
     </div>
     <p style="font-size:1.6rem;margin:0 0 1rem;">{{ prompt }}</p>
     <form hx-post="{{ url_for('mathematics.answer_question', topic_slug=topic.slug) }}"

@@ -190,31 +190,47 @@ de batalha" abaixo).
   gerando uma strip uniforme de verdade — aí sim `steps(N)` funciona.
   Mesma correção aplicada ao sprite de walk (ainda não usado em nenhuma
   tela).
-- **Sistema de batalha** na tela de prática: o herói agora aparece num
-  "battle-stage" (fundo de floresta + castelo, ver abaixo) reagindo a
-  cada resposta — um lunge de ataque ao acertar, uma queda/stagger ao
-  errar — reaproveitando os VFX de acerto/erro que já existiam em vez de
-  pedir sprites novos de ataque/dano (que não existem no pacote de artes
-  atual, só idle/walk). Tudo CSS puro, disparado pela classe condicional
-  em `_question.html` a partir de `feedback.is_correct`.
+- **Sistema de batalha** na tela de prática: `battle-stage` (fundo de
+  floresta + castelo) com o herói de um lado e, do outro, um portal
+  animado (`GandalfHardcore Portal sheet.png`, já vinha como grade
+  uniforme, sem precisar do mesmo tratamento do sprite do herói) com a
+  Angel Statue do pacote de cenário guardando a passagem — os dois juntos
+  fazem o papel de "inimigo" até existir arte de monstro de verdade.
+  Acertar = lunge do herói + a estátua "recebe o golpe" (flash); errar =
+  a estátua "ataca" (brilho vermelho) + o herói cambaleia e cai; subir de
+  nível = o portal reage com um flare, simbolizando avançar. Tudo CSS
+  puro (transform/filter/opacity, sem JS, sem layout thrashing) disparado
+  pelas classes condicionais em `_question.html`.
 - **Mentor sidekick**: avatar CSS (não há arte de um segundo personagem
   ainda) que mostra uma curiosidade matemática ou uma regra do jogo por
   sessão de prática (`app/services/mentor_tips.py`, lista curada,
   `random.choice`), pedido explícito do usuário por um NPC que "magicamente
   informa curiosidades e regras".
 - Novo pacote de artes de cenário (`app/static/assets/artes/`, gitignored
-  como os anteriores) trouxe camadas de parallax (céu, montanhas, floresta)
-  sem nenhum personagem novo. Composto em `app/static/images/backgrounds/forest-castle.png`
-  (variante Autumn, tons quentes que combinam com `--color-accent`) e usado
-  como fundo do battle-stage — paleta base da interface (`--color-bg` etc.)
-  mantida sem alteração, conforme pedido.
+  como os anteriores) trouxe camadas de parallax (céu, montanhas, floresta),
+  a estátua acima e o portal — sem nenhum personagem/inimigo novo.
+  Composto em `app/static/images/backgrounds/forest-castle.png` (variante
+  Autumn, tons quentes que combinam com `--color-accent`) — paleta base
+  da interface (`--color-bg` etc.) mantida sem alteração, conforme pedido.
+- **Navegação e identidade visual**: link "← Voltar ao painel" em toda
+  página autenticada que não seja o próprio dashboard (`base.html`, uma
+  condição só — cobre páginas futuras automaticamente); favicon de
+  verdade (`app/static/favicon.ico`, gerado a partir do ícone de XP
+  já em uso, `images/ui/xp-coin.png`); tela de login/cadastro ganhou o
+  mesmo fundo de floresta+castelo (escurecido para manter contraste);
+  dashboard reaproveita o `battle-stage` como banner de boas-vindas;
+  botões viraram `.menu-tile` (gradiente, hover com leve elevação/brilho)
+  nos links principais do dashboard, e `.btn` (formulários, "Responder")
+  ganhou uma transição de hover mais viva. Todas as animações usam só
+  `transform`/`filter`/`opacity`/`background-position`, para não pesar.
 
 ## O que ainda não existe
 
 - Sprites de ataque/dano do herói e qualquer personagem/inimigo ilustrado
-  além do idle/walk — o sistema de batalha acima reaproveita transformações
-  CSS sobre o sprite idle em vez de trocar de frame porque essas poses
-  específicas não existem em nenhum pacote de artes recebido até agora.
+  de verdade — o sistema de batalha acima reaproveita transformações CSS
+  sobre o sprite idle e reaproveita o portal/estátua do pacote de cenário
+  como "inimigo", porque essas poses específicas não existem em nenhum
+  pacote de artes recebido até agora.
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
   artefatos e o runbook estão prontos em [DEPLOY.md](DEPLOY.md), falta
   alguém com acesso a um provedor de nuvem executar os passos.
