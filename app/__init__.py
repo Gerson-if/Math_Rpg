@@ -7,20 +7,23 @@ Blueprint. This keeps the codebase modular from day one and matches the
 architecture described in the project spec.
 """
 import click
-from flask import Flask
+from flask import Flask, render_template
 
-from app.extensions import db, migrate, login_manager, csrf
+from app.extensions import db, migrate, login_manager, csrf, limiter
+from app.logging_config import configure_logging
 
 
 def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_object)
+    configure_logging(app)
 
     # --- extensions -------------------------------------------------
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
 
     login_manager.login_view = "auth.login"
 
@@ -47,9 +50,31 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     app.register_blueprint(chat_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
 
+    @app.after_request
+    def _apply_security_headers(response):
+        # HSTS is left to Caddy (it sets it automatically for HTTPS sites)
+        # — setting it here too would be redundant and, if this app is
+        # ever run without Caddy in front, actively wrong.
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        return response
+
     @app.route("/health")
     def health():
         return {"status": "ok"}
+
+    @app.errorhandler(404)
+    def _not_found(error):
+        return render_template("errors/404.html"), 404
+
+    @app.errorhandler(500)
+    def _server_error(error):
+        # Flask already logs unhandled exceptions via app.logger (which
+        # configure_logging() points at stdout as structured JSON in
+        # production) — this handler only swaps the response body for a
+        # branded page that never leaks a traceback to the client.
+        return render_template("errors/500.html"), 500
 
     @app.cli.command("recompute-leaderboards")
     @click.option(

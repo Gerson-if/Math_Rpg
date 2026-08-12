@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Página não encontrada{% endblock %}
+{% block content %}
+<div class="panel" style="text-align:center;">
+  <h1>🧭 Página não encontrada</h1>
+  <p style="color:var(--color-text-muted);">Esse caminho não existe ou a página foi movida.</p>
+  <a class="btn" href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">Voltar ao início</a>
+</div>
+{% endblock %}

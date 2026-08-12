@@ -1,0 +1,27 @@
+{#
+  Deliberately NOT extending base.html: a 500 can happen because the
+  database is unreachable, and base.html's navbar reads current_user,
+  which triggers a DB lookup via Flask-Login's user_loader. An error page
+  that depends on the thing that might be down isn't a safe fallback.
+#}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Algo deu errado</title>
+  <style>
+    body { background:#151037; color:#f2f2ff; font-family:system-ui,sans-serif;
+           display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+    .panel { background:#1c154d; border:1px solid #0321bc; border-radius:10px;
+             padding:2rem; text-align:center; max-width:420px; }
+    a { color:#ff8c5e; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>⚠️ Algo deu errado</h1>
+    <p>Não foi você — foi a gente. Já registramos o erro. Tente de novo em instantes.</p>
+    <a href="/">Voltar ao início</a>
+  </div>
+</body>
+</html>

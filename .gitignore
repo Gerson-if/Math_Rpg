@@ -5,6 +5,7 @@ __pycache__/
 instance/
 *.db
 .pytest_cache/
+backups/
 
 # Raw art packs (source material, not the app's assets). Some carry
 # no-redistribution license terms; the app only uses the curated,

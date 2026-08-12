@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, render_template, request, abort, jsonify
 from flask_login import login_required, current_user
 
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models import Subject, Topic, Attempt
 from app.services import mathematics_service, question_token, progression_service
 
@@ -86,6 +86,7 @@ def new_question(topic_slug):
 
 @mathematics_bp.route("/praticar/<topic_slug>/responder", methods=["POST"])
 @login_required
+@limiter.limit("120 per minute")
 def answer_question(topic_slug):
     topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
 

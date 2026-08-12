@@ -1,0 +1,36 @@
+# Caddy reverse proxy + automatic HTTPS in front of Gunicorn.
+#
+# Usage: replace the placeholder domain below, then:
+#   caddy run --config Caddyfile
+# (or install it as a systemd service — `caddy` ships one via its package).
+# Caddy issues and renews the TLS certificate (Let's Encrypt) automatically
+# the first time it sees real traffic on the domain — no certbot, no cron.
+
+math-rpg.example.com {
+	# Static files served directly by Caddy — skips Flask/Gunicorn
+	# entirely for anything under /static/, which is most of the bytes
+	# a browser downloads (CSS, VFX spritesheets, icons).
+	handle_path /static/* {
+		root * {$APP_DIR}/app/static
+		file_server
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:8000 {
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	encode gzip
+
+	log {
+		output file /var/log/caddy/math-rpg-access.log
+		format json
+	}
+}
+
+# HSTS, and every other TLS-related header, is added by Caddy
+# automatically once a site is served over HTTPS — nothing to configure
+# here. App-level security headers (X-Frame-Options, nosniff, etc.) are
+# set by Flask itself (app/__init__.py) so they apply the same way in
+# dev and prod.

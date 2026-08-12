@@ -1,4 +1,4 @@
-# Matemática RPG — Fases 1–7 (Fundação → Expansão)
+# Matemática RPG — Fases 1–8 (Fundação → Produção)
 
 Plataforma de aprendizado de matemática com progressão inspirada em RPG
 (XP, níveis, rankings, domínio, conquistas, chat). Flask app factory,
@@ -137,12 +137,46 @@ completos ainda não chegaram (só o sprite `idle`/`walk` de exemplo em
   desbloqueada, `Profile.title` passa a mostrar o nome dela automaticamente
   (a mais recente da leva, se mais de uma desbloquear no mesmo instante).
 
-## O que ainda não existe (próximas fases)
+**Fase 8 — Produção**
+- Rate limiting explícito (Flask-Limiter): 10/hora em cadastro, 10/min em
+  login (força bruta), 120/min em responder questão, 200/hora como teto
+  geral — desligado em teste (`RATELIMIT_ENABLED=False`) porque a suíte
+  bate nas rotas bem mais que um usuário real bateria.
+- Logs estruturados (`app/logging_config.py`): JSON por linha em stdout
+  quando `DEBUG=False` (o formato que qualquer agregador de log de nuvem
+  já sabe ler), texto legível em dev/teste. Todo request loga
+  method/path/status/user_id; exceções não tratadas entram com traceback
+  completo no campo `exception`.
+- Páginas de erro próprias (404/500) sem vazar stack trace — a de 500
+  propositalmente *não* estende `base.html`, porque a navbar lê
+  `current_user` (consulta ao banco) e um 500 pode ser justamente o banco
+  fora do ar.
+- Cookies de sessão com `HttpOnly`/`SameSite=Lax` sempre, e `Secure` em
+  produção (não em dev, que roda em HTTP puro); headers
+  `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` em toda
+  resposta. HSTS fica por conta do Caddy, que já adiciona automaticamente.
+- `gunicorn.conf.py`, `Caddyfile` e `deploy/math-rpg.service` prontos pra
+  uso — variáveis de ambiente pra tudo que costuma variar por host.
+- `scripts/backup_db.py`: `pg_dump` (Postgres) ou cópia de arquivo
+  (SQLite), gzip, poda automática por retenção — pensado pra rodar via
+  cron, mesma lógica de "nada agenda a si mesmo dentro do processo" do
+  `recompute-leaderboards`.
+- **Validado de verdade, não só no papel**: rodei `flask db upgrade` e um
+  smoke test completo (registro, os 9 tópicos de matemática, conquista via
+  critério JSON, chat, ranking) contra um Postgres 18 local real — isso
+  achou e corrigiu um bug que quebraria toda e qualquer requisição em
+  produção (`RATELIMIT_DEFAULT` como lista em vez de string). Ver
+  [DEPLOY.md](DEPLOY.md) para o runbook completo — deploy num servidor de
+  verdade não foi feito por não haver credenciais de nuvem disponíveis
+  neste ambiente de desenvolvimento.
+
+## O que ainda não existe
 
 - Personagens variados e fundos ilustrados — hoje só existe o sprite de
   exemplo idle/walk enviado na Fase 1.
-- Produção de verdade (Fase 8): Postgres, Gunicorn/Caddy, rate limiting,
-  logs estruturados, backup, deploy.
+- O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
+  artefatos e o runbook estão prontos em [DEPLOY.md](DEPLOY.md), falta
+  alguém com acesso a um provedor de nuvem executar os passos.
 
 ## Instalação local
 
@@ -227,16 +261,21 @@ app/
 config/            classes de configuração (dev/test/produção)
 migrations/        Flask-Migrate/Alembic — já commitado, só rodar `flask db upgrade`
 scripts/seed.py    popula currículo, níveis, ranks, conquistas (upsert — roda de novo sem duplicar)
-tests/             pytest (61 testes)
+tests/             pytest (72 testes)
+deploy/            unit systemd de exemplo para o Gunicorn
+gunicorn.conf.py   config do servidor WSGI de produção
+Caddyfile          proxy reverso + HTTPS automático
+DEPLOY.md          runbook completo de deploy (ver Fase 8)
 ```
 
 ## Próximo passo recomendado
 
-Fases 1–7 já estão cobertas — o loop completo de "responder → ganhar XP →
-subir de nível → dominar ou precisar revisar → desbloquear conquista →
-aparecer no ranking → conversar no chat" já funciona de ponta a ponta, com
-9 tópicos de matemática diferentes. O próximo passo natural é a Fase 8
-(Produção): Postgres real, Gunicorn/Caddy, rate limiting, logs
-estruturados, backup e deploy — ver seção "Produção" abaixo assim que
-existir. A identidade visual definitiva (personagens/fundos completos)
-continua dependendo do pacote de artes chegar por inteiro.
+Fases 1–8 já estão cobertas no código: o loop completo de "responder →
+ganhar XP → subir de nível → dominar ou precisar revisar → desbloquear
+conquista → aparecer no ranking → conversar no chat" funciona de ponta a
+ponta com 9 tópicos de matemática, e a aplicação está pronta pra produção
+(Postgres validado, rate limiting, logs estruturados, backup, Gunicorn/
+Caddy) — falta só alguém com acesso a um provedor de nuvem seguir o
+runbook em [DEPLOY.md](DEPLOY.md) e efetivamente publicar. A identidade
+visual definitiva (personagens/fundos completos) continua dependendo do
+pacote de artes chegar por inteiro.
