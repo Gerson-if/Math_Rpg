@@ -1,0 +1,55 @@
+{% import "_macros.html" as ui %}
+<div id="question-slot">
+  {% if feedback %}
+    <div class="vfx-anchor">
+      <div class="flash {{ 'flash-info' if feedback.is_correct else 'flash-error' }}">
+        {% if feedback.is_correct %}
+          ✅ Correto! +{{ feedback.xp_awarded }} XP
+          {% if feedback.leveled_up %}· 🎉 Subiu para o nível {{ feedback.level_number }}!{% endif %}
+        {% else %}
+          ❌ Quase — a resposta certa era <strong>{{ feedback.correct_answer }}</strong>.
+        {% endif %}
+      </div>
+      {% if feedback.is_correct %}
+        <div class="vfx vfx-correct" onanimationend="this.remove()" aria-hidden="true"></div>
+      {% else %}
+        <div class="vfx vfx-wrong" onanimationend="this.remove()" aria-hidden="true"></div>
+      {% endif %}
+      {% if feedback.leveled_up %}
+        <div class="vfx vfx-levelup" style="animation-delay:0.15s;" onanimationend="this.remove()" aria-hidden="true"></div>
+      {% endif %}
+      {% if feedback.new_achievements %}
+        <div class="vfx vfx-achievement" style="animation-delay:0.3s;" onanimationend="this.remove()" aria-hidden="true"></div>
+      {% endif %}
+    </div>
+    {% if feedback.new_achievements %}
+      <div class="flash flash-info" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+        Nova conquista:
+        {% for a in feedback.new_achievements %}
+          {{ ui.achievement_badge(a, true) }} {{ a.name }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if feedback.needs_review %}
+      <div class="flash flash-info">
+        <img class="inline-icon" src="{{ url_for('static', filename='images/ui/mastery-down.png') }}" alt="">
+        Seu domínio neste tópico caiu — vale uma revisão em breve.
+      </div>
+    {% endif %}
+  {% endif %}
+
+  <div class="panel">
+    <p style="font-size:1.6rem;margin:0 0 1rem;">{{ prompt }}</p>
+    <form hx-post="{{ url_for('mathematics.answer_question', topic_slug=topic.slug) }}"
+          hx-target="#question-slot"
+          hx-swap="outerHTML"
+          hx-indicator="#answer-spinner">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="token" value="{{ token }}">
+      <input type="text" name="answer" inputmode="numeric" autocomplete="off" autofocus
+             placeholder="Sua resposta">
+      <button class="btn" type="submit">Responder</button>
+      <span id="answer-spinner" class="vfx vfx-loading vfx-inline htmx-indicator" aria-hidden="true"></span>
+    </form>
+  </div>
+</div>

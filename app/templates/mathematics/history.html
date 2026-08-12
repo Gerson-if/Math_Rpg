@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Histórico{% endblock %}
+{% block content %}
+<h1>Histórico de respostas</h1>
+<div class="panel">
+  <table style="width:100%;border-collapse:collapse;text-align:left;">
+    <thead>
+      <tr style="color:var(--color-text-muted);">
+        <th style="padding:0.4rem 0;">Tópico</th>
+        <th>Resultado</th>
+        <th>Tempo</th>
+        <th>Quando</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in attempts %}
+        <tr>
+          <td style="padding:0.4rem 0;">{{ a.topic.name }}</td>
+          <td>{{ "✅" if a.is_correct else "❌" }}</td>
+          <td>{{ (a.response_time_ms / 1000) | round(1) }}s</td>
+          <td>{{ a.created_at.strftime("%d/%m %H:%M") }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" style="padding:0.4rem 0;">Nenhuma resposta ainda.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p><a href="{{ url_for('mathematics.index') }}">Voltar aos tópicos</a></p>
+{% endblock %}

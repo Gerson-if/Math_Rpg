@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:420px;margin-inline:auto;">
+  <h1>Entrar</h1>
+  <form method="POST">
+    {{ form.hidden_tag() }}
+    <label>{{ form.email.label }}</label>
+    {{ form.email(type="email") }}
+    <label>{{ form.password.label }}</label>
+    {{ form.password(type="password") }}
+    <p><label>{{ form.remember() }} {{ form.remember.label }}</label></p>
+    {{ form.submit(class_="btn") }}
+  </form>
+  <p style="margin-top:1rem;">Não tem conta? <a href="{{ url_for('auth.register') }}">Criar conta</a></p>
+</div>
+{% endblock %}

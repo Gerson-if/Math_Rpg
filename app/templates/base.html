@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Plataforma de Matemática{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ui.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/effects.css') }}">
+  <style>
+    /*
+      Placeholder palette pulled from the sample idle/walk sprite sheet.
+      This is a PROVISIONAL identity only — swap these tokens once the
+      full art pack arrives (see section 13 of the spec) and keep every
+      screen referencing these variables instead of hard-coded colors.
+    */
+    :root {
+      --color-bg: #151037;
+      --color-bg-panel: #1c154d;
+      --color-primary: #0321bc;
+      --color-primary-light: #9ea0fa;
+      --color-accent: #ff8c5e;
+      --color-accent-dark: #8c2309;
+      --color-danger: #882323;
+      --color-text: #f2f2ff;
+      --color-text-muted: #b2b2ff;
+      --radius: 10px;
+      --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      color: var(--color-text);
+      background:
+        radial-gradient(circle at 15% -10%, rgba(158, 160, 250, 0.16), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(255, 140, 94, 0.10), transparent 50%),
+        var(--color-bg);
+      background-attachment: fixed;
+    }
+
+    a { color: var(--color-accent); }
+
+    .app-shell {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 4rem;
+    }
+
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--color-bg-panel);
+      border-bottom: 2px solid var(--color-primary);
+    }
+
+    .navbar a { text-decoration: none; color: var(--color-text); font-weight: 600; }
+
+    .panel {
+      background: var(--color-bg-panel);
+      border: 1px solid var(--color-primary);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius);
+      border: none;
+      background: var(--color-primary);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: var(--color-accent-dark); }
+
+    input[type="text"], input[type="email"], input[type="password"] {
+      width: 100%;
+      padding: 0.6rem;
+      margin: 0.35rem 0 0.9rem;
+      border-radius: 6px;
+      border: 1px solid var(--color-primary-light);
+      background: #0f0c29;
+      color: var(--color-text);
+    }
+
+    .flash { padding: 0.6rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
+    .flash-error { background: var(--color-danger); }
+    .flash-info { background: var(--color-primary); }
+
+    label { font-size: 0.85rem; color: var(--color-text-muted); }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+      ⚔ Matemática RPG
+    </a>
+    {% if current_user.is_authenticated %}
+      <div>
+        <a href="{{ url_for('users.profile') }}">{{ current_user.username }}</a>
+        · <a href="{{ url_for('auth.logout') }}">Sair</a>
+      </div>
+    {% else %}
+      <div>
+        <a href="{{ url_for('auth.login') }}">Entrar</a>
+        · <a href="{{ url_for('auth.register') }}">Criar conta</a>
+      </div>
+    {% endif %}
+  </nav>
+
+  <div class="app-shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

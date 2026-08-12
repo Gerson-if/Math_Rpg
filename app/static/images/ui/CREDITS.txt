@@ -1,0 +1,12 @@
+compass.png is extracted from "Humble Gift - World Map Scroll v1.0" by
+HumblePixel (humblepixel.itch.io / patreon.com/HumblePixel).
+
+License (from the pack's own License.pdf):
+- Can be used in commercial and non-commercial projects, and modified.
+- Cannot be redistributed, shared, or resold — original or modified.
+- Cannot be used as part of a logo, trademark, or service mark.
+- Credit appreciated but not mandatory (@Humblepixel).
+
+xp-coin.png, streak-flame.png, mastery-up.png, mastery-down.png are
+from "Raven Fantasy Icons" — see ../icons/CREDITS.txt for that pack's
+terms.

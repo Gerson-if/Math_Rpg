@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Ranking{% endblock %}
+{% block content %}
+<h1>Ranking global</h1>
+<div class="panel">
+  <table style="width:100%;border-collapse:collapse;text-align:left;">
+    <thead>
+      <tr style="color:var(--color-text-muted);">
+        <th style="padding:0.4rem 0;">#</th>
+        <th>Jogador</th>
+        <th>Nível</th>
+        <th>XP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for stats, user in top_players %}
+        <tr {% if user.id == current_user.id %}style="color:var(--color-accent);"{% endif %}>
+          <td style="padding:0.4rem 0;">{{ loop.index }}</td>
+          <td>
+            <span class="rank-badge-row">
+              {{ ui.rank_badge(stats.rank, size='rank-badge--sm') }}
+              {{ user.profile.display_name if user.profile else user.username }}
+            </span>
+          </td>
+          <td>{{ stats.level.number if stats.level else "-" }}</td>
+          <td>{{ stats.xp }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" style="padding:0.4rem 0;">Ninguém pontuou ainda.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

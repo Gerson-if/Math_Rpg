@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+instance/
+*.db
+.pytest_cache/
+
+# Raw art packs (source material, not the app's assets). Some carry
+# no-redistribution license terms; the app only uses the curated,
+# already-license-compliant copies under app/static/images/.
+app/static/assets/
+
+# Claude Code harness state, not part of the project.
+.claude/

@@ -1,0 +1,9 @@
+Icons under subjects/, and the badges in ranks/ and achievements/, are
+extracted from "Raven Fantasy Icons" by Clockwork Raven Studios
+(Caio), purchased on itch.io. No explicit license text shipped with
+the pack beyond a thank-you note from the artist — itch.io "buy once,
+use in your projects" packs of this kind typically allow embedding in
+a shipped game/app but forbid reselling the raw assets standalone.
+Double-check the itch.io purchase terms before shipping to production.
+
+Patreon: https://www.patreon.com/clockworkravenstudios

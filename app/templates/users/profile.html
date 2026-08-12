@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Perfil{% endblock %}
+{% block content %}
+<div class="panel" style="display:flex;gap:1.5rem;align-items:center;">
+  <div class="hero-walk" aria-hidden="true"></div>
+  {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
+  <div>
+    <h1 style="margin:0;">{{ user.profile.display_name if user.profile else user.username }}</h1>
+    <p style="color:var(--color-text-muted);margin:0.25rem 0 0;">{{ user.email }}</p>
+    {% if user.stats and user.stats.rank %}
+      <p style="color:var(--color-text-muted);margin:0.25rem 0 0;">{{ user.stats.rank.name }}</p>
+    {% endif %}
+    {% if user.profile and user.profile.title %}
+      <p style="color:var(--color-accent);margin:0.25rem 0 0;">{{ user.profile.title }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0;">Estatísticas</h2>
+  <ul>
+    <li>XP total: {{ user.stats.xp if user.stats else 0 }}</li>
+    <li>Acertos: {{ user.stats.total_correct if user.stats else 0 }}</li>
+    <li>Erros: {{ user.stats.total_wrong if user.stats else 0 }}</li>
+    <li>Melhor sequência: {{ user.stats.best_streak if user.stats else 0 }}</li>
+  </ul>
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0;">Domínio por tópico</h2>
+  {% if user.mastery_records %}
+    <ul>
+      {% for m in user.mastery_records %}
+        <li>{{ m.topic.name }} — {{ (m.mastery_score * 100) | round(1) }}%</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p style="color:var(--color-text-muted);">Ainda sem registros — os exercícios chegam na Fase 3.</p>
+  {% endif %}
+</div>
+
+<style>
+  .hero-walk {
+    width: 45px;
+    height: 58px;
+    image-rendering: pixelated;
+    background-image: url("{{ url_for('static', filename='images/characters/hero/walk-spritesheet.png') }}");
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    animation: hero-walk-cycle 0.7s steps(4) infinite;
+  }
+
+  @keyframes hero-walk-cycle {
+    from { background-position: 0 0; }
+    to { background-position: -180px 0; }
+  }
+</style>
+{% endblock %}

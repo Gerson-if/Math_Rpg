@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Chat{% endblock %}
+{% block content %}
+<h1>💬 Chat Global</h1>
+<div class="panel">
+  <div id="chat-messages"
+       hx-get="{{ url_for('chat.messages') }}"
+       hx-trigger="every 4s"
+       hx-swap="innerHTML">
+    {% include "chat/_messages.html" %}
+  </div>
+  <form id="chat-form"
+        hx-post="{{ url_for('chat.send') }}"
+        hx-target="#chat-messages"
+        hx-swap="innerHTML"
+        hx-on::after-request="this.reset()"
+        class="chat-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="content" maxlength="500" autocomplete="off"
+           placeholder="Escreva uma mensagem..." required>
+    <button class="btn" type="submit">Enviar</button>
+  </form>
+</div>
+{% endblock %}

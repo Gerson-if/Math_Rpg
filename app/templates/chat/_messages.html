@@ -1,0 +1,19 @@
+{% import "_macros.html" as ui %}
+{% if error %}
+  <div class="flash flash-error">{{ error }}</div>
+{% endif %}
+<ul class="chat-log" id="chat-log">
+  {% for m in messages %}
+    <li class="chat-line{{ ' chat-line--flagged' if m.is_flagged else '' }}">
+      <span class="chat-author-wrap">
+        {% if m.user.stats and m.user.stats.rank %}{{ ui.rank_badge(m.user.stats.rank, size='rank-badge--sm') }}{% endif %}
+        <span class="chat-author">{{ m.user.profile.display_name if m.user.profile else m.user.username }}</span>
+      </span>
+      <span class="chat-content">{{ m.content }}</span>
+      <span class="chat-time">{{ m.created_at.strftime('%H:%M') }}</span>
+    </li>
+  {% else %}
+    <li class="chat-empty">Nenhuma mensagem ainda — seja o primeiro a puxar assunto!</li>
+  {% endfor %}
+</ul>
+<script>document.getElementById('chat-log').scrollTop = document.getElementById('chat-log').scrollHeight;</script>

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Revisão{% endblock %}
+{% block content %}
+<h1>Vale a pena revisar</h1>
+<p style="color:var(--color-text-muted);">
+  Tópicos onde seu domínio caiu abaixo do esperado — seja por erros recentes,
+  seja por tempo sem praticar.
+</p>
+{% for m in items %}
+  <div class="panel" style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <strong>{{ m.topic.name }}</strong>
+      <div style="color:var(--color-text-muted);font-size:0.9rem;">
+        Domínio: {{ (m.mastery_score * 100) | round(1) }}%
+      </div>
+    </div>
+    <a class="btn" href="{{ url_for('mathematics.practice', topic_slug=m.topic.slug) }}">Praticar</a>
+  </div>
+{% else %}
+  <div class="panel"><p>Nada para revisar agora — continue assim!</p></div>
+{% endfor %}
+{% endblock %}

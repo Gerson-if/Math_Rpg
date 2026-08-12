@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Criar conta{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:420px;margin-inline:auto;">
+  <h1>Criar conta</h1>
+  <form method="POST">
+    {{ form.hidden_tag() }}
+    <label>{{ form.username.label }}</label>
+    {{ form.username(type="text") }}
+    <label>{{ form.email.label }}</label>
+    {{ form.email(type="email") }}
+    <label>{{ form.password.label }}</label>
+    {{ form.password(type="password") }}
+    <label>{{ form.confirm_password.label }}</label>
+    {{ form.confirm_password(type="password") }}
+    {{ form.submit(class_="btn") }}
+  </form>
+  <p style="margin-top:1rem;">Já tem conta? <a href="{{ url_for('auth.login') }}">Entrar</a></p>
+</div>
+{% endblock %}

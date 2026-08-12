@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Conquistas{% endblock %}
+{% block content %}
+<h1>Conquistas</h1>
+<div class="panel">
+  <ul style="list-style:none;padding:0;margin:0;">
+    {% for a in achievements %}
+      {% set unlocked = a.id in unlocked_ids %}
+      <li class="achievement-row {{ '' if unlocked else 'achievement-row--locked' }}">
+        {{ ui.achievement_badge(a, unlocked) }}
+        <div>
+          <strong>{{ a.name }}</strong>
+          <div style="color:var(--color-text-muted);font-size:0.9rem;">{{ a.description }}</div>
+        </div>
+      </li>
+    {% else %}
+      <li>Nenhuma conquista cadastrada ainda.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

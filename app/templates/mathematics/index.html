@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Tópicos{% endblock %}
+{% block content %}
+<h1 style="display:flex;align-items:center;gap:0.6rem;">
+  <img src="{{ url_for('static', filename='images/ui/compass.png') }}" alt=""
+       style="width:2rem;height:2rem;image-rendering:pixelated;">
+  Tópicos
+</h1>
+{% for subject in subjects %}
+  <div class="panel">
+    <h2 style="margin-top:0;display:flex;align-items:center;gap:0.6rem;">
+      {% if subject.icon_key %}
+        <img class="subject-icon" src="{{ url_for('static', filename=subject.icon_key) }}" alt="">
+      {% endif %}
+      {{ subject.name }}
+    </h2>
+    {% if subject.topics %}
+      <ul>
+        {% for topic in subject.topics %}
+          <li><a href="{{ url_for('mathematics.practice', topic_slug=topic.slug) }}">{{ topic.name }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color:var(--color-text-muted);">Sem tópicos cadastrados ainda.</p>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="panel">
+    <p>Nenhum tópico cadastrado. Rode <code>python scripts/seed.py</code> para popular o currículo inicial.</p>
+  </div>
+{% endfor %}
+{% endblock %}

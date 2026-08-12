@@ -1,0 +1,473 @@
+/* Generated grid-sprite animations for the VFX pack in images/ui/effects/. */
+/* Frames run left-to-right, top-to-bottom; trailing blank frames make the effect fade out naturally. */
+.vfx {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  z-index: 5;
+  background-repeat: no-repeat;
+}
+
+.vfx-anchor { position: relative; }
+
+.vfx.vfx-inline { position: static; margin: 0; display: inline-block; vertical-align: middle; }
+
+.vfx-correct {
+  width: 160px;
+  height: 160px;
+  margin: -80px 0 0 -80px;
+  background-image: url("../images/ui/effects/correct.png");
+  background-size: 1280px 1280px;
+  animation: vfx-correct-frames 1.0s steps(1) 1 forwards;
+}
+
+@keyframes vfx-correct-frames {
+  0.0000% { background-position: 0px 0px; }
+  1.5625% { background-position: -160px 0px; }
+  3.1250% { background-position: -320px 0px; }
+  4.6875% { background-position: -480px 0px; }
+  6.2500% { background-position: -640px 0px; }
+  7.8125% { background-position: -800px 0px; }
+  9.3750% { background-position: -960px 0px; }
+  10.9375% { background-position: -1120px 0px; }
+  12.5000% { background-position: 0px -160px; }
+  14.0625% { background-position: -160px -160px; }
+  15.6250% { background-position: -320px -160px; }
+  17.1875% { background-position: -480px -160px; }
+  18.7500% { background-position: -640px -160px; }
+  20.3125% { background-position: -800px -160px; }
+  21.8750% { background-position: -960px -160px; }
+  23.4375% { background-position: -1120px -160px; }
+  25.0000% { background-position: 0px -320px; }
+  26.5625% { background-position: -160px -320px; }
+  28.1250% { background-position: -320px -320px; }
+  29.6875% { background-position: -480px -320px; }
+  31.2500% { background-position: -640px -320px; }
+  32.8125% { background-position: -800px -320px; }
+  34.3750% { background-position: -960px -320px; }
+  35.9375% { background-position: -1120px -320px; }
+  37.5000% { background-position: 0px -480px; }
+  39.0625% { background-position: -160px -480px; }
+  40.6250% { background-position: -320px -480px; }
+  42.1875% { background-position: -480px -480px; }
+  43.7500% { background-position: -640px -480px; }
+  45.3125% { background-position: -800px -480px; }
+  46.8750% { background-position: -960px -480px; }
+  48.4375% { background-position: -1120px -480px; }
+  50.0000% { background-position: 0px -640px; }
+  51.5625% { background-position: -160px -640px; }
+  53.1250% { background-position: -320px -640px; }
+  54.6875% { background-position: -480px -640px; }
+  56.2500% { background-position: -640px -640px; }
+  57.8125% { background-position: -800px -640px; }
+  59.3750% { background-position: -960px -640px; }
+  60.9375% { background-position: -1120px -640px; }
+  62.5000% { background-position: 0px -800px; }
+  64.0625% { background-position: -160px -800px; }
+  65.6250% { background-position: -320px -800px; }
+  67.1875% { background-position: -480px -800px; }
+  68.7500% { background-position: -640px -800px; }
+  70.3125% { background-position: -800px -800px; }
+  71.8750% { background-position: -960px -800px; }
+  73.4375% { background-position: -1120px -800px; }
+  75.0000% { background-position: 0px -960px; }
+  76.5625% { background-position: -160px -960px; }
+  78.1250% { background-position: -320px -960px; }
+  79.6875% { background-position: -480px -960px; }
+  81.2500% { background-position: -640px -960px; }
+  82.8125% { background-position: -800px -960px; }
+  84.3750% { background-position: -960px -960px; }
+  85.9375% { background-position: -1120px -960px; }
+  87.5000% { background-position: 0px -1120px; }
+  89.0625% { background-position: -160px -1120px; }
+  90.6250% { background-position: -320px -1120px; }
+  92.1875% { background-position: -480px -1120px; }
+  93.7500% { background-position: -640px -1120px; }
+  95.3125% { background-position: -800px -1120px; }
+  96.8750% { background-position: -960px -1120px; }
+  98.4375% { background-position: -1120px -1120px; }
+  100% { background-position: -1120px -1120px; }
+}
+
+.vfx-wrong {
+  width: 160px;
+  height: 160px;
+  margin: -80px 0 0 -80px;
+  background-image: url("../images/ui/effects/wrong.png");
+  background-size: 1280px 1280px;
+  animation: vfx-wrong-frames 1.0s steps(1) 1 forwards;
+}
+
+@keyframes vfx-wrong-frames {
+  0.0000% { background-position: 0px 0px; }
+  1.5625% { background-position: -160px 0px; }
+  3.1250% { background-position: -320px 0px; }
+  4.6875% { background-position: -480px 0px; }
+  6.2500% { background-position: -640px 0px; }
+  7.8125% { background-position: -800px 0px; }
+  9.3750% { background-position: -960px 0px; }
+  10.9375% { background-position: -1120px 0px; }
+  12.5000% { background-position: 0px -160px; }
+  14.0625% { background-position: -160px -160px; }
+  15.6250% { background-position: -320px -160px; }
+  17.1875% { background-position: -480px -160px; }
+  18.7500% { background-position: -640px -160px; }
+  20.3125% { background-position: -800px -160px; }
+  21.8750% { background-position: -960px -160px; }
+  23.4375% { background-position: -1120px -160px; }
+  25.0000% { background-position: 0px -320px; }
+  26.5625% { background-position: -160px -320px; }
+  28.1250% { background-position: -320px -320px; }
+  29.6875% { background-position: -480px -320px; }
+  31.2500% { background-position: -640px -320px; }
+  32.8125% { background-position: -800px -320px; }
+  34.3750% { background-position: -960px -320px; }
+  35.9375% { background-position: -1120px -320px; }
+  37.5000% { background-position: 0px -480px; }
+  39.0625% { background-position: -160px -480px; }
+  40.6250% { background-position: -320px -480px; }
+  42.1875% { background-position: -480px -480px; }
+  43.7500% { background-position: -640px -480px; }
+  45.3125% { background-position: -800px -480px; }
+  46.8750% { background-position: -960px -480px; }
+  48.4375% { background-position: -1120px -480px; }
+  50.0000% { background-position: 0px -640px; }
+  51.5625% { background-position: -160px -640px; }
+  53.1250% { background-position: -320px -640px; }
+  54.6875% { background-position: -480px -640px; }
+  56.2500% { background-position: -640px -640px; }
+  57.8125% { background-position: -800px -640px; }
+  59.3750% { background-position: -960px -640px; }
+  60.9375% { background-position: -1120px -640px; }
+  62.5000% { background-position: 0px -800px; }
+  64.0625% { background-position: -160px -800px; }
+  65.6250% { background-position: -320px -800px; }
+  67.1875% { background-position: -480px -800px; }
+  68.7500% { background-position: -640px -800px; }
+  70.3125% { background-position: -800px -800px; }
+  71.8750% { background-position: -960px -800px; }
+  73.4375% { background-position: -1120px -800px; }
+  75.0000% { background-position: 0px -960px; }
+  76.5625% { background-position: -160px -960px; }
+  78.1250% { background-position: -320px -960px; }
+  79.6875% { background-position: -480px -960px; }
+  81.2500% { background-position: -640px -960px; }
+  82.8125% { background-position: -800px -960px; }
+  84.3750% { background-position: -960px -960px; }
+  85.9375% { background-position: -1120px -960px; }
+  87.5000% { background-position: 0px -1120px; }
+  89.0625% { background-position: -160px -1120px; }
+  90.6250% { background-position: -320px -1120px; }
+  92.1875% { background-position: -480px -1120px; }
+  93.7500% { background-position: -640px -1120px; }
+  95.3125% { background-position: -800px -1120px; }
+  96.8750% { background-position: -960px -1120px; }
+  98.4375% { background-position: -1120px -1120px; }
+  100% { background-position: -1120px -1120px; }
+}
+
+.vfx-levelup {
+  width: 200px;
+  height: 200px;
+  margin: -100px 0 0 -100px;
+  background-image: url("../images/ui/effects/levelup.png");
+  background-size: 1600px 1600px;
+  animation: vfx-levelup-frames 1.3s steps(1) 1 forwards;
+}
+
+@keyframes vfx-levelup-frames {
+  0.0000% { background-position: 0px 0px; }
+  1.5625% { background-position: -200px 0px; }
+  3.1250% { background-position: -400px 0px; }
+  4.6875% { background-position: -600px 0px; }
+  6.2500% { background-position: -800px 0px; }
+  7.8125% { background-position: -1000px 0px; }
+  9.3750% { background-position: -1200px 0px; }
+  10.9375% { background-position: -1400px 0px; }
+  12.5000% { background-position: 0px -200px; }
+  14.0625% { background-position: -200px -200px; }
+  15.6250% { background-position: -400px -200px; }
+  17.1875% { background-position: -600px -200px; }
+  18.7500% { background-position: -800px -200px; }
+  20.3125% { background-position: -1000px -200px; }
+  21.8750% { background-position: -1200px -200px; }
+  23.4375% { background-position: -1400px -200px; }
+  25.0000% { background-position: 0px -400px; }
+  26.5625% { background-position: -200px -400px; }
+  28.1250% { background-position: -400px -400px; }
+  29.6875% { background-position: -600px -400px; }
+  31.2500% { background-position: -800px -400px; }
+  32.8125% { background-position: -1000px -400px; }
+  34.3750% { background-position: -1200px -400px; }
+  35.9375% { background-position: -1400px -400px; }
+  37.5000% { background-position: 0px -600px; }
+  39.0625% { background-position: -200px -600px; }
+  40.6250% { background-position: -400px -600px; }
+  42.1875% { background-position: -600px -600px; }
+  43.7500% { background-position: -800px -600px; }
+  45.3125% { background-position: -1000px -600px; }
+  46.8750% { background-position: -1200px -600px; }
+  48.4375% { background-position: -1400px -600px; }
+  50.0000% { background-position: 0px -800px; }
+  51.5625% { background-position: -200px -800px; }
+  53.1250% { background-position: -400px -800px; }
+  54.6875% { background-position: -600px -800px; }
+  56.2500% { background-position: -800px -800px; }
+  57.8125% { background-position: -1000px -800px; }
+  59.3750% { background-position: -1200px -800px; }
+  60.9375% { background-position: -1400px -800px; }
+  62.5000% { background-position: 0px -1000px; }
+  64.0625% { background-position: -200px -1000px; }
+  65.6250% { background-position: -400px -1000px; }
+  67.1875% { background-position: -600px -1000px; }
+  68.7500% { background-position: -800px -1000px; }
+  70.3125% { background-position: -1000px -1000px; }
+  71.8750% { background-position: -1200px -1000px; }
+  73.4375% { background-position: -1400px -1000px; }
+  75.0000% { background-position: 0px -1200px; }
+  76.5625% { background-position: -200px -1200px; }
+  78.1250% { background-position: -400px -1200px; }
+  79.6875% { background-position: -600px -1200px; }
+  81.2500% { background-position: -800px -1200px; }
+  82.8125% { background-position: -1000px -1200px; }
+  84.3750% { background-position: -1200px -1200px; }
+  85.9375% { background-position: -1400px -1200px; }
+  87.5000% { background-position: 0px -1400px; }
+  89.0625% { background-position: -200px -1400px; }
+  90.6250% { background-position: -400px -1400px; }
+  92.1875% { background-position: -600px -1400px; }
+  93.7500% { background-position: -800px -1400px; }
+  95.3125% { background-position: -1000px -1400px; }
+  96.8750% { background-position: -1200px -1400px; }
+  98.4375% { background-position: -1400px -1400px; }
+  100% { background-position: -1400px -1400px; }
+}
+
+.vfx-achievement {
+  width: 200px;
+  height: 200px;
+  margin: -100px 0 0 -100px;
+  background-image: url("../images/ui/effects/achievement.png");
+  background-size: 1800px 1800px;
+  animation: vfx-achievement-frames 1.4s steps(1) 1 forwards;
+}
+
+@keyframes vfx-achievement-frames {
+  0.0000% { background-position: 0px 0px; }
+  1.2346% { background-position: -200px 0px; }
+  2.4691% { background-position: -400px 0px; }
+  3.7037% { background-position: -600px 0px; }
+  4.9383% { background-position: -800px 0px; }
+  6.1728% { background-position: -1000px 0px; }
+  7.4074% { background-position: -1200px 0px; }
+  8.6420% { background-position: -1400px 0px; }
+  9.8765% { background-position: -1600px 0px; }
+  11.1111% { background-position: 0px -200px; }
+  12.3457% { background-position: -200px -200px; }
+  13.5802% { background-position: -400px -200px; }
+  14.8148% { background-position: -600px -200px; }
+  16.0494% { background-position: -800px -200px; }
+  17.2840% { background-position: -1000px -200px; }
+  18.5185% { background-position: -1200px -200px; }
+  19.7531% { background-position: -1400px -200px; }
+  20.9877% { background-position: -1600px -200px; }
+  22.2222% { background-position: 0px -400px; }
+  23.4568% { background-position: -200px -400px; }
+  24.6914% { background-position: -400px -400px; }
+  25.9259% { background-position: -600px -400px; }
+  27.1605% { background-position: -800px -400px; }
+  28.3951% { background-position: -1000px -400px; }
+  29.6296% { background-position: -1200px -400px; }
+  30.8642% { background-position: -1400px -400px; }
+  32.0988% { background-position: -1600px -400px; }
+  33.3333% { background-position: 0px -600px; }
+  34.5679% { background-position: -200px -600px; }
+  35.8025% { background-position: -400px -600px; }
+  37.0370% { background-position: -600px -600px; }
+  38.2716% { background-position: -800px -600px; }
+  39.5062% { background-position: -1000px -600px; }
+  40.7407% { background-position: -1200px -600px; }
+  41.9753% { background-position: -1400px -600px; }
+  43.2099% { background-position: -1600px -600px; }
+  44.4444% { background-position: 0px -800px; }
+  45.6790% { background-position: -200px -800px; }
+  46.9136% { background-position: -400px -800px; }
+  48.1481% { background-position: -600px -800px; }
+  49.3827% { background-position: -800px -800px; }
+  50.6173% { background-position: -1000px -800px; }
+  51.8519% { background-position: -1200px -800px; }
+  53.0864% { background-position: -1400px -800px; }
+  54.3210% { background-position: -1600px -800px; }
+  55.5556% { background-position: 0px -1000px; }
+  56.7901% { background-position: -200px -1000px; }
+  58.0247% { background-position: -400px -1000px; }
+  59.2593% { background-position: -600px -1000px; }
+  60.4938% { background-position: -800px -1000px; }
+  61.7284% { background-position: -1000px -1000px; }
+  62.9630% { background-position: -1200px -1000px; }
+  64.1975% { background-position: -1400px -1000px; }
+  65.4321% { background-position: -1600px -1000px; }
+  66.6667% { background-position: 0px -1200px; }
+  67.9012% { background-position: -200px -1200px; }
+  69.1358% { background-position: -400px -1200px; }
+  70.3704% { background-position: -600px -1200px; }
+  71.6049% { background-position: -800px -1200px; }
+  72.8395% { background-position: -1000px -1200px; }
+  74.0741% { background-position: -1200px -1200px; }
+  75.3086% { background-position: -1400px -1200px; }
+  76.5432% { background-position: -1600px -1200px; }
+  77.7778% { background-position: 0px -1400px; }
+  79.0123% { background-position: -200px -1400px; }
+  80.2469% { background-position: -400px -1400px; }
+  81.4815% { background-position: -600px -1400px; }
+  82.7160% { background-position: -800px -1400px; }
+  83.9506% { background-position: -1000px -1400px; }
+  85.1852% { background-position: -1200px -1400px; }
+  86.4198% { background-position: -1400px -1400px; }
+  87.6543% { background-position: -1600px -1400px; }
+  88.8889% { background-position: 0px -1600px; }
+  90.1235% { background-position: -200px -1600px; }
+  91.3580% { background-position: -400px -1600px; }
+  92.5926% { background-position: -600px -1600px; }
+  93.8272% { background-position: -800px -1600px; }
+  95.0617% { background-position: -1000px -1600px; }
+  96.2963% { background-position: -1200px -1600px; }
+  97.5309% { background-position: -1400px -1600px; }
+  98.7654% { background-position: -1600px -1600px; }
+  100% { background-position: -1600px -1600px; }
+}
+
+.vfx-loading {
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  background-image: url("../images/ui/effects/loading.png");
+  background-size: 440px 440px;
+  animation: vfx-loading-frames 1.6s steps(1) infinite;
+}
+
+@keyframes vfx-loading-frames {
+  0.0000% { background-position: 0px 0px; }
+  0.8264% { background-position: -40px 0px; }
+  1.6529% { background-position: -80px 0px; }
+  2.4793% { background-position: -120px 0px; }
+  3.3058% { background-position: -160px 0px; }
+  4.1322% { background-position: -200px 0px; }
+  4.9587% { background-position: -240px 0px; }
+  5.7851% { background-position: -280px 0px; }
+  6.6116% { background-position: -320px 0px; }
+  7.4380% { background-position: -360px 0px; }
+  8.2645% { background-position: -400px 0px; }
+  9.0909% { background-position: 0px -40px; }
+  9.9174% { background-position: -40px -40px; }
+  10.7438% { background-position: -80px -40px; }
+  11.5702% { background-position: -120px -40px; }
+  12.3967% { background-position: -160px -40px; }
+  13.2231% { background-position: -200px -40px; }
+  14.0496% { background-position: -240px -40px; }
+  14.8760% { background-position: -280px -40px; }
+  15.7025% { background-position: -320px -40px; }
+  16.5289% { background-position: -360px -40px; }
+  17.3554% { background-position: -400px -40px; }
+  18.1818% { background-position: 0px -80px; }
+  19.0083% { background-position: -40px -80px; }
+  19.8347% { background-position: -80px -80px; }
+  20.6612% { background-position: -120px -80px; }
+  21.4876% { background-position: -160px -80px; }
+  22.3140% { background-position: -200px -80px; }
+  23.1405% { background-position: -240px -80px; }
+  23.9669% { background-position: -280px -80px; }
+  24.7934% { background-position: -320px -80px; }
+  25.6198% { background-position: -360px -80px; }
+  26.4463% { background-position: -400px -80px; }
+  27.2727% { background-position: 0px -120px; }
+  28.0992% { background-position: -40px -120px; }
+  28.9256% { background-position: -80px -120px; }
+  29.7521% { background-position: -120px -120px; }
+  30.5785% { background-position: -160px -120px; }
+  31.4050% { background-position: -200px -120px; }
+  32.2314% { background-position: -240px -120px; }
+  33.0579% { background-position: -280px -120px; }
+  33.8843% { background-position: -320px -120px; }
+  34.7107% { background-position: -360px -120px; }
+  35.5372% { background-position: -400px -120px; }
+  36.3636% { background-position: 0px -160px; }
+  37.1901% { background-position: -40px -160px; }
+  38.0165% { background-position: -80px -160px; }
+  38.8430% { background-position: -120px -160px; }
+  39.6694% { background-position: -160px -160px; }
+  40.4959% { background-position: -200px -160px; }
+  41.3223% { background-position: -240px -160px; }
+  42.1488% { background-position: -280px -160px; }
+  42.9752% { background-position: -320px -160px; }
+  43.8017% { background-position: -360px -160px; }
+  44.6281% { background-position: -400px -160px; }
+  45.4545% { background-position: 0px -200px; }
+  46.2810% { background-position: -40px -200px; }
+  47.1074% { background-position: -80px -200px; }
+  47.9339% { background-position: -120px -200px; }
+  48.7603% { background-position: -160px -200px; }
+  49.5868% { background-position: -200px -200px; }
+  50.4132% { background-position: -240px -200px; }
+  51.2397% { background-position: -280px -200px; }
+  52.0661% { background-position: -320px -200px; }
+  52.8926% { background-position: -360px -200px; }
+  53.7190% { background-position: -400px -200px; }
+  54.5455% { background-position: 0px -240px; }
+  55.3719% { background-position: -40px -240px; }
+  56.1983% { background-position: -80px -240px; }
+  57.0248% { background-position: -120px -240px; }
+  57.8512% { background-position: -160px -240px; }
+  58.6777% { background-position: -200px -240px; }
+  59.5041% { background-position: -240px -240px; }
+  60.3306% { background-position: -280px -240px; }
+  61.1570% { background-position: -320px -240px; }
+  61.9835% { background-position: -360px -240px; }
+  62.8099% { background-position: -400px -240px; }
+  63.6364% { background-position: 0px -280px; }
+  64.4628% { background-position: -40px -280px; }
+  65.2893% { background-position: -80px -280px; }
+  66.1157% { background-position: -120px -280px; }
+  66.9421% { background-position: -160px -280px; }
+  67.7686% { background-position: -200px -280px; }
+  68.5950% { background-position: -240px -280px; }
+  69.4215% { background-position: -280px -280px; }
+  70.2479% { background-position: -320px -280px; }
+  71.0744% { background-position: -360px -280px; }
+  71.9008% { background-position: -400px -280px; }
+  72.7273% { background-position: 0px -320px; }
+  73.5537% { background-position: -40px -320px; }
+  74.3802% { background-position: -80px -320px; }
+  75.2066% { background-position: -120px -320px; }
+  76.0331% { background-position: -160px -320px; }
+  76.8595% { background-position: -200px -320px; }
+  77.6860% { background-position: -240px -320px; }
+  78.5124% { background-position: -280px -320px; }
+  79.3388% { background-position: -320px -320px; }
+  80.1653% { background-position: -360px -320px; }
+  80.9917% { background-position: -400px -320px; }
+  81.8182% { background-position: 0px -360px; }
+  82.6446% { background-position: -40px -360px; }
+  83.4711% { background-position: -80px -360px; }
+  84.2975% { background-position: -120px -360px; }
+  85.1240% { background-position: -160px -360px; }
+  85.9504% { background-position: -200px -360px; }
+  86.7769% { background-position: -240px -360px; }
+  87.6033% { background-position: -280px -360px; }
+  88.4298% { background-position: -320px -360px; }
+  89.2562% { background-position: -360px -360px; }
+  90.0826% { background-position: -400px -360px; }
+  90.9091% { background-position: 0px -400px; }
+  91.7355% { background-position: -40px -400px; }
+  92.5620% { background-position: -80px -400px; }
+  93.3884% { background-position: -120px -400px; }
+  94.2149% { background-position: -160px -400px; }
+  95.0413% { background-position: -200px -400px; }
+  95.8678% { background-position: -240px -400px; }
+  96.6942% { background-position: -280px -400px; }
+  97.5207% { background-position: -320px -400px; }
+  98.3471% { background-position: -360px -400px; }
+  99.1736% { background-position: -400px -400px; }
+  100% { background-position: -400px -400px; }
+}

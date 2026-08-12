@@ -1,0 +1,155 @@
+/*
+  Fase 5 — complementos visuais criados por não existirem no pacote de
+  artes fornecido (que traz efeitos VFX + o sprite idle/walk, mas nenhum
+  ícone de rank/conquista). Badges são CSS puro, orientados por
+  --rank-color/--rank-color-light por tier, e cedem lugar a um <img>
+  real assim que Rank.icon_key / Achievement.icon_key apontar para um
+  arquivo em static/images/ranks|achievements (ver macros em _macros.html).
+*/
+
+.rank-badge {
+  --rank-color: #8a8a9e;
+  --rank-color-light: #c7c7db;
+  --rank-glow: rgba(138, 138, 158, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #1a1030;
+  clip-path: polygon(50% 0%, 100% 20%, 100% 70%, 50% 100%, 0% 70%, 0% 20%);
+  background: linear-gradient(160deg, var(--rank-color-light), var(--rank-color));
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25) inset, 0 0 10px var(--rank-glow);
+}
+
+.rank-badge img { width: 100%; height: 100%; object-fit: contain; clip-path: inherit; }
+
+.rank-badge--iniciante { --rank-color: #8a8a9e; --rank-color-light: #c7c7db; --rank-glow: rgba(138, 138, 158, .35); }
+.rank-badge--bronze    { --rank-color: #a5652f; --rank-color-light: #e0a35e; --rank-glow: rgba(205, 127, 50, .45); }
+.rank-badge--prata     { --rank-color: #9a9aa8; --rank-color-light: #e6e6ee; --rank-glow: rgba(200, 200, 215, .5); }
+.rank-badge--ouro      { --rank-color: #c99a1c; --rank-color-light: #ffe27a; --rank-glow: rgba(255, 213, 74, .55); }
+.rank-badge--platina   { --rank-color: #3fa89e; --rank-color-light: #a9f2ea; --rank-glow: rgba(127, 216, 208, .5); }
+.rank-badge--diamante  { --rank-color: #3f74c9; --rank-color-light: #a9caff; --rank-glow: rgba(127, 178, 255, .55); }
+.rank-badge--mestre    { --rank-color: #c9532f; --rank-color-light: #ff8c5e; --rank-glow: rgba(255, 140, 94, .6); }
+
+.rank-badge-row { display: inline-flex; align-items: center; gap: 0.5rem; }
+
+.rank-badge--sm { width: 1.5rem; height: 1.65rem; font-size: 0.5rem; }
+
+.achv-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.achv-badge img { width: 68%; height: 68%; object-fit: contain; }
+
+.achv-badge--unlocked {
+  background: radial-gradient(circle at 35% 30%, var(--color-primary-light), var(--color-primary) 70%);
+  box-shadow: 0 0 12px rgba(158, 160, 250, .6), inset 0 0 0 2px rgba(255, 255, 255, .25);
+}
+
+.achv-badge--locked {
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px dashed var(--color-primary-light);
+  opacity: 0.5;
+}
+
+.achievement-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-primary);
+}
+
+.achievement-row--locked { opacity: 0.55; }
+
+.subject-icon {
+  width: 2rem;
+  height: 2rem;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.inline-icon {
+  width: 1.1em;
+  height: 1.1em;
+  image-rendering: pixelated;
+  vertical-align: -0.2em;
+  flex-shrink: 0;
+}
+
+.chat-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+}
+
+.chat-line--flagged {
+  background: rgba(136, 35, 35, 0.18);
+  outline: 1px dashed var(--color-danger);
+}
+
+.chat-author-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.chat-author {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.chat-content {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.chat-time {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.chat-empty {
+  color: var(--color-text-muted);
+  padding: 0.5rem 0;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.chat-form input[type="text"] {
+  flex: 1;
+  margin: 0;
+}
