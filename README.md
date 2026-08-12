@@ -224,6 +224,48 @@ de batalha" abaixo).
   ganhou uma transição de hover mais viva. Todas as animações usam só
   `transform`/`filter`/`opacity`/`background-position`, para não pesar.
 
+**Correções da batalha e parallax de verdade (rodada seguinte)**
+- **Bug real na animação de ataque**: `.hero-sprite--attack` tocava a
+  animação de respiração do idle (`background-position` mudando a cada
+  60ms) *e* o transform do lunge ao mesmo tempo — duas histórias
+  diferentes competindo no mesmo sprite, o que lia como "descontrolado".
+  Trocado por tocar o walk-cycle de verdade (`walk-spritesheet.png`, 26
+  frames) sincronizado com o próprio lunge — legado e corpo contam a
+  mesma história agora. O estado de derrota passou a congelar num único
+  frame do idle (sem ciclar) e só tocar o transform de queda.
+- **Herói andando de costas**: a arte do walk-cycle já vem virada pra
+  esquerda (perna de apoio à frente do lado esquerdo do frame); usá-la
+  num lunge/corrida pra direita sem espelhar fazia o personagem "andar de
+  costas". Corrigido com `transform: translateX(...) scaleX(-1)` — nessa
+  ordem, porque `translateX` precisa vir antes do espelhamento pra
+  continuar significando "direita" na tela em vez de inverter também.
+- **Cache do navegador escondendo o próprio fix**: a spritesheet do idle
+  foi regravada com o mesmo nome de arquivo (`idle-spritesheet.png`), então
+  um navegador que já tinha carregado a versão quebrada continuava
+  mostrando ela até um hard-refresh. Adicionado `?v=2` nas URLs das duas
+  spritesheets do herói em `ui.css` como cache-bust.
+- **Parallax de verdade** (`.parallax-scene`/`.parallax-layer` em
+  `ui.css`, partial `_parallax.html`): em vez de uma imagem só
+  (`forest-castle.png`), as 5 camadas originais do pacote (céu, castelo,
+  3 bandas de floresta) viram elementos empilhados, cada um andando
+  (`background-position`) numa velocidade diferente — céu parado, castelo
+  bem lento, floresta próxima mais rápida. Usado no battle-stage, no
+  banner do dashboard e agora fixo atrás da tela de login/cadastro.
+- **Herói correndo no login**: `.login-runner` roda o walk-cycle cruzando
+  a tela da esquerda pra direita em loop (11s), passando pela Angel
+  Statue (`.login-guardian`) — mesma arte reaproveitada do battle-stage.
+  Uma faixa de chão sólida (`.parallax-ground`, cor extraída da própria
+  camada de floresta próxima) resolve o personagem "flutuando" sobre a
+  copa das árvores.
+- **Navbar**: duas tochas animadas (`Torch.png` do pacote de cenário,
+  recortadas em `images/ui/torch-flicker.png`, 4 frames de chama)
+  flanqueiam o logo, com gradiente + brilho embaixo no lugar do fundo
+  chapado anterior.
+- Procurei especificamente por arte de botão/painel/moldura em todo o
+  pacote de cenário (`Decor.png`, `Alchemy Decor.png`, `Other Tiles*.png`,
+  `House Tiles.png`) — não existe nada do tipo, é só terreno/decoração.
+  Os botões (`.btn`, `.menu-tile`) continuam sendo CSS puro por isso.
+
 ## O que ainda não existe
 
 - Sprites de ataque/dano do herói e qualquer personagem/inimigo ilustrado

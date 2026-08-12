@@ -167,7 +167,7 @@
   height: 96px;
   flex-shrink: 0;
   image-rendering: pixelated;
-  background-image: url("../images/characters/hero/idle-spritesheet.png");
+  background-image: url("../images/characters/hero/idle-spritesheet.png?v=2");
   background-repeat: no-repeat;
   background-size: 960px 96px;
   animation: hero-idle-cycle 0.6s steps(10) infinite;
@@ -180,24 +180,37 @@
 
 .hero-sprite--sm { width: 51px; height: 51px; background-size: 510px 51px; }
 
-/* Battle feedback: layered on top of the idle loop, one-shot, driven by
-   the answer's correctness. No dedicated attack/hurt sprites exist yet
-   (see the READ ME in the art pack — only idle/walk were delivered), so
-   these are transform-only reactions on the same idle sprite rather than
-   a frame swap. */
-.hero-sprite--attack { animation: hero-idle-cycle 0.6s steps(10) infinite, hero-attack-lunge 0.45s ease-out 1; }
-.hero-sprite--defeat { animation: hero-idle-cycle 0.6s steps(10) infinite, hero-defeat-stagger 0.6s ease-in 1 forwards; }
-
-@keyframes hero-attack-lunge {
-  0% { transform: translateX(0) scale(1); }
-  35% { transform: translateX(22px) scale(1.08); }
-  100% { transform: translateX(0) scale(1); }
+/*
+  Parallax scene: the 5 individual layers from the scenery art pack (sky,
+  castle silhouette, 3 forest bands) instead of one flattened image, each
+  drifting at its own speed via background-position — the classic
+  parallax-depth trick. Reused behind both the battle stage and the
+  login/register forms. Pure CSS animation on background-position, no JS.
+*/
+.parallax-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
 }
 
-@keyframes hero-defeat-stagger {
-  0% { transform: rotate(0deg) translateY(0); filter: grayscale(0) brightness(1); opacity: 1; }
-  55% { transform: rotate(-70deg) translateY(4px); filter: grayscale(0.7) brightness(0.7); opacity: 1; }
-  100% { transform: rotate(-85deg) translateY(10px); filter: grayscale(1) brightness(0.55); opacity: 0.45; }
+.parallax-layer {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  image-rendering: pixelated;
+}
+
+.parallax-sky { background-image: url("../images/backgrounds/parallax/sky.png"); }
+.parallax-castle { background-image: url("../images/backgrounds/parallax/castle.png"); animation: parallax-drift 100s linear infinite; }
+.parallax-far-forest { background-image: url("../images/backgrounds/parallax/far-forest.png"); animation: parallax-drift 55s linear infinite; }
+.parallax-mid-forest { background-image: url("../images/backgrounds/parallax/mid-forest.png"); animation: parallax-drift 32s linear infinite; }
+.parallax-near-forest { background-image: url("../images/backgrounds/parallax/near-forest.png"); animation: parallax-drift 18s linear infinite; }
+
+@keyframes parallax-drift {
+  from { background-position-x: 0; }
+  to { background-position-x: -1024px; }
 }
 
 .battle-stage {
@@ -211,17 +224,73 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0 28px 12px;
-  background-image:
-    linear-gradient(to bottom, rgba(21, 16, 55, 0) 45%, var(--color-bg-panel) 96%),
-    url("../images/backgrounds/forest-castle.png");
-  background-size: cover;
-  background-position: center bottom;
+  background: var(--color-bg-panel);
+}
+
+.battle-stage-fade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(21, 16, 55, 0) 45%, var(--color-bg-panel) 96%);
+}
+
+.battle-stage .hero-sprite,
+.battle-stage .guardian-wrap {
+  position: relative;
+  z-index: 2;
 }
 
 .battle-stage .hero-sprite {
   width: 128px;
   height: 128px;
   background-size: 1280px 128px;
+}
+
+/*
+  Battle feedback. No dedicated attack/hurt/death sprites exist in any art
+  pack delivered so far — only idle and walk. Mixing the idle breathing
+  loop (background-position cycling every 60ms) together with a transform
+  (lunge / fall) at the same time was the bug reported: two animations
+  telling different stories on the same sprite read as glitchy/uncontrolled.
+  Fixed by only ever running ONE animation dimension at a time per state:
+    - attack: swap to the walk spritesheet and actually run the step
+      cycle forward (legs moving = the same story as the translateX lunge).
+    - defeat: freeze on a single idle frame (no cycling at all) and only
+      play the fall/desaturate transform.
+  Declared after .battle-stage .hero-sprite on purpose — same specificity,
+  so source order is what makes these win the width/background-size fight.
+*/
+.battle-stage .hero-sprite--attack {
+  width: 106px; /* walk frames are 53x64 vs idle's 64x64 — same 2x scale, narrower frame */
+  background-image: url("../images/characters/hero/walk-spritesheet.png?v=2");
+  background-size: 2756px 128px;
+  animation: hero-walk-frames 0.5s steps(26) 1, hero-attack-lunge 0.5s ease-out 1;
+}
+
+.battle-stage .hero-sprite--defeat {
+  background-position: 0 0;
+  animation: hero-defeat-stagger 0.7s ease-in 1 forwards;
+}
+
+@keyframes hero-walk-frames {
+  from { background-position: 0 0; }
+  to { background-position: -2756px 0; }
+}
+
+/* translateX must come before scaleX(-1) in each stop — translate is then
+   applied in real screen-space *after* the mirror, so the lunge still
+   moves right on screen instead of moving opposite to the mirrored art. */
+@keyframes hero-attack-lunge {
+  0% { transform: translateX(0) scaleX(-1); }
+  60% { transform: translateX(26px) scaleX(-1); }
+  100% { transform: translateX(0) scaleX(-1); }
+}
+
+@keyframes hero-defeat-stagger {
+  0% { transform: rotate(0deg) translateY(0); filter: grayscale(0) brightness(1); opacity: 1; }
+  60% { transform: rotate(-75deg) translateY(6px); filter: grayscale(0.7) brightness(0.7); opacity: 1; }
+  100% { transform: rotate(-88deg) translateY(12px); filter: grayscale(1) brightness(0.5); opacity: 0.4; }
 }
 
 /* Dashboard reuses the same battle-stage backdrop as a welcome banner —

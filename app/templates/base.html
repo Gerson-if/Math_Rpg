@@ -44,14 +44,74 @@
       background-attachment: fixed;
     }
 
-    /* Login/register: same forest+castle art used on the battle stage,
-       dimmed enough to keep the form readable, so the entry point already
-       feels like "arriving" in the game world instead of a bare form. */
-    body.auth-body {
-      background:
-        linear-gradient(to bottom, rgba(21, 16, 55, .55), rgba(21, 16, 55, .93) 70%),
-        url("{{ url_for('static', filename='images/backgrounds/forest-castle.png') }}") center 30% / cover no-repeat fixed,
-        var(--color-bg);
+    /* Login/register: the same layered parallax scenery used on the battle
+       stage, fixed behind the whole viewport and dimmed enough to keep the
+       form readable — the entry point feels like "arriving" in the game
+       world instead of a bare form. Markup for .parallax-scene--fixed is
+       only rendered on these two routes (see <body> below). */
+    .parallax-scene--fixed { position: fixed; z-index: -1; }
+
+    .parallax-dim {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(21, 16, 55, .5), rgba(21, 16, 55, .92) 75%);
+    }
+
+    /* Solid ground band so the runner/guardian read as standing on
+       something instead of floating over the tree canopy — color sampled
+       from the near-forest layer's own base tone so it reads as a
+       continuation of the ground already visible in that layer. */
+    .parallax-ground {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 20%;
+      background: linear-gradient(to bottom, #4e4223, #2c2513);
+      z-index: 1;
+    }
+
+    /* Login/register ambient scene: the hero runs the walk-cycle across
+       the background on a loop (same steps(26) frame animation used for
+       the battle-stage attack, see ui.css) and passes the guardian statue
+       partway across — a small "adventure in progress" flourish behind
+       the form, built entirely from assets already used elsewhere. The
+       walk sprite's art faces/steps left, so scaleX(-1) mirrors it to
+       face the direction it's actually travelling (right) — without it,
+       the character appears to walk backwards. */
+    .login-runner {
+      position: absolute;
+      bottom: 13%;
+      left: -120px;
+      width: 106px;
+      height: 128px;
+      image-rendering: pixelated;
+      background-image: url("{{ url_for('static', filename='images/characters/hero/walk-spritesheet.png') }}?v=2");
+      background-repeat: no-repeat;
+      background-size: 2756px 128px;
+      transform: scaleX(-1);
+      animation: hero-walk-frames 0.9s steps(26) infinite, login-runner-path 11s linear infinite;
+      z-index: 2;
+    }
+
+    @keyframes login-runner-path {
+      0% { left: -120px; }
+      100% { left: 105%; }
+    }
+
+    .login-guardian {
+      position: absolute;
+      bottom: 13%;
+      right: 14%;
+      width: 42px;
+      height: 56px;
+      image-rendering: pixelated;
+      background-image: url("{{ url_for('static', filename='images/battle/guardian-statue.png') }}");
+      background-repeat: no-repeat;
+      background-size: contain;
+      background-position: bottom center;
+      filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .5));
+      z-index: 2;
     }
 
     a { color: var(--color-accent); }
@@ -66,12 +126,31 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.75rem 1rem;
-      background: var(--color-bg-panel);
-      border-bottom: 2px solid var(--color-primary);
+      padding: 0.65rem 1.25rem;
+      background: linear-gradient(180deg, #221a52, var(--color-bg-panel));
+      border-bottom: 2px solid var(--color-accent-dark);
+      box-shadow: 0 2px 14px rgba(0, 0, 0, .35);
     }
 
     .navbar a { text-decoration: none; color: var(--color-text); font-weight: 600; }
+
+    .navbar-brand { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; letter-spacing: 0.02em; }
+
+    .navbar-torch {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      image-rendering: pixelated;
+      background-image: url("{{ url_for('static', filename='images/ui/torch-flicker.png') }}");
+      background-repeat: no-repeat;
+      background-size: 20px 80px;
+      animation: navbar-torch-flicker 0.6s steps(4) infinite;
+    }
+
+    @keyframes navbar-torch-flicker {
+      from { background-position: 0 0; }
+      to { background-position: 0 -80px; }
+    }
 
     .back-link { margin: 0 0 0.75rem; }
     .back-link a { color: var(--color-text-muted); text-decoration: none; font-size: 0.9rem; }
@@ -148,9 +227,24 @@
   </style>
 </head>
 <body class="{{ 'auth-body' if request.endpoint in ('auth.login', 'auth.register') else '' }}">
+  {% if request.endpoint in ('auth.login', 'auth.register') %}
+    <div class="parallax-scene parallax-scene--fixed">
+      <div class="parallax-layer parallax-sky"></div>
+      <div class="parallax-layer parallax-castle"></div>
+      <div class="parallax-layer parallax-far-forest"></div>
+      <div class="parallax-layer parallax-mid-forest"></div>
+      <div class="parallax-layer parallax-near-forest"></div>
+      <div class="parallax-ground"></div>
+      <div class="login-guardian" aria-hidden="true"></div>
+      <div class="login-runner" aria-hidden="true"></div>
+      <div class="parallax-dim"></div>
+    </div>
+  {% endif %}
   <nav class="navbar">
-    <a href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+    <a class="navbar-brand" href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+      <span class="navbar-torch" aria-hidden="true"></span>
       ⚔ Matemática RPG
+      <span class="navbar-torch" aria-hidden="true"></span>
     </a>
     {% if current_user.is_authenticated %}
       <div>
