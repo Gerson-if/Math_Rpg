@@ -39,6 +39,10 @@
   {% endif %}
 
   <div class="panel">
+    <div class="battle-stage">
+      <div class="hero-sprite{% if feedback %}{{ ' hero-sprite--attack' if feedback.is_correct else ' hero-sprite--defeat' }}{% endif %}"
+           aria-hidden="true"></div>
+    </div>
     <p style="font-size:1.6rem;margin:0 0 1rem;">{{ prompt }}</p>
     <form hx-post="{{ url_for('mathematics.answer_question', topic_slug=topic.slug) }}"
           hx-target="#question-slot"

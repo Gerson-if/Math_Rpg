@@ -1,5 +1,7 @@
 import re
 
+import pytest
+
 from app.models import User, Subject, Topic, Attempt
 from app.services import question_token
 
@@ -180,3 +182,27 @@ def test_dynamic_difficulty_rises_after_a_streak_of_correct_answers(client, db, 
         token = _extract_token(resp.data.decode())
 
     assert max(difficulties) > topic.base_difficulty
+
+
+@pytest.mark.parametrize("slug", ["numeros-e-contagem", "comparacao-de-quantidades"])
+def test_fundamentos_topic_is_reachable_through_the_real_flow(client, db, app, slug):
+    """Regression: these two topics are seeded in the curriculum
+    (scripts/seed.py) but had no generator registered in
+    mathematics_service — every question load 404'd because
+    new_question() catches the resulting ValueError and aborts."""
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug=slug)
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    assert resp.status_code == 200
+    token = _extract_token(resp.data.decode())
+
+    with app.app_context():
+        payload = question_token.read_token(token)
+
+    resp2 = client.post(
+        f"/math/praticar/{topic.slug}/responder",
+        data={"token": token, "answer": payload["answer"]},
+    )
+    assert resp2.status_code == 200
+    assert "Correto" in resp2.data.decode()

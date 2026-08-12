@@ -3,7 +3,7 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <div class="panel" style="display:flex;gap:1.5rem;align-items:center;">
-  <div class="hero-idle" aria-hidden="true"></div>
+  <div class="hero-sprite" aria-hidden="true"></div>
   {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
   <div>
     <h1 style="margin:0;">Olá, {{ user.profile.display_name if user.profile else user.username }}</h1>
@@ -30,22 +30,4 @@
   <a class="btn" href="{{ url_for('achievements.index') }}">🏆 Conquistas</a>
   <a class="btn" href="{{ url_for('chat.index') }}">💬 Chat</a>
 </div>
-
-<style>
-  /* Idle animation using the sample sprite sheet as a placeholder avatar. */
-  .hero-idle {
-    width: 51px;
-    height: 55px;
-    image-rendering: pixelated;
-    background-image: url("{{ url_for('static', filename='images/characters/hero/idle-spritesheet.png') }}");
-    background-repeat: no-repeat;
-    background-position: 0 0;
-    animation: hero-idle-cycle 0.9s steps(9) infinite;
-  }
-
-  @keyframes hero-idle-cycle {
-    from { background-position: 0 0; }
-    to { background-position: -459px 0; }
-  }
-</style>
 {% endblock %}

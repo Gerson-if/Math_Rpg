@@ -45,6 +45,27 @@ def test_unknown_topic_raises_value_error():
         generate_question("topico-inexistente", 1)
 
 
+# --- Fundamentos ---------------------------------------------------------
+
+def test_numbers_counting_answer_matches_symbol_count():
+    for _ in range(50):
+        for difficulty in range(1, 6):
+            q = generate_question("numeros-e-contagem", difficulty)
+            symbol = q["prompt"].split("aqui: ")[1]
+            assert len(symbol) == int(q["answer"])
+
+
+def test_quantity_comparison_answer_is_the_larger_number():
+    for _ in range(50):
+        for difficulty in range(1, 6):
+            q = generate_question("comparacao-de-quantidades", difficulty)
+            prompt = q["prompt"].removeprefix("Qual é o maior número: ").rstrip("?")
+            a_str, b_str = prompt.split(" ou ")
+            a, b = int(a_str), int(b_str)
+            assert a != b
+            assert int(q["answer"]) == max(a, b)
+
+
 # --- Fase 7: Potenciação -----------------------------------------------
 
 def test_powers_basic_answer_is_correct():

@@ -6,10 +6,12 @@ modelos do banco, autenticação, motor de questões, progressão, interface
 com identidade visual em construção e chat global — tudo modular por
 blueprints, como descrito no documento de especificação original.
 
-A identidade visual ainda é parcial: personagens e fundos ilustrados
-completos ainda não chegaram (só o sprite `idle`/`walk` de exemplo em
-`app/static/images/characters/hero/`), mas rank/conquista/matéria já usam
-ícones reais extraídos de um pacote de artes fantasy (ver Fase 5 abaixo).
+A identidade visual ainda é parcial: só existe um personagem (o sprite
+`idle`/`walk` em `app/static/images/characters/hero/`, sem poses de
+ataque/dano), mas rank/conquista/matéria já usam ícones reais extraídos
+de um pacote de artes fantasy (ver Fase 5 abaixo), e a tela de prática
+já tem um fundo de cenário (floresta + castelo, ver "Correções e sistema
+de batalha" abaixo).
 
 ## O que já existe
 
@@ -170,10 +172,49 @@ completos ainda não chegaram (só o sprite `idle`/`walk` de exemplo em
   verdade não foi feito por não haver credenciais de nuvem disponíveis
   neste ambiente de desenvolvimento.
 
+**Correções e sistema de batalha (pós-Fase 8)**
+- Dois tópicos de Fundamentos (`numeros-e-contagem`, `comparacao-de-quantidades`)
+  estavam no currículo semeado (`scripts/seed.py`) mas sem gerador
+  registrado em `mathematics_service.py` — toda tentativa de praticar
+  esses tópicos caía no `except ValueError: abort(404)` da rota. Ambos
+  geram questões numéricas simples (contar símbolos, comparar dois
+  números), compatíveis com o campo de resposta `inputmode="numeric"`
+  existente, sem exigir nenhum símbolo novo de digitação.
+- O sprite idle do herói tinha um bug de origem: o export do Aseprite
+  recorta cada frame no seu próprio bounding box (larguras diferentes por
+  frame), mas o CSS lia a spritesheet como se fosse uma grade uniforme —
+  resultado, a animação "escorregava" entre poses em vez de trocar de
+  frame limpo, como uma fita de filme passando. `scripts/rebuild_hero_sprites.py`
+  lê os chunks do `.aseprite` (posição/tamanho reais de cada cel + o
+  tamanho do canvas) e repinta cada frame num tile do tamanho do canvas,
+  gerando uma strip uniforme de verdade — aí sim `steps(N)` funciona.
+  Mesma correção aplicada ao sprite de walk (ainda não usado em nenhuma
+  tela).
+- **Sistema de batalha** na tela de prática: o herói agora aparece num
+  "battle-stage" (fundo de floresta + castelo, ver abaixo) reagindo a
+  cada resposta — um lunge de ataque ao acertar, uma queda/stagger ao
+  errar — reaproveitando os VFX de acerto/erro que já existiam em vez de
+  pedir sprites novos de ataque/dano (que não existem no pacote de artes
+  atual, só idle/walk). Tudo CSS puro, disparado pela classe condicional
+  em `_question.html` a partir de `feedback.is_correct`.
+- **Mentor sidekick**: avatar CSS (não há arte de um segundo personagem
+  ainda) que mostra uma curiosidade matemática ou uma regra do jogo por
+  sessão de prática (`app/services/mentor_tips.py`, lista curada,
+  `random.choice`), pedido explícito do usuário por um NPC que "magicamente
+  informa curiosidades e regras".
+- Novo pacote de artes de cenário (`app/static/assets/artes/`, gitignored
+  como os anteriores) trouxe camadas de parallax (céu, montanhas, floresta)
+  sem nenhum personagem novo. Composto em `app/static/images/backgrounds/forest-castle.png`
+  (variante Autumn, tons quentes que combinam com `--color-accent`) e usado
+  como fundo do battle-stage — paleta base da interface (`--color-bg` etc.)
+  mantida sem alteração, conforme pedido.
+
 ## O que ainda não existe
 
-- Personagens variados e fundos ilustrados — hoje só existe o sprite de
-  exemplo idle/walk enviado na Fase 1.
+- Sprites de ataque/dano do herói e qualquer personagem/inimigo ilustrado
+  além do idle/walk — o sistema de batalha acima reaproveita transformações
+  CSS sobre o sprite idle em vez de trocar de frame porque essas poses
+  específicas não existem em nenhum pacote de artes recebido até agora.
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
   artefatos e o runbook estão prontos em [DEPLOY.md](DEPLOY.md), falta
   alguém com acesso a um provedor de nuvem executar os passos.
@@ -256,12 +297,13 @@ app/
   repositories/    acesso a dados mais complexo, quando necessário
   templates/       HTML (Jinja2)
   static/css/      effects.css (VFX) e ui.css (badges, chat, atmosfera)
-  static/images/   artes em uso (characters, icons/subjects, ranks, achievements, ui)
+  static/images/   artes em uso (characters, icons/subjects, ranks, achievements, ui, backgrounds)
   static/assets/   pacotes de arte originais — fora do git (licença), só local
 config/            classes de configuração (dev/test/produção)
 migrations/        Flask-Migrate/Alembic — já commitado, só rodar `flask db upgrade`
 scripts/seed.py    popula currículo, níveis, ranks, conquistas (upsert — roda de novo sem duplicar)
-tests/             pytest (72 testes)
+scripts/rebuild_hero_sprites.py  regenera as spritesheets do herói a partir dos .aseprite fonte
+tests/             pytest (79 testes)
 deploy/            unit systemd de exemplo para o Gunicorn
 gunicorn.conf.py   config do servidor WSGI de produção
 Caddyfile          proxy reverso + HTTPS automático
@@ -273,9 +315,12 @@ DEPLOY.md          runbook completo de deploy (ver Fase 8)
 Fases 1–8 já estão cobertas no código: o loop completo de "responder →
 ganhar XP → subir de nível → dominar ou precisar revisar → desbloquear
 conquista → aparecer no ranking → conversar no chat" funciona de ponta a
-ponta com 9 tópicos de matemática, e a aplicação está pronta pra produção
-(Postgres validado, rate limiting, logs estruturados, backup, Gunicorn/
-Caddy) — falta só alguém com acesso a um provedor de nuvem seguir o
-runbook em [DEPLOY.md](DEPLOY.md) e efetivamente publicar. A identidade
-visual definitiva (personagens/fundos completos) continua dependendo do
-pacote de artes chegar por inteiro.
+ponta com todos os 26 tópicos praticáveis do currículo (4 operações
+fundamentais + 10 tabuadas + 2 de Fundamentos + 10 das Fases 7),
+sistema de batalha e mentor sidekick incluídos, e a aplicação está pronta
+pra produção (Postgres validado, rate limiting, logs estruturados,
+backup, Gunicorn/Caddy) — falta só alguém com acesso a um provedor de
+nuvem seguir o runbook em [DEPLOY.md](DEPLOY.md) e efetivamente publicar.
+A identidade visual definitiva (poses de ataque/dano, um segundo
+personagem de verdade) continua dependendo de um pacote de artes com
+personagens chegar.

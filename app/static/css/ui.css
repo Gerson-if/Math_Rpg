@@ -153,3 +153,104 @@
   flex: 1;
   margin: 0;
 }
+
+/*
+  Hero sprite (idle-spritesheet.png, regenerated from the source
+  idle.aseprite: 10 frames, 64x64 each, packed as a uniform 640x64 strip —
+  see scripts/rebuild_hero_sprites.py). steps(10) + a fixed frame width is
+  only correct because every frame is the same size; a trimmed/variable-
+  width export would make the strip play back like a smeared filmstrip
+  instead of a clean frame-by-frame loop.
+*/
+.hero-sprite {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  background-image: url("../images/characters/hero/idle-spritesheet.png");
+  background-repeat: no-repeat;
+  background-size: 960px 96px;
+  animation: hero-idle-cycle 0.6s steps(10) infinite;
+}
+
+@keyframes hero-idle-cycle {
+  from { background-position: 0 0; }
+  to { background-position: -960px 0; }
+}
+
+.hero-sprite--sm { width: 51px; height: 51px; background-size: 510px 51px; }
+
+/* Battle feedback: layered on top of the idle loop, one-shot, driven by
+   the answer's correctness. No dedicated attack/hurt sprites exist yet
+   (see the READ ME in the art pack — only idle/walk were delivered), so
+   these are transform-only reactions on the same idle sprite rather than
+   a frame swap. */
+.hero-sprite--attack { animation: hero-idle-cycle 0.6s steps(10) infinite, hero-attack-lunge 0.45s ease-out 1; }
+.hero-sprite--defeat { animation: hero-idle-cycle 0.6s steps(10) infinite, hero-defeat-stagger 0.6s ease-in 1 forwards; }
+
+@keyframes hero-attack-lunge {
+  0% { transform: translateX(0) scale(1); }
+  35% { transform: translateX(22px) scale(1.08); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+@keyframes hero-defeat-stagger {
+  0% { transform: rotate(0deg) translateY(0); filter: grayscale(0) brightness(1); opacity: 1; }
+  55% { transform: rotate(-70deg) translateY(4px); filter: grayscale(0.7) brightness(0.7); opacity: 1; }
+  100% { transform: rotate(-85deg) translateY(10px); filter: grayscale(1) brightness(0.55); opacity: 0.45; }
+}
+
+.battle-stage {
+  position: relative;
+  height: 150px;
+  margin: -1.25rem -1.25rem 1rem;
+  border-radius: var(--radius) var(--radius) 0 0;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12px;
+  background-image:
+    linear-gradient(to bottom, rgba(21, 16, 55, 0) 45%, var(--color-bg-panel) 96%),
+    url("../images/backgrounds/forest-castle.png");
+  background-size: cover;
+  background-position: center bottom;
+}
+
+.battle-stage .hero-sprite {
+  width: 128px;
+  height: 128px;
+  background-size: 1280px 128px;
+}
+
+/*
+  Mentor sidekick (practice screen): no second-character art exists in
+  either art pack delivered so far, so this is a CSS-drawn avatar in the
+  --color-accent family (orange) to read as a distinct NPC from the
+  hero's --color-primary (blue/indigo) battle-stage identity.
+*/
+.mentor-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--color-bg-panel);
+  border: 1px dashed var(--color-accent);
+  border-radius: var(--radius);
+}
+
+.mentor-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex-shrink: 0;
+  font-size: 1.3rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--color-accent), var(--color-accent-dark) 75%);
+  box-shadow: 0 0 12px rgba(255, 140, 94, .55), inset 0 0 0 2px rgba(255, 255, 255, .2);
+}
+
+.mentor-tip strong { color: var(--color-accent); }

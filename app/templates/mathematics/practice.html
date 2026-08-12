@@ -3,6 +3,14 @@
 {% block content %}
 <h1>{{ topic.name }}</h1>
 
+<div class="mentor-tip">
+  <div class="mentor-avatar" aria-hidden="true">🦉</div>
+  <div>
+    <strong>{{ "Você sabia?" if mentor_tip.kind == "curiosidade" else "Regra do jogo" }}</strong>
+    <p style="margin:0.25rem 0 0;">{{ mentor_tip.text }}</p>
+  </div>
+</div>
+
 <div id="question-slot"
      hx-get="{{ url_for('mathematics.new_question', topic_slug=topic.slug) }}"
      hx-trigger="load"

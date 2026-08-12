@@ -35,6 +35,13 @@ class Question(TypedDict):
 _ADD_SUB_RANGES = {1: (1, 10), 2: (1, 50), 3: (1, 200), 4: (1, 1000), 5: (1, 10000)}
 _MUL_DIV_RANGES = {1: (1, 10), 2: (1, 20), 3: (1, 50), 4: (1, 100), 5: (1, 500)}
 
+# Fundamentos: counting objects / comparing two quantities. Kept numeric-only
+# (no >, <, = symbols to type) so the existing inputmode="numeric" answer
+# field works without changes.
+_COUNTING_RANGES = {1: (1, 5), 2: (1, 10), 3: (1, 15), 4: (1, 20), 5: (1, 30)}
+_COMPARISON_RANGES = {1: (1, 10), 2: (1, 20), 3: (1, 50), 4: (1, 100), 5: (1, 500)}
+_COUNTING_SYMBOLS = ["⭐", "🍎", "🐱", "⚽", "🌸", "🚗", "🐟", "🎈"]
+
 
 def generate_question(topic_slug: str, difficulty: int) -> Question:
     difficulty = max(1, min(5, difficulty))
@@ -44,6 +51,8 @@ def generate_question(topic_slug: str, difficulty: int) -> Question:
         return _gen_tabuada(int(tabuada_match.group(1)), difficulty)
 
     generators = {
+        "numeros-e-contagem": _gen_numbers_counting,
+        "comparacao-de-quantidades": _gen_quantity_comparison,
         "adicao": _gen_addition,
         "subtracao": _gen_subtraction,
         "multiplicacao": _gen_multiplication,
@@ -78,6 +87,35 @@ def _gen_tabuada(base: int, difficulty: int) -> Question:
         prompt = f"{base} × ? = {result}"
         answer = factor
     return {"prompt": prompt, "answer": str(answer), "meta": {"family": "tabuada", "base": base}}
+
+
+# ---------------------------------------------------------------------------
+# Fundamentos
+# ---------------------------------------------------------------------------
+
+
+def _gen_numbers_counting(difficulty: int) -> Question:
+    lo, hi = _COUNTING_RANGES[difficulty]
+    count = random.randint(lo, hi)
+    symbol = random.choice(_COUNTING_SYMBOLS)
+    return {
+        "prompt": f"Quantos {symbol} há aqui: {symbol * count}",
+        "answer": str(count),
+        "meta": {"family": "fundamentos", "kind": "contagem"},
+    }
+
+
+def _gen_quantity_comparison(difficulty: int) -> Question:
+    lo, hi = _COMPARISON_RANGES[difficulty]
+    a = random.randint(lo, hi)
+    b = random.randint(lo, hi)
+    while b == a:
+        b = random.randint(lo, hi)
+    return {
+        "prompt": f"Qual é o maior número: {a} ou {b}?",
+        "answer": str(max(a, b)),
+        "meta": {"family": "fundamentos", "kind": "comparacao"},
+    }
 
 
 def _gen_addition(difficulty: int) -> Question:

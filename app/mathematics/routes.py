@@ -14,7 +14,7 @@ from flask_login import login_required, current_user
 
 from app.extensions import db, limiter
 from app.models import Subject, Topic, Attempt
-from app.services import mathematics_service, question_token, progression_service
+from app.services import mathematics_service, question_token, progression_service, mentor_tips
 
 mathematics_bp = Blueprint("mathematics", __name__, url_prefix="/math")
 
@@ -65,7 +65,9 @@ def list_topics():
 @login_required
 def practice(topic_slug):
     topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
-    return render_template("mathematics/practice.html", topic=topic)
+    return render_template(
+        "mathematics/practice.html", topic=topic, mentor_tip=mentor_tips.random_tip()
+    )
 
 
 @mathematics_bp.route("/praticar/<topic_slug>/questao")
