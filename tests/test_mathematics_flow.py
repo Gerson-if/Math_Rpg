@@ -88,3 +88,69 @@ def test_tampered_token_is_rejected(client, db):
         data={"token": "not-a-real-token", "answer": "42"},
     )
     assert resp.status_code == 400
+
+
+# --- Fase 7: new topic families, exercised through the real HTTP cycle ----
+
+def test_fraction_answer_is_accepted_through_the_real_flow(client, db, app):
+    user = _create_and_login(client, db)
+    topic = _create_topic(db, slug="fracoes-basicas")
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    assert resp.status_code == 200
+    token = _extract_token(resp.data.decode())
+
+    with app.app_context():
+        payload = question_token.read_token(token)
+    correct_answer = payload["answer"]  # e.g. "3/4" or a whole number like "2"
+
+    resp2 = client.post(
+        f"/math/praticar/{topic.slug}/responder",
+        data={"token": token, "answer": correct_answer},
+    )
+    assert "Correto" in resp2.data.decode()
+
+    attempt = Attempt.query.filter_by(user_id=user.id, topic_id=topic.id).first()
+    assert attempt.is_correct is True
+
+
+def test_decimal_answer_with_pt_br_comma_is_accepted(client, db, app):
+    """Brazilian users naturally type '0,3', not '0.3' — the answer
+    comparison must treat the comma as a decimal separator."""
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="leitura-de-decimais")
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    token = _extract_token(resp.data.decode())
+
+    with app.app_context():
+        payload = question_token.read_token(token)
+    comma_answer = payload["answer"].replace(".", ",")
+
+    resp2 = client.post(
+        f"/math/praticar/{topic.slug}/responder",
+        data={"token": token, "answer": comma_answer},
+    )
+    assert "Correto" in resp2.data.decode()
+
+
+def test_decimal_operation_whole_result_matches_plain_integer_input(client, db, app):
+    """A decimal subtraction that lands on a whole number (e.g. '3.0')
+    must still accept a plain '3' from the user."""
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="operacoes-com-decimais")
+
+    for _ in range(30):  # only some draws land on a whole-number result
+        resp = client.get(f"/math/praticar/{topic.slug}/questao")
+        token = _extract_token(resp.data.decode())
+        with app.app_context():
+            payload = question_token.read_token(token)
+        answer = payload["answer"]
+        if float(answer).is_integer():
+            resp2 = client.post(
+                f"/math/praticar/{topic.slug}/responder",
+                data={"token": token, "answer": str(int(float(answer)))},
+            )
+            assert "Correto" in resp2.data.decode()
+            return
+    raise AssertionError("did not draw a whole-number decimal result in 30 tries")

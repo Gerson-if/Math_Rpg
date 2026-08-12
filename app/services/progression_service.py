@@ -24,6 +24,8 @@ from app.models import (
     Achievement,
     UserAchievement,
     Notification,
+    Subject,
+    Topic,
 )
 
 # XP per correct answer, scaled by difficulty (1..5). Wrong answers award
@@ -222,5 +224,19 @@ def _meets_criteria(user_id: int, stats: PlayerStats, criteria: dict) -> bool:
 
     if criteria_type == "best_streak":
         return stats.best_streak >= value
+
+    if criteria_type == "attempts_correct_in_subject":
+        count = (
+            db.session.query(func.count(Attempt.id))
+            .join(Topic, Attempt.topic_id == Topic.id)
+            .join(Subject, Topic.subject_id == Subject.id)
+            .filter(
+                Attempt.user_id == user_id,
+                Subject.slug == criteria.get("subject"),
+                Attempt.is_correct.is_(True),
+            )
+            .scalar()
+        )
+        return count >= value
 
     return False

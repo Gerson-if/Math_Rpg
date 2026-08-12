@@ -175,3 +175,41 @@ def test_achievement_unlocks_once_threshold_is_met(app, db):
         # Doesn't unlock a second time.
         result2 = progression_service.process_attempt(_make_attempt(user, topic, correct=True))
         assert result2["new_achievements"] == []
+
+
+def test_achievement_unlocks_by_correct_answers_in_a_specific_subject(app, db):
+    """Fase 7: achievements scoped to one of the new subjects (e.g.
+    'Mestre da Potenciação') must only count attempts under that subject,
+    not correct answers from any topic."""
+    with app.app_context():
+        user = _make_user()
+        _seed_levels_and_ranks()
+
+        potenciacao = Subject(slug="potenciacao", name="Potenciação", order=1)
+        db.session.add(potenciacao)
+        db.session.flush()
+        power_topic = Topic(
+            slug="potencias-basicas", name="Potências básicas",
+            subject_id=potenciacao.id, order=0, base_difficulty=1,
+        )
+        other_topic = _make_topic()  # unrelated "tabuada" subject
+        db.session.add(power_topic)
+        db.session.flush()
+
+        db.session.add(Achievement(
+            code="dominou_potenciacao",
+            name="Mestre da Potenciação",
+            description="Acerte 2 questões de Potenciação.",
+            criteria={"type": "attempts_correct_in_subject", "subject": "potenciacao", "value": 2},
+        ))
+        db.session.commit()
+
+        # Correct answers in an unrelated subject don't count toward it.
+        result = progression_service.process_attempt(_make_attempt(user, other_topic, correct=True))
+        assert result["new_achievements"] == []
+
+        result2 = progression_service.process_attempt(_make_attempt(user, power_topic, correct=True))
+        assert result2["new_achievements"] == []  # only 1 of 2 required so far
+
+        result3 = progression_service.process_attempt(_make_attempt(user, power_topic, correct=True))
+        assert [a.code for a in result3["new_achievements"]] == ["dominou_potenciacao"]

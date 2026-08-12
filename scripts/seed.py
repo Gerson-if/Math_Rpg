@@ -56,6 +56,23 @@ ACHIEVEMENTS = [
      {"type": "attempts_total", "value": 100}, "images/achievements/cem_questoes.png"),
     ("sete_dias", "7 Dias de Prática", "Pratique por 7 dias diferentes.",
      {"type": "distinct_practice_days", "value": 7}, "images/achievements/sete_dias.png"),
+    ("dominou_potenciacao", "Mestre da Potenciação", "Acerte 20 questões de Potenciação.",
+     {"type": "attempts_correct_in_subject", "subject": "potenciacao", "value": 20},
+     "images/icons/subjects/potenciacao.png"),
+    ("dominou_radiciacao", "Mestre da Radiciação", "Acerte 20 questões de Radiciação.",
+     {"type": "attempts_correct_in_subject", "subject": "radiciacao", "value": 20},
+     "images/icons/subjects/radiciacao.png"),
+    ("dominou_fracoes", "Mestre das Frações", "Acerte 20 questões de Frações.",
+     {"type": "attempts_correct_in_subject", "subject": "fracoes", "value": 20},
+     "images/icons/subjects/fracoes.png"),
+    ("dominou_decimais", "Mestre dos Decimais", "Acerte 20 questões de Números Decimais.",
+     {"type": "attempts_correct_in_subject", "subject": "numeros-decimais", "value": 20},
+     "images/icons/subjects/numeros-decimais.png"),
+    ("dominou_porcentagem", "Mestre da Porcentagem", "Acerte 20 questões de Porcentagem.",
+     {"type": "attempts_correct_in_subject", "subject": "porcentagem", "value": 20},
+     "images/icons/subjects/porcentagem.png"),
+    ("sequencia_de_ferro", "Sequência de Ferro", "Alcance uma sequência de 10 acertos seguidos.",
+     {"type": "best_streak", "value": 10}, "images/ui/streak-flame.png"),
 ]
 
 

@@ -1,14 +1,15 @@
-# Matemática RPG — Fases 1–4 (Fundação, Usuários, Matemática, Progressão)
+# Matemática RPG — Fases 1–7 (Fundação → Expansão)
 
 Plataforma de aprendizado de matemática com progressão inspirada em RPG
-(XP, níveis, rankings, domínio, conquistas). Este é o esqueleto inicial do
-projeto: Flask app factory, modelos do banco, autenticação básica e a
-estrutura de pastas modular descrita no documento de especificação.
+(XP, níveis, rankings, domínio, conquistas, chat). Flask app factory,
+modelos do banco, autenticação, motor de questões, progressão, interface
+com identidade visual em construção e chat global — tudo modular por
+blueprints, como descrito no documento de especificação original.
 
-O pacote de artes de exemplo (`idle`/`walk`) enviado já está posicionado em
-`app/static/images/characters/hero/` e usado como identidade visual
-**provisória** no dashboard/perfil, até o pacote completo de artes ser
-analisado (ver seção 13 do prompt original).
+A identidade visual ainda é parcial: personagens e fundos ilustrados
+completos ainda não chegaram (só o sprite `idle`/`walk` de exemplo em
+`app/static/images/characters/hero/`), mas rank/conquista/matéria já usam
+ícones reais extraídos de um pacote de artes fantasy (ver Fase 5 abaixo).
 
 ## O que já existe
 
@@ -69,18 +70,69 @@ analisado (ver seção 13 do prompt original).
   agendado para rodá-los periodicamente.
 - Feedback de XP/level-up/conquista aparece direto na tela de prática.
 
-## O que ainda não existe (próximas fases)
+**Fase 5 — Interface**
+- Efeitos visuais (`app/static/css/effects.css`) animados via CSS puro a
+  partir de spritesheets em grade — acerto, erro, level-up, conquista
+  desbloqueada e um spinner de carregamento, todos disparados na tela de
+  prática sem nenhuma dependência de JS externa.
+- Badges de rank (7 tiers) e de conquista com fallback em CSS quando não
+  há arte (`app/templates/_macros.html`), e ícones reais extraídos de um
+  pacote de ícones fantasy para ranks, conquistas e as 8 matérias do
+  currículo — tudo ligado via `Rank.icon_key` / `Achievement.icon_key` /
+  `Subject.icon_key`, então trocar a arte no futuro é só atualizar esses
+  campos (via `scripts/seed.py`), sem tocar em template.
+- Atmosfera visual (gradiente sutil no fundo) mantendo a paleta provisória
+  — a paleta em si só será trocada quando o pacote de personagens/fundos
+  completo chegar.
+- Pacotes de arte originais ficam fora do repositório (`app/static/assets/`,
+  gitignored) por licença — só as artes já recortadas e em uso vivem em
+  `app/static/images/`.
+
+**Fase 6 — Social**
+- Chat global (`/chat/`) via HTMX: histórico renderizado no servidor,
+  polling a cada 4s para novas mensagens, envio sem recarregar a página.
+- `app/services/chat_service.py`: cooldown de 3s entre mensagens, bloqueio
+  de mensagem idêntica repetida em até 60s, e uma heurística leve que
+  marca (`is_flagged`) mensagens suspeitas (CAPS LOCK longo, caractere
+  repetido) sem nunca bloquear o envio — fica visível para moderação
+  futura em vez de ser censurada silenciosamente.
+- `ChatMessage.room` já aceita qualquer string — salas, DMs e grupos
+  podem ser adicionados depois sem mudança de schema.
+
+**Fase 7 — Expansão**
+- Cinco novos módulos no motor de questões (`app/services/mathematics_service.py`),
+  seguindo o mesmo padrão de gerador-por-slug das Fases 3/4: Potenciação
+  (básica + propriedades: produto, quociente e potência de potência),
+  Radiciação (raiz quadrada e cúbica, sempre resultado exato), Frações
+  (simplificação e as quatro operações, via `fractions.Fraction` — sem
+  erro de ponto flutuante), Números Decimais (leitura e operações) e
+  Porcentagem (cálculo direto e inverso).
+- `_normalize()` em `app/mathematics/routes.py` ganhou suporte a vírgula
+  decimal (`0,3` == `0.3`, convenção brasileira) e a floats de valor
+  inteiro (`3.0` == `3`), além do que já existia para frações como
+  string (`5/6`). Sem isso, um aluno digitando do jeito natural em
+  português teria a resposta certa marcada como errada.
+- Um novo critério declarativo de conquista, `attempts_correct_in_subject`,
+  permite "Mestre de X" por matéria sem mudar o motor de conquistas —
+  seis conquistas novas usam isso (uma por matéria nova) mais uma usando
+  `best_streak`, que já existia no código mas nunca tinha sido usada.
+- A arquitetura aguentou a expansão sem refatoração: adicionar os 5
+  módulos foi só registrar novas entradas no dicionário de geradores —
+  nenhuma rota, model ou template precisou mudar.
+
+## O que ainda não existe (pendências e próximas fases)
 
 - Dificuldade dinâmica (a dificuldade hoje é fixa por tópico, propositalmente
   — ver seção 9 do prompt original: ajuste automático é explicitamente
   "futuro").
 - Boards semanais/mensais rodando de verdade (a função existe, falta o
   agendador que a chama periodicamente).
-- Chat em tempo real (Fase 6).
-- Identidade visual definitiva a partir do pacote completo de artes (Fase 5)
-  — hoje usa só o sprite de exemplo enviado.
+- Personagens variados e fundos ilustrados — hoje só existe o sprite de
+  exemplo idle/walk enviado na Fase 1.
 - Títulos de perfil ganhos por conquista (`Profile.title` existe no modelo,
   mas nada ainda o preenche automaticamente).
+- Produção de verdade (Fase 8): Postgres, Gunicorn/Caddy, rate limiting,
+  logs estruturados, backup, deploy.
 
 ## Instalação local
 
@@ -96,11 +148,11 @@ pip install -r requirements.txt
 cp .env.example .env
 # edite .env e defina uma SECRET_KEY própria
 
-# 4. Banco de dados (SQLite local por padrão)
+# 4. Banco de dados (SQLite local por padrão) — as migrações já estão no
+# repo em migrations/versions/, então é só aplicar:
 mkdir -p instance
-flask db init          # apenas na primeira vez
-flask db migrate -m "initial schema"
 flask db upgrade
+# (só rode "flask db migrate" de novo se você alterar um model)
 
 # 5. Popular currículo/níveis/ranks/conquistas iniciais
 python scripts/seed.py
@@ -131,29 +183,34 @@ necessária — apenas rode `flask db upgrade` apontando para o Postgres.
 app/
   auth/            cadastro, login, logout
   users/           dashboard, perfil
-  mathematics/     motor de questões (stub — Fase 3)
-  progression/     XP, níveis, domínio (stub — Fase 4)
-  ranking/         leaderboards (stub — Fase 4)
-  achievements/    conquistas (stub — Fase 4)
-  chat/            chat entre jogadores (stub — Fase 6)
+  mathematics/     motor de questões (9 tópicos: tabuada, 4 operações + potenciação,
+                   radiciação, frações, decimais, porcentagem)
+  progression/     XP, níveis, domínio, fila de revisão
+  ranking/         leaderboard global
+  achievements/    conquistas
+  chat/            chat global (HTMX + polling)
   api/             endpoints internos para HTMX/Alpine.js
-  models/          um arquivo por domínio (user, mathematics, progression, ...)
-  services/        regras de negócio (vazio por enquanto — ver Fase 3/4)
+  models/          um arquivo por domínio (user, mathematics, progression, chat, ...)
+  services/        regras de negócio (mathematics_service, progression_service,
+                   chat_service, ranking_service, question_token)
   repositories/    acesso a dados mais complexo, quando necessário
-  templates/        HTML (Jinja2)
-  static/images/    artes do jogo (characters, backgrounds, icons, ranks, badges, achievements, ui)
+  templates/       HTML (Jinja2)
+  static/css/      effects.css (VFX) e ui.css (badges, chat, atmosfera)
+  static/images/   artes em uso (characters, icons/subjects, ranks, achievements, ui)
+  static/assets/   pacotes de arte originais — fora do git (licença), só local
 config/            classes de configuração (dev/test/produção)
-migrations/        gerado por `flask db init`
-scripts/seed.py    popula currículo, níveis, ranks e conquistas iniciais
-tests/             pytest
+migrations/        Flask-Migrate/Alembic — já commitado, só rodar `flask db upgrade`
+scripts/seed.py    popula currículo, níveis, ranks, conquistas (upsert — roda de novo sem duplicar)
+tests/             pytest (50 testes)
 ```
 
 ## Próximo passo recomendado
 
-Fases 1–4 já estão cobertas — o loop completo de "responder → ganhar XP →
+Fases 1–7 já estão cobertas — o loop completo de "responder → ganhar XP →
 subir de nível → dominar ou precisar revisar → desbloquear conquista →
-aparecer no ranking" já funciona de ponta a ponta. O próximo passo natural
-é a Fase 5 (Interface): analisar o pacote completo de artes quando ele
-chegar (hoje só há o sprite de exemplo idle/walk) e substituir a paleta
-provisória em `app/templates/base.html` pela identidade visual definitiva,
-sem precisar tocar em lógica de negócio.
+aparecer no ranking → conversar no chat" já funciona de ponta a ponta, com
+9 tópicos de matemática diferentes. O próximo passo natural é a Fase 8
+(Produção): Postgres real, Gunicorn/Caddy, rate limiting, logs
+estruturados, backup e deploy — ver seção "Produção" abaixo assim que
+existir. A identidade visual definitiva (personagens/fundos completos)
+continua dependendo do pacote de artes chegar por inteiro.
