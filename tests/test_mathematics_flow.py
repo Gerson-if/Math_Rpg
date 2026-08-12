@@ -154,3 +154,29 @@ def test_decimal_operation_whole_result_matches_plain_integer_input(client, db, 
             assert "Correto" in resp2.data.decode()
             return
     raise AssertionError("did not draw a whole-number decimal result in 30 tries")
+
+
+def test_dynamic_difficulty_rises_after_a_streak_of_correct_answers(client, db, app):
+    """Pendência: difficulty was static per topic; it now adapts to
+    mastery/streak. A long streak of correct answers on a base-difficulty-1
+    topic should eventually serve a harder question, end to end through
+    the real HTTP flow (not just the service function in isolation)."""
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="adicao")
+    assert topic.base_difficulty == 1
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    token = _extract_token(resp.data.decode())
+
+    difficulties = []
+    for _ in range(8):
+        with app.app_context():
+            payload = question_token.read_token(token)
+        difficulties.append(payload["difficulty"])
+        resp = client.post(
+            f"/math/praticar/{topic.slug}/responder",
+            data={"token": token, "answer": payload["answer"]},
+        )
+        token = _extract_token(resp.data.decode())
+
+    assert max(difficulties) > topic.base_difficulty

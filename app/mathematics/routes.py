@@ -72,12 +72,13 @@ def practice(topic_slug):
 @login_required
 def new_question(topic_slug):
     topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
+    difficulty = progression_service.get_effective_difficulty(current_user.id, topic)
     try:
-        q = mathematics_service.generate_question(topic.slug, topic.base_difficulty)
+        q = mathematics_service.generate_question(topic.slug, difficulty)
     except ValueError:
         abort(404)
 
-    token = question_token.make_token(topic.slug, topic.base_difficulty, q["answer"])
+    token = question_token.make_token(topic.slug, difficulty, q["answer"])
     return render_template(
         "mathematics/_question.html", topic=topic, prompt=q["prompt"], token=token
     )
@@ -118,8 +119,11 @@ def answer_question(topic_slug):
 
     # Keep the loop going: hand back feedback + the next question in one
     # response so practicing doesn't require a full page reload per item.
-    next_q = mathematics_service.generate_question(topic.slug, topic.base_difficulty)
-    next_token = question_token.make_token(topic.slug, topic.base_difficulty, next_q["answer"])
+    # Difficulty is recomputed *after* process_attempt() above, so it
+    # already reflects the mastery update from the answer just submitted.
+    next_difficulty = progression_service.get_effective_difficulty(current_user.id, topic)
+    next_q = mathematics_service.generate_question(topic.slug, next_difficulty)
+    next_token = question_token.make_token(topic.slug, next_difficulty, next_q["answer"])
 
     return render_template(
         "mathematics/_question.html",

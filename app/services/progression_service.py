@@ -26,6 +26,7 @@ from app.models import (
     Notification,
     Subject,
     Topic,
+    Profile,
 )
 
 # XP per correct answer, scaled by difficulty (1..5). Wrong answers award
@@ -39,6 +40,13 @@ _XP_BY_DIFFICULTY = {1: 10, 2: 15, 3: 20, 4: 30, 5: 45}
 _RETENTION_GRACE_DAYS = 7
 _RETENTION_DECAY_PER_DAY = 0.02
 _RETENTION_MAX_DECAY = 0.4
+
+# Dynamic difficulty (section 9 of the spec deferred this to "future" —
+# it's built on top of Mastery, which Fase 4 already tracks). Require a
+# few data points before adapting so one lucky/unlucky answer on a fresh
+# topic doesn't swing difficulty around.
+_DIFFICULTY_MIN_ATTEMPTS = 3
+_DIFFICULTY_STREAK_BONUS_AT = 5
 
 
 def process_attempt(attempt: Attempt) -> dict:
@@ -77,6 +85,38 @@ def process_attempt(attempt: Attempt) -> dict:
         "needs_review": mastery.needs_review,
         "new_achievements": new_achievements,
     }
+
+
+def get_effective_difficulty(user_id: int, topic: Topic) -> int:
+    """Adapts `topic.base_difficulty` to how this user is actually doing on
+    it. Read-only — mathematics_service's generators stay DB-free by
+    design, so the routes layer calls this before generating a question
+    instead of the generators reading Mastery themselves.
+
+    High mastery or a hot streak nudge difficulty up; a topic the user is
+    clearly struggling with nudges it back down. Everything stays inside
+    the existing 1..5 range topics were already authored for.
+    """
+    mastery = Mastery.query.filter_by(user_id=user_id, topic_id=topic.id).first()
+    if mastery is None:
+        return topic.base_difficulty
+
+    total_attempts = mastery.correct_count + mastery.wrong_count
+    if total_attempts < _DIFFICULTY_MIN_ATTEMPTS:
+        return topic.base_difficulty
+
+    delta = 0
+    if mastery.mastery_score >= 0.9:
+        delta += 2
+    elif mastery.mastery_score >= 0.75:
+        delta += 1
+    elif mastery.mastery_score < 0.35:
+        delta -= 1
+
+    if mastery.current_streak >= _DIFFICULTY_STREAK_BONUS_AT:
+        delta += 1
+
+    return max(1, min(5, topic.base_difficulty + delta))
 
 
 def _get_or_create_stats(user_id: int) -> PlayerStats:
@@ -198,6 +238,14 @@ def _check_achievements(user_id: int, stats: PlayerStats) -> list[Achievement]:
                 payload={"code": achievement.code, "name": achievement.name},
             ))
             unlocked.append(achievement)
+
+    if unlocked:
+        # Title is a cosmetic, ever-changing badge — the most recently
+        # unlocked achievement in this batch becomes the displayed title.
+        profile = Profile.query.filter_by(user_id=user_id).first()
+        if profile is not None:
+            profile.title = unlocked[-1].name
+
     return unlocked
 
 

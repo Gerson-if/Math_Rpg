@@ -6,6 +6,7 @@ progression, ranking, achievements, chat, api) that each expose a Flask
 Blueprint. This keeps the codebase modular from day one and matches the
 architecture described in the project spec.
 """
+import click
 from flask import Flask
 
 from app.extensions import db, migrate, login_manager, csrf
@@ -49,5 +50,24 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     @app.route("/health")
     def health():
         return {"status": "ok"}
+
+    @app.cli.command("recompute-leaderboards")
+    @click.option(
+        "--scope", default="weekly", type=click.Choice(["weekly", "monthly", "global"]),
+        help="Which leaderboard snapshot to (re)compute.",
+    )
+    @click.option("--limit", default=100, type=int, help="How many top players to keep.")
+    def recompute_leaderboards(scope: str, limit: int) -> None:
+        """Recompute a LeaderboardEntry snapshot for the current period.
+
+        No in-process scheduler is bundled on purpose — with multiple
+        Gunicorn workers an in-process timer would fire once per worker.
+        Point an external scheduler (cron, systemd timer, Windows Task
+        Scheduler, ...) at this command instead. See README for examples.
+        """
+        from app.services import ranking_service
+
+        count = ranking_service.recompute_leaderboard(scope=scope, limit=limit)
+        click.echo(f"Leaderboard '{scope}' recomputado: {count} jogadores.")
 
     return app

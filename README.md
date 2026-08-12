@@ -120,17 +120,27 @@ completos ainda não chegaram (só o sprite `idle`/`walk` de exemplo em
   módulos foi só registrar novas entradas no dicionário de geradores —
   nenhuma rota, model ou template precisou mudar.
 
-## O que ainda não existe (pendências e próximas fases)
+**Pendências resolvidas (do fim da Fase 4)**
+- Dificuldade dinâmica de verdade: `progression_service.get_effective_difficulty()`
+  lê o `Mastery` do usuário naquele tópico (score da média móvel + streak
+  atual) e ajusta a dificuldade servida pra cima ou pra baixo dentro da
+  faixa 1..5 do tópico — exige pelo menos 3 tentativas antes de reagir,
+  pra um acerto/erro isolado não fazer a dificuldade oscilar. Os
+  geradores em si continuam sem acesso a banco, por design; quem decide
+  a dificuldade efetiva é a camada de rotas.
+- Boards semanais/mensais rodando de verdade: `flask recompute-leaderboards
+  --scope weekly|monthly|global` — comando de CLI pensado pra ser chamado
+  por um agendador externo (cron, systemd timer, Task Scheduler), não por
+  um scheduler dentro do processo (que duplicaria a execução com múltiplos
+  workers do Gunicorn).
+- Títulos de perfil por conquista: toda vez que uma conquista nova é
+  desbloqueada, `Profile.title` passa a mostrar o nome dela automaticamente
+  (a mais recente da leva, se mais de uma desbloquear no mesmo instante).
 
-- Dificuldade dinâmica (a dificuldade hoje é fixa por tópico, propositalmente
-  — ver seção 9 do prompt original: ajuste automático é explicitamente
-  "futuro").
-- Boards semanais/mensais rodando de verdade (a função existe, falta o
-  agendador que a chama periodicamente).
+## O que ainda não existe (próximas fases)
+
 - Personagens variados e fundos ilustrados — hoje só existe o sprite de
   exemplo idle/walk enviado na Fase 1.
-- Títulos de perfil ganhos por conquista (`Profile.title` existe no modelo,
-  mas nada ainda o preenche automaticamente).
 - Produção de verdade (Fase 8): Postgres, Gunicorn/Caddy, rate limiting,
   logs estruturados, backup, deploy.
 
@@ -177,6 +187,22 @@ e `FLASK_ENV=production` no `.env` ou nas variáveis de ambiente do servidor.
 Como tudo passa por SQLAlchemy/Flask-Migrate, nenhuma mudança de código é
 necessária — apenas rode `flask db upgrade` apontando para o Postgres.
 
+## Leaderboards semanais/mensais
+
+`recompute_leaderboard()` só congela um snapshot quando é chamado — não há
+scheduler embutido no processo (evita rodar em duplicidade com múltiplos
+workers do Gunicorn). Aponte um agendador do sistema operacional pro
+comando de CLI:
+
+```bash
+# manual / debug
+flask recompute-leaderboards --scope weekly
+
+# cron (toda segunda à meia-noite, ajuste o caminho do venv/projeto)
+0 0 * * 1 cd /caminho/do/projeto && .venv/bin/flask recompute-leaderboards --scope weekly
+0 0 1 * * cd /caminho/do/projeto && .venv/bin/flask recompute-leaderboards --scope monthly
+```
+
 ## Estrutura de pastas
 
 ```text
@@ -201,7 +227,7 @@ app/
 config/            classes de configuração (dev/test/produção)
 migrations/        Flask-Migrate/Alembic — já commitado, só rodar `flask db upgrade`
 scripts/seed.py    popula currículo, níveis, ranks, conquistas (upsert — roda de novo sem duplicar)
-tests/             pytest (50 testes)
+tests/             pytest (61 testes)
 ```
 
 ## Próximo passo recomendado

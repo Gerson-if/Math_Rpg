@@ -11,6 +11,7 @@ from app.models import (
     Achievement,
     PlayerStats,
     Mastery,
+    Profile,
 )
 from app.services import progression_service
 
@@ -213,3 +214,112 @@ def test_achievement_unlocks_by_correct_answers_in_a_specific_subject(app, db):
 
         result3 = progression_service.process_attempt(_make_attempt(user, power_topic, correct=True))
         assert [a.code for a in result3["new_achievements"]] == ["dominou_potenciacao"]
+
+
+def test_profile_title_is_set_from_the_newest_unlocked_achievement(app, db):
+    with app.app_context():
+        user = _make_user()
+        db.session.add(Profile(user_id=user.id, display_name="Jogador"))
+        topic = _make_topic()
+        _seed_levels_and_ranks()
+        db.session.add(Achievement(
+            code="primeiro_acerto",
+            name="Primeiro Acerto",
+            description="Responda sua primeira questão corretamente.",
+            criteria={"type": "attempts_correct_total", "value": 1},
+        ))
+        db.session.commit()
+
+        progression_service.process_attempt(_make_attempt(user, topic, correct=True))
+
+        profile = Profile.query.filter_by(user_id=user.id).first()
+        assert profile.title == "Primeiro Acerto"
+
+
+def test_profile_title_is_untouched_when_no_achievement_unlocks(app, db):
+    with app.app_context():
+        user = _make_user()
+        db.session.add(Profile(user_id=user.id, display_name="Jogador", title="Título Manual"))
+        topic = _make_topic()
+        _seed_levels_and_ranks()
+        db.session.commit()
+
+        progression_service.process_attempt(_make_attempt(user, topic, correct=True))
+
+        profile = Profile.query.filter_by(user_id=user.id).first()
+        assert profile.title == "Título Manual"
+
+
+def _set_mastery(user, topic, *, score, correct=5, wrong=0, streak=0):
+    mastery = Mastery.query.filter_by(user_id=user.id, topic_id=topic.id).first()
+    if mastery is None:
+        mastery = Mastery(user_id=user.id, topic_id=topic.id)
+        db.session.add(mastery)
+    mastery.mastery_score = score
+    mastery.correct_count = correct
+    mastery.wrong_count = wrong
+    mastery.current_streak = streak
+    db.session.commit()
+    return mastery
+
+
+def test_effective_difficulty_defaults_to_base_without_enough_data(app, db):
+    with app.app_context():
+        user = _make_user()
+        topic = _make_topic()
+        assert progression_service.get_effective_difficulty(user.id, topic) == topic.base_difficulty
+
+        _set_mastery(user, topic, score=0.95, correct=1, wrong=0)  # only 1 attempt so far
+        assert progression_service.get_effective_difficulty(user.id, topic) == topic.base_difficulty
+
+
+def test_effective_difficulty_rises_with_high_mastery(app, db):
+    with app.app_context():
+        user = _make_user()
+        topic = _make_topic()
+        topic.base_difficulty = 2
+        db.session.commit()
+
+        _set_mastery(user, topic, score=0.95, correct=5, wrong=0)
+        assert progression_service.get_effective_difficulty(user.id, topic) == 4  # base 2 + 2
+
+        _set_mastery(user, topic, score=0.8, correct=5, wrong=0)
+        assert progression_service.get_effective_difficulty(user.id, topic) == 3  # base 2 + 1
+
+
+def test_effective_difficulty_drops_when_struggling(app, db):
+    with app.app_context():
+        user = _make_user()
+        topic = _make_topic()
+        topic.base_difficulty = 3
+        db.session.commit()
+
+        _set_mastery(user, topic, score=0.2, correct=1, wrong=4)
+        assert progression_service.get_effective_difficulty(user.id, topic) == 2  # base 3 - 1
+
+
+def test_effective_difficulty_streak_bonus_stacks_and_is_capped(app, db):
+    with app.app_context():
+        user = _make_user()
+        topic = _make_topic()
+        topic.base_difficulty = 5
+
+        _set_mastery(user, topic, score=0.95, correct=10, wrong=0, streak=6)
+        # base 5 + 2 (mastery) + 1 (streak) would be 8, capped at 5
+        assert progression_service.get_effective_difficulty(user.id, topic) == 5
+
+        topic.base_difficulty = 1
+        db.session.commit()
+        _set_mastery(user, topic, score=0.5, correct=10, wrong=0, streak=6)
+        assert progression_service.get_effective_difficulty(user.id, topic) == 2  # base 1 + streak bonus
+
+
+def test_effective_difficulty_is_never_below_one(app, db):
+    with app.app_context():
+        user = _make_user()
+        topic = _make_topic()
+        topic.base_difficulty = 1
+        db.session.commit()
+
+        _set_mastery(user, topic, score=0.1, correct=1, wrong=9)
+        assert progression_service.get_effective_difficulty(user.id, topic) == 1
