@@ -1,0 +1,14 @@
+forest-castle.png and everything in parallax/ are composited/extracted
+from a "GandalfHardcore" scenery pack (gandalfhardcore.itch.io) —
+specifically the "Background layers" parallax set (Autumn variant) and
+the standalone Torch.png sprite (see ../ui/CREDITS.txt).
+
+License (from the pack's own READ ME.txt):
+- Can be used in commercial and non-commercial games/projects, modified,
+  and displayed on your own site.
+- Cannot be resold, repackaged, or redistributed as raw assets.
+- Cannot be used for AI training or NFT/crypto/web3 projects.
+- Cannot be bundled into game-dev tools or printed materials.
+
+Follow/support: twitter.com/GandaIfHardcore, gandalfhardcore.itch.io,
+fiverr.com/gandalfhardcore

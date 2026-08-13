@@ -10,3 +10,7 @@ License (from the pack's own License.pdf):
 xp-coin.png, streak-flame.png, mastery-up.png, mastery-down.png are
 from "Raven Fantasy Icons" — see ../icons/CREDITS.txt for that pack's
 terms.
+
+torch-flicker.png is cropped from Torch.png in a "GandalfHardcore"
+scenery pack (gandalfhardcore.itch.io) — see ../backgrounds/CREDITS.txt
+for that pack's terms, which cover this file too.
