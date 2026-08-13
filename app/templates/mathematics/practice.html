@@ -77,6 +77,38 @@
   .revive-wipe--in { animation: reviveWipeIn 0.55s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
   .revive-wipe--out { animation: reviveWipeOut 0.5s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
 
+  /* "Novo desafio" gets its own crossing: a spinning dashed ring that
+     expands outward while the fresh battle underneath grows in through a
+     shrinking-then-blooming clip-path circle — the "travessia do portal"
+     technique, sized down to live inside the arena instead of the whole
+     viewport. */
+  .portal-ring {
+    position: absolute; top: 50%; left: 50%;
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    border: 8px dashed #d4af37;
+    box-shadow: 0 0 25px #a855f7, inset 0 0 25px #a855f7;
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 55;
+  }
+  @keyframes portalRingExpand {
+    0%   { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 1; border-width: 8px; }
+    25%  { transform: translate(-50%, -50%) scale(0.4) rotate(140deg); opacity: 1; border-width: 12px; }
+    50%  { transform: translate(-50%, -50%) scale(0.7) rotate(300deg); opacity: 1; border-width: 18px; box-shadow: 0 0 45px #d4af37, inset 0 0 45px #ffffff; }
+    100% { transform: translate(-50%, -50%) scale(4) rotate(680deg); opacity: 0; border-width: 1px; }
+  }
+  .portal-ring--open { animation: portalRingExpand 0.9s cubic-bezier(0.5, 0, 0.2, 1) forwards; }
+
+  @keyframes arenaPortalReveal {
+    0%   { clip-path: circle(0% at 50% 50%); filter: brightness(1); }
+    30%  { clip-path: circle(6% at 50% 50%); filter: brightness(1); }
+    55%  { clip-path: circle(10% at 50% 50%); filter: brightness(1.8); }
+    100% { clip-path: circle(120% at 50% 50%); filter: brightness(1); }
+  }
+  .arena-portal-reveal { animation: arenaPortalReveal 0.9s cubic-bezier(0.5, 0, 0.2, 1) forwards; }
+
   @keyframes heroAttack {
     0% { transform: translateX(0) scale(1); }
     50% { transform: translateX(14px) scale(1.08); filter: brightness(1.5) drop-shadow(0 0 10px gold); }
@@ -171,7 +203,9 @@
     <div id="dust-container" class="absolute inset-0 pointer-events-none overflow-hidden z-0"></div>
     <div id="portal-effect" class="gate-rift"></div>
     <div id="revive-wipe" class="revive-wipe"></div>
+    <div id="next-portal-ring" class="portal-ring"></div>
 
+    <div id="arena-content">
     <div class="relative z-10 p-3 sm:p-4 flex justify-between items-start gap-3 bg-gradient-to-b from-black/80 to-transparent">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 sm:gap-3">
@@ -224,6 +258,7 @@
         </button>
       </div>
     </div>
+    </div><!-- /#arena-content -->
 
     <!-- VICTORY -->
     <div id="victory-screen" class="battle-overlay hidden">
@@ -379,9 +414,21 @@
     }
 
     function nextChallenge() {
-      resetBars();
-      $('victory-screen').classList.add('hidden');
-      focusAnswer();
+      const ring = $('next-portal-ring');
+      const content = $('arena-content');
+
+      ring.className = 'portal-ring portal-ring--open';
+
+      setTimeout(() => {
+        resetBars();
+        $('victory-screen').classList.add('hidden');
+        content.classList.remove('arena-portal-reveal'); void content.offsetWidth;
+        content.classList.add('arena-portal-reveal');
+        spawnDust();
+        focusAnswer();
+      }, 380); // synced to the ring's brightest, narrowest moment
+
+      setTimeout(() => { ring.className = 'portal-ring'; }, 950);
     }
 
     function flee() { window.location.href = "{{ url_for('mathematics.index') }}"; }
