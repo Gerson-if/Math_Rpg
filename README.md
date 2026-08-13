@@ -217,14 +217,19 @@ de novo depois, só não são mais referenciados por nenhuma animação.
 
 ## O que ainda não existe
 
-- Sprites de ataque/dano do herói e qualquer personagem/inimigo ilustrado
-  de verdade — o sistema de batalha acima reaproveita transformações CSS
-  sobre o sprite idle e reaproveita o portal/estátua do pacote de cenário
-  como "inimigo", porque essas poses específicas não existem em nenhum
-  pacote de artes recebido até agora.
+- Nenhuma animação de personagem em tela — removidas a pedido do usuário
+  (ver seção anterior). Os assets existem (`images/characters/soldier/`,
+  `images/characters/orc/`, com idle/attack/hurt/death de verdade) e
+  podem ser religados depois se fizer sentido.
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
   artefatos e o runbook estão prontos em [DEPLOY.md](DEPLOY.md), falta
   alguém com acesso a um provedor de nuvem executar os passos.
+- A tela de login foi redesenhada com Tailwind CSS via CDN + Google
+  Fonts + FontAwesome (tema medieval, ver `app/templates/auth/login.html`)
+  a partir de um template HTML fornecido pelo usuário — é a única página
+  do site que não usa `ui.css`/`base.html`, roda sua própria stack de
+  CDNs, e a tela de cadastro (`register.html`) ainda está no visual
+  antigo (não foi pedido redesenhá-la ainda).
 
 ## Instalação local
 

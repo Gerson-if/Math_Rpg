@@ -1,17 +1,184 @@
-{% extends "base.html" %}
-{% block title %}Entrar{% endblock %}
-{% block content %}
-<div class="panel" style="max-width:420px;margin-inline:auto;">
-  <h1>Entrar</h1>
-  <form method="POST">
-    {{ form.hidden_tag() }}
-    <label>{{ form.email.label }}</label>
-    {{ form.email(type="email") }}
-    <label>{{ form.password.label }}</label>
-    {{ form.password(type="password") }}
-    <p><label>{{ form.remember() }} {{ form.remember.label }}</label></p>
-    {{ form.submit(class_="btn") }}
-  </form>
-  <p style="margin-top:1rem;">Não tem conta? <a href="{{ url_for('auth.register') }}">Criar conta</a></p>
-</div>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matemática RPG — Portal do Reino</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        medieval: ['MedievalSharp', 'cursive'],
+                        cinzel: ['Cinzel', 'serif'],
+                    },
+                    colors: {
+                        parchment: {
+                            100: '#fdf6e3',
+                            200: '#f4e8c1',
+                            300: '#e0c99a',
+                            900: '#4a3b22'
+                        },
+                        blood: '#8b0000',
+                        gold: '#d4af37'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    <style>
+        body {
+            background-color: #111827;
+            background-image:
+                radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%),
+                url('https://www.transparenttextures.com/patterns/dark-matter.png');
+            color: #e5e7eb;
+        }
+
+        .parchment-bg {
+            background-color: #f4e8c1;
+            background-image: url('https://www.transparenttextures.com/patterns/aged-paper.png');
+            box-shadow: 0 10px 25px rgba(0,0,0,0.7), inset 0 0 40px rgba(139, 69, 19, 0.3);
+        }
+
+        .magic-glow { text-shadow: 0 0 10px rgba(212, 175, 55, 0.7); }
+
+        .math-symbol {
+            font-family: 'Times New Roman', Times, serif;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-cinzel overflow-x-hidden">
+
+    <nav class="border-b-2 border-yellow-900 bg-stone-900/90 backdrop-blur-sm shadow-2xl p-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-square-root-variable text-gold text-3xl"></i>
+                <h1 class="text-3xl font-medieval text-gold font-bold tracking-wider magic-glow">Matemática RPG</h1>
+            </div>
+            <div class="hidden md:flex gap-6 font-medieval text-stone-300">
+                <a href="{{ url_for('auth.login') }}" class="hover:text-gold transition"><i class="fa-solid fa-scroll"></i> O Códice</a>
+                <a href="{{ url_for('auth.login') }}" class="hover:text-gold transition"><i class="fa-solid fa-ranking-star"></i> Salão dos Heróis</a>
+                <a href="{{ url_for('auth.register') }}" class="hover:text-gold transition"><i class="fa-solid fa-dragon"></i> Criar conta</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow flex items-center justify-center p-4 sm:p-8 relative">
+        <div class="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+            <div class="space-y-8">
+                <div class="text-center lg:text-left">
+                    <h2 class="text-4xl sm:text-5xl font-medieval text-gold mb-4 leading-tight">
+                        Desvende os Mistérios da <br/><span class="text-blood font-bold">Magia Algébrica</span>
+                    </h2>
+                    <p class="text-stone-400 font-sans text-lg max-w-xl mx-auto lg:mx-0">
+                        Onde a sabedoria é a sua maior arma. Derrote monstros, desbrave masmorras e evolua seu personagem usando o poder da matemática.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-stone-800/80 border border-stone-600 rounded-lg p-5 hover:border-gold hover:-translate-y-1 transition-all duration-300 shadow-lg">
+                        <i class="fa-solid fa-wand-sparkles text-2xl text-purple-400 mb-3"></i>
+                        <h3 class="font-medieval text-xl text-stone-200 mb-2">Prática por Questões</h3>
+                        <p class="font-sans text-sm text-stone-400">Responda desafios de matemática e ganhe XP a cada acerto — a dificuldade se ajusta ao seu ritmo.</p>
+                        <div class="mt-3 bg-stone-900 rounded p-2 text-center text-gold math-symbol text-sm border border-stone-700">
+                            2x + 5 = 15 → x = 5
+                        </div>
+                    </div>
+
+                    <div class="bg-stone-800/80 border border-stone-600 rounded-lg p-5 hover:border-gold hover:-translate-y-1 transition-all duration-300 shadow-lg">
+                        <i class="fa-solid fa-map-location-dot text-2xl text-green-500 mb-3"></i>
+                        <h3 class="font-medieval text-xl text-stone-200 mb-2">Currículo Completo</h3>
+                        <p class="font-sans text-sm text-stone-400">Da tabuada às frações, potências e porcentagem — cada matéria é uma trilha própria.</p>
+                    </div>
+
+                    <div class="bg-stone-800/80 border border-stone-600 rounded-lg p-5 hover:border-gold hover:-translate-y-1 transition-all duration-300 shadow-lg">
+                        <i class="fa-solid fa-chart-line text-2xl text-blue-400 mb-3"></i>
+                        <h3 class="font-medieval text-xl text-stone-200 mb-2">Evolução Contínua</h3>
+                        <p class="font-sans text-sm text-stone-400">Nível, rank e domínio por tópico — sua evolução fica registrada a cada resposta.</p>
+                    </div>
+
+                    <div class="bg-stone-800/80 border border-stone-600 rounded-lg p-5 hover:border-gold hover:-translate-y-1 transition-all duration-300 shadow-lg">
+                        <i class="fa-solid fa-chess-rook text-2xl text-stone-300 mb-3"></i>
+                        <h3 class="font-medieval text-xl text-stone-200 mb-2">Ranking e Chat</h3>
+                        <p class="font-sans text-sm text-stone-400">Veja sua posição no ranking semanal e converse com outros jogadores no chat global.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-center relative">
+                <div class="absolute inset-0 bg-gold opacity-10 blur-[100px] rounded-full"></div>
+
+                <div class="parchment-bg w-full max-w-md rounded-sm border-8 border-double border-yellow-900/60 p-8 relative z-10 text-parchment-900">
+
+                    <div class="flex justify-center mb-6">
+                        <div class="w-16 h-16 rounded-full border-2 border-yellow-800 flex items-center justify-center text-3xl bg-red-900 text-gold shadow-inner">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                    </div>
+
+                    <h2 class="text-3xl font-medieval text-center mb-1 font-bold text-yellow-950">Os Portões de Euler</h2>
+                    <p class="text-center font-sans text-sm text-yellow-900/80 mb-6 font-semibold">Identifique-se para entrar no reino</p>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                      {% if messages %}
+                        <div class="mb-4 space-y-2">
+                          {% for category, message in messages %}
+                            <div class="font-sans text-sm font-semibold rounded p-3 border {{ 'bg-red-100 border-blood text-blood' if category == 'error' else 'bg-yellow-100 border-yellow-800 text-yellow-950' }}">
+                              {{ message }}
+                            </div>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" class="space-y-5">
+                        {{ form.hidden_tag() }}
+
+                        <div>
+                            <label class="block font-medieval font-bold mb-1 text-lg"><i class="fa-solid fa-envelope mr-2 text-yellow-800"></i>{{ form.email.label.text }}</label>
+                            {{ form.email(type="email", class_="w-full bg-parchment-100 border-2 border-yellow-800/50 rounded p-3 font-sans text-stone-800 focus:outline-none focus:border-blood focus:ring-1 focus:ring-blood transition-colors shadow-inner", placeholder="mago@guilda.com") }}
+                        </div>
+
+                        <div>
+                            <label class="block font-medieval font-bold mb-1 text-lg"><i class="fa-solid fa-lock mr-2 text-yellow-800"></i>{{ form.password.label.text }}</label>
+                            {{ form.password(class_="w-full bg-parchment-100 border-2 border-yellow-800/50 rounded p-3 font-sans text-stone-800 focus:outline-none focus:border-blood focus:ring-1 focus:ring-blood transition-colors shadow-inner", placeholder="••••••••") }}
+                        </div>
+
+                        <div class="flex items-center justify-between font-sans text-sm font-semibold text-yellow-900">
+                            <label class="flex items-center cursor-pointer">
+                                {{ form.remember(class_="mr-2 w-4 h-4 accent-blood cursor-pointer") }}
+                                {{ form.remember.label.text }}
+                            </label>
+                        </div>
+
+                        <div class="pt-4">
+                            <button type="submit"
+                                class="w-full bg-blood hover:bg-red-800 text-gold font-medieval text-xl py-3 rounded border-2 border-yellow-600 shadow-[0_4px_10px_rgba(139,0,0,0.5)] transition-all hover:scale-[1.02] active:scale-95 flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-dungeon"></i> Entrar no Reino
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="mt-6 text-center border-t border-yellow-800/30 pt-4 font-sans text-sm font-semibold">
+                        Ainda não é um aventureiro? <br>
+                        <a href="{{ url_for('auth.register') }}" class="text-blood hover:text-red-600 hover:underline text-base font-medieval mt-1 inline-block">Assinar o Livro de Registro (Criar Conta)</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</body>
+</html>
