@@ -1,35 +1,47 @@
 {% extends "base.html" %}
 {% import "_macros.html" as ui %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Salão do Herói{% endblock %}
 {% block content %}
-<div class="panel">
-  <div style="display:flex;gap:1.5rem;align-items:center;">
-    <div class="soldier-avatar" aria-hidden="true"></div>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+  <div class="flex gap-4 sm:gap-6 items-center flex-wrap">
+    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold flex items-center justify-center text-3xl sm:text-4xl bg-blue-950 text-gold shadow-inner shrink-0">
+      <i class="fa-solid fa-user-shield"></i>
+    </div>
     {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
     <div>
-      <h1 style="margin:0;">Olá, {{ user.profile.display_name if user.profile else user.username }}</h1>
-      <p style="color:var(--color-text-muted);margin:0.25rem 0 0;">
-        Nível <span class="pixel-num">{{ user.stats.level.number if user.stats and user.stats.level else 1 }}</span>
-        · {{ user.stats.rank.name if user.stats and user.stats.rank else "Iniciante" }}
-        · <img class="inline-icon" src="{{ url_for('static', filename='images/ui/xp-coin.png') }}" alt="">
-        <span class="pixel-num">{{ user.stats.xp if user.stats else 0 }} XP</span>
-        · <img class="inline-icon" src="{{ url_for('static', filename='images/ui/streak-flame.png') }}" alt="">
-        Sequência atual: <span class="pixel-num">{{ user.stats.current_streak if user.stats else 0 }}</span>
+      <h1 class="text-2xl sm:text-3xl font-medieval text-gold">Olá, {{ user.profile.display_name if user.profile else user.username }}</h1>
+      <p class="text-stone-300 font-sans mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:text-base">
+        <span><i class="fa-solid fa-shield-halved text-purple-400 mr-1"></i>Nível {{ user.stats.level.number if user.stats and user.stats.level else 1 }}</span>
+        <span>· {{ user.stats.rank.name if user.stats and user.stats.rank else "Iniciante" }}</span>
+        <span><i class="fa-solid fa-coins text-gold mr-1"></i>{{ user.stats.xp if user.stats else 0 }} XP</span>
+        <span><i class="fa-solid fa-fire text-orange-500 mr-1"></i>Sequência: {{ user.stats.current_streak if user.stats else 0 }}</span>
       </p>
     </div>
   </div>
 </div>
 
-<div class="panel">
-  <h2 style="margin-top:0;">Continuar estudando</h2>
-  <p>Escolha um tópico e comece a praticar.</p>
-  <a class="menu-tile" href="{{ url_for('mathematics.index') }}">⚔️ Ver tópicos</a>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-2">Continuar estudando</h2>
+  <p class="font-sans text-stone-400 mb-4">Escolha um tópico e comece a praticar.</p>
+  <a href="{{ url_for('mathematics.index') }}"
+     class="inline-flex items-center gap-2 px-6 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform">
+    <i class="fa-solid fa-hat-wizard"></i> Ver tópicos
+  </a>
 </div>
 
-<div class="panel" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-  <a class="menu-tile" href="{{ url_for('progression.review_queue') }}">📌 Revisão</a>
-  <a class="menu-tile" href="{{ url_for('ranking.index') }}">🏅 Ranking</a>
-  <a class="menu-tile" href="{{ url_for('achievements.index') }}">🏆 Conquistas</a>
-  <a class="menu-tile" href="{{ url_for('chat.index') }}">💬 Chat</a>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg flex flex-wrap gap-3">
+  <a href="{{ url_for('progression.review_queue') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+    <i class="fa-solid fa-book-bookmark"></i> Revisão
+  </a>
+  <a href="{{ url_for('ranking.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+    <i class="fa-solid fa-ranking-star"></i> Ranking
+  </a>
+  <a href="{{ url_for('achievements.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+    <i class="fa-solid fa-trophy"></i> Conquistas
+  </a>
+  <a href="{{ url_for('chat.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+    <i class="fa-solid fa-comments"></i> Chat
+  </a>
 </div>
 {% endblock %}

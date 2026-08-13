@@ -2,32 +2,34 @@
 {% import "_macros.html" as ui %}
 {% block title %}Ranking{% endblock %}
 {% block content %}
-<h1>Ranking global</h1>
-<div class="panel">
-  <table style="width:100%;border-collapse:collapse;text-align:left;">
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+  <i class="fa-solid fa-ranking-star"></i> Ranking global
+</h1>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg overflow-x-auto">
+  <table class="w-full text-left font-sans border-collapse">
     <thead>
-      <tr style="color:var(--color-text-muted);">
-        <th style="padding:0.4rem 0;">#</th>
-        <th>Jogador</th>
-        <th>Nível</th>
-        <th>XP</th>
+      <tr class="text-stone-400 text-sm uppercase tracking-wide">
+        <th class="pb-2 pr-2">#</th>
+        <th class="pb-2 pr-2">Jogador</th>
+        <th class="pb-2 pr-2">Nível</th>
+        <th class="pb-2">XP</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody class="divide-y divide-stone-800">
       {% for stats, user in top_players %}
-        <tr {% if user.id == current_user.id %}style="color:var(--color-accent);"{% endif %}>
-          <td style="padding:0.4rem 0;">{{ loop.index }}</td>
-          <td>
-            <span class="rank-badge-row">
-              {{ ui.rank_badge(stats.rank, size='rank-badge--sm') }}
+        <tr class="{{ 'text-gold' if user.id == current_user.id else 'text-stone-200' }}">
+          <td class="py-2 pr-2">{{ loop.index }}</td>
+          <td class="py-2 pr-2">
+            <span class="inline-flex items-center gap-2">
+              {{ ui.rank_badge(stats.rank, size='sm') }}
               {{ user.profile.display_name if user.profile else user.username }}
             </span>
           </td>
-          <td>{{ stats.level.number if stats.level else "-" }}</td>
-          <td>{{ stats.xp }}</td>
+          <td class="py-2 pr-2">{{ stats.level.number if stats.level else "-" }}</td>
+          <td class="py-2">{{ stats.xp }}</td>
         </tr>
       {% else %}
-        <tr><td colspan="4" style="padding:0.4rem 0;">Ninguém pontuou ainda.</td></tr>
+        <tr><td colspan="4" class="py-2 text-stone-400">Ninguém pontuou ainda.</td></tr>
       {% endfor %}
     </tbody>
   </table>

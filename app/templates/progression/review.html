@@ -1,22 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Revisão{% endblock %}
 {% block content %}
-<h1>Vale a pena revisar</h1>
-<p style="color:var(--color-text-muted);">
-  Tópicos onde seu domínio caiu abaixo do esperado — seja por erros recentes,
-  seja por tempo sem praticar.
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
+  <i class="fa-solid fa-book-bookmark"></i> Vale a pena revisar
+</h1>
+<p class="text-stone-400 font-sans mb-6">
+  Tópicos onde seu domínio caiu abaixo do esperado — seja por erros recentes, seja por tempo sem praticar.
 </p>
 {% for m in items %}
-  <div class="panel" style="display:flex;justify-content:space-between;align-items:center;">
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-3 shadow-lg flex justify-between items-center gap-4 flex-wrap">
     <div>
-      <strong>{{ m.topic.name }}</strong>
-      <div style="color:var(--color-text-muted);font-size:0.9rem;">
-        Domínio: {{ (m.mastery_score * 100) | round(1) }}%
-      </div>
+      <strong class="font-sans text-stone-100">{{ m.topic.name }}</strong>
+      <div class="text-stone-400 font-sans text-sm">Domínio: {{ (m.mastery_score * 100) | round(1) }}%</div>
     </div>
-    <a class="btn" href="{{ url_for('mathematics.practice', topic_slug=m.topic.slug) }}">Praticar</a>
+    <a href="{{ url_for('mathematics.practice', topic_slug=m.topic.slug) }}"
+       class="px-4 py-2 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform shrink-0">
+      Praticar
+    </a>
   </div>
 {% else %}
-  <div class="panel"><p>Nada para revisar agora — continue assim!</p></div>
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 shadow-lg">
+    <p class="font-sans text-stone-300">Nada para revisar agora — continue assim!</p>
+  </div>
 {% endfor %}
 {% endblock %}

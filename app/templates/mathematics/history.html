@@ -1,30 +1,37 @@
 {% extends "base.html" %}
 {% block title %}Histórico{% endblock %}
 {% block content %}
-<h1>Histórico de respostas</h1>
-<div class="panel">
-  <table style="width:100%;border-collapse:collapse;text-align:left;">
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+  <i class="fa-solid fa-scroll"></i> Histórico de respostas
+</h1>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg overflow-x-auto">
+  <table class="w-full text-left font-sans border-collapse">
     <thead>
-      <tr style="color:var(--color-text-muted);">
-        <th style="padding:0.4rem 0;">Tópico</th>
-        <th>Resultado</th>
-        <th>Tempo</th>
-        <th>Quando</th>
+      <tr class="text-stone-400 text-sm uppercase tracking-wide">
+        <th class="pb-2 pr-2">Tópico</th>
+        <th class="pb-2 pr-2">Resultado</th>
+        <th class="pb-2 pr-2">Tempo</th>
+        <th class="pb-2">Quando</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody class="divide-y divide-stone-800">
       {% for a in attempts %}
-        <tr>
-          <td style="padding:0.4rem 0;">{{ a.topic.name }}</td>
-          <td>{{ "✅" if a.is_correct else "❌" }}</td>
-          <td>{{ (a.response_time_ms / 1000) | round(1) }}s</td>
-          <td>{{ a.created_at.strftime("%d/%m %H:%M") }}</td>
+        <tr class="text-stone-200">
+          <td class="py-2 pr-2">{{ a.topic.name }}</td>
+          <td class="py-2 pr-2">
+            {% if a.is_correct %}
+              <i class="fa-solid fa-check text-green-400"></i>
+            {% else %}
+              <i class="fa-solid fa-xmark text-red-400"></i>
+            {% endif %}
+          </td>
+          <td class="py-2 pr-2">{{ (a.response_time_ms / 1000) | round(1) }}s</td>
+          <td class="py-2">{{ a.created_at.strftime("%d/%m %H:%M") }}</td>
         </tr>
       {% else %}
-        <tr><td colspan="4" style="padding:0.4rem 0;">Nenhuma resposta ainda.</td></tr>
+        <tr><td colspan="4" class="py-2 text-stone-400">Nenhuma resposta ainda.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
-<p><a href="{{ url_for('mathematics.index') }}">Voltar aos tópicos</a></p>
 {% endblock %}

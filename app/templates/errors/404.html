@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Página não encontrada{% endblock %}
 {% block content %}
-<div class="panel" style="text-align:center;">
-  <h1>🧭 Página não encontrada</h1>
-  <p style="color:var(--color-text-muted);">Esse caminho não existe ou a página foi movida.</p>
-  <a class="btn" href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">Voltar ao início</a>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-8 sm:p-10 shadow-lg text-center max-w-md mx-auto">
+  <i class="fa-solid fa-compass text-5xl text-purple-400 mb-4"></i>
+  <h1 class="text-2xl font-medieval text-gold mb-2">Página não encontrada</h1>
+  <p class="text-stone-400 font-sans mb-6">Esse caminho não existe ou a página foi movida.</p>
+  <a href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}"
+     class="inline-flex items-center gap-2 px-6 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform">
+    <i class="fa-solid fa-arrow-left"></i> Voltar ao início
+  </a>
 </div>
 {% endblock %}

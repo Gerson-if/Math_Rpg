@@ -1,22 +1,18 @@
-{# Rank/achievement badges. Prefer real art (icon_key) when set on the
-   row; fall back to the CSS badge from ui.css otherwise. This lets a
-   future art drop just populate icon_key — no template change needed. #}
+{# Rank/achievement badges — drawn purely with Tailwind + FontAwesome, no
+   image assets, so the curriculum/rank/achievement models stay free of any
+   dependency on a particular art pack. #}
 
-{% macro rank_badge(rank, size='') %}
+{% macro rank_badge(rank, size='md') %}
   {% if rank %}
-    {% if rank.icon_key %}
-      <span class="rank-badge {{ size }}"><img src="{{ url_for('static', filename=rank.icon_key) }}" alt="{{ rank.name }}"></span>
-    {% else %}
-      <span class="rank-badge rank-badge--{{ rank.slug }} {{ size }}" title="{{ rank.name }}">{{ rank.name[:2] | upper }}</span>
-    {% endif %}
+    {% set dims = 'w-6 h-6 text-[0.6rem]' if size == 'sm' else 'w-10 h-10 text-sm' %}
+    <span class="inline-flex items-center justify-center {{ dims }} rounded-full bg-stone-800 border-2 border-gold text-gold font-medieval font-bold shrink-0 shadow-[0_0_8px_rgba(212,175,55,0.35)]"
+          title="{{ rank.name }}">{{ rank.name[:2] | upper }}</span>
   {% endif %}
 {% endmacro %}
 
 {% macro achievement_badge(achievement, unlocked) %}
-  {% set state = 'unlocked' if unlocked else 'locked' %}
-  {% if achievement.icon_key %}
-    <span class="achv-badge achv-badge--{{ state }}"><img src="{{ url_for('static', filename=achievement.icon_key) }}" alt="{{ achievement.name }}"></span>
-  {% else %}
-    <span class="achv-badge achv-badge--{{ state }}">{{ "🏆" if unlocked else "🔒" }}</span>
-  {% endif %}
+  <span class="inline-flex items-center justify-center w-11 h-11 rounded-full border-2 shrink-0 {{ 'border-gold bg-yellow-900/40 text-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' if unlocked else 'border-stone-700 bg-stone-900 text-stone-600' }}"
+        title="{{ achievement.name }}">
+    <i class="fa-solid {{ 'fa-trophy' if unlocked else 'fa-lock' }}"></i>
+  </span>
 {% endmacro %}

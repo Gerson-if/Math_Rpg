@@ -2,20 +2,22 @@
 {% import "_macros.html" as ui %}
 {% block title %}Conquistas{% endblock %}
 {% block content %}
-<h1>Conquistas</h1>
-<div class="panel">
-  <ul style="list-style:none;padding:0;margin:0;">
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+  <i class="fa-solid fa-trophy"></i> Conquistas
+</h1>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+  <ul class="divide-y divide-stone-800">
     {% for a in achievements %}
       {% set unlocked = a.id in unlocked_ids %}
-      <li class="achievement-row {{ '' if unlocked else 'achievement-row--locked' }}">
+      <li class="flex items-center gap-4 py-3 {{ '' if unlocked else 'opacity-50' }}">
         {{ ui.achievement_badge(a, unlocked) }}
         <div>
-          <strong>{{ a.name }}</strong>
-          <div style="color:var(--color-text-muted);font-size:0.9rem;">{{ a.description }}</div>
+          <strong class="font-sans text-stone-100">{{ a.name }}</strong>
+          <div class="text-stone-400 font-sans text-sm">{{ a.description }}</div>
         </div>
       </li>
     {% else %}
-      <li>Nenhuma conquista cadastrada ainda.</li>
+      <li class="py-3 font-sans text-stone-400">Nenhuma conquista cadastrada ainda.</li>
     {% endfor %}
   </ul>
 </div>

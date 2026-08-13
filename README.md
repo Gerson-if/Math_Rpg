@@ -180,56 +180,66 @@ de batalha" abaixo).
   geram questões numéricas simples (contar símbolos, comparar dois
   números), compatíveis com o campo de resposta `inputmode="numeric"`
   existente, sem exigir nenhum símbolo novo de digitação.
-- **Mentor sidekick**: avatar CSS que mostra uma curiosidade matemática
-  ou uma regra do jogo por sessão de prática (`app/services/mentor_tips.py`,
-  lista curada, `random.choice`), com fundo em pixel art (Sprout Lands UI
-  pack — ver `images/ui/CREDITS.txt`, licença não-comercial).
-- Link "← Voltar ao painel" em toda página autenticada que não seja o
-  próprio dashboard (`base.html`, uma condição só — cobre páginas
-  futuras automaticamente) e favicon de verdade (`app/static/favicon.ico`,
-  gerado a partir do ícone de XP já em uso).
-- Botões (`.btn`, `.menu-tile`) usam o mesmo pixel art do mentor sidekick
-  em vez de gradiente CSS; um avatar estático (sem animação) do
-  personagem "soldier" aparece no dashboard.
-- Números de estatística (XP, nível, sequência) usam uma fonte pixelada
-  (`.pixel-num`, Sprout Lands, mesma licença) — escopo restrito a dígitos
-  porque a fonte só tem maiúsculas/números, sem acentuação, então não dá
-  pra usar em texto corrido em português sem quebrar o fallback no meio
-  da palavra.
+- **Mentor sidekick**: uma curiosidade matemática ou regra do jogo por
+  sessão de prática (`app/services/mentor_tips.py`, lista curada,
+  `random.choice`), mostrada na tela de história antes da batalha.
 
-**Sistema de batalha animado — implementado e depois removido**
-Entre essas correções e a versão atual, este projeto teve uma fase com
-um sistema de batalha bem mais elaborado: sprite do herói com
-idle/attack/walk reconstruído a partir de `.aseprite` fonte
-(`scripts/rebuild_hero_sprites.py` — script mantido no repo, ainda
-funciona se algum sprite precisar do mesmo tratamento no futuro),
-depois um segundo pacote de personagens (soldier vs. orc, com
-idle/attack/hurt/death de verdade), parallax em camadas reais (céu,
-castelo, floresta) atrás da tela de prática/dashboard/login, portal
-animado, tochas na navbar, e por aí vai. A pedido do usuário, **todas
-as animações e fundos/parallax foram removidos** para priorizar
-estabilidade e simplicidade — o que ficou: os elementos estáticos
-(avatar do soldier no dashboard, botões e mentor sidekick em pixel art)
-e todas as correções funcionais da rodada anterior. Os assets
-(`images/characters/soldier/`, `images/characters/orc/`,
-`images/backgrounds/`, `images/battle/`) continuam no repo caso sirvam
-de novo depois, só não são mais referenciados por nenhuma animação.
+**Remodelagem visual completa (Tailwind + tema medieval em todo o site)**
+O projeto passou por duas gerações de identidade visual antes desta. A
+primeira era pixel art (Sprout Lands + sprites de herói reconstruídos de
+`.aseprite` — `scripts/rebuild_hero_sprites.py` ainda está no repo,
+mas não é mais usado). A segunda foi um sistema de batalha animado com
+sprites reais (soldier vs. orc) e parallax em camadas, que foi
+**removido a pedido do usuário** para priorizar estabilidade. A versão
+atual é uma terceira geração: o usuário forneceu um template HTML
+(Tailwind CSS via CDN + Google Fonts MedievalSharp/Cinzel + FontAwesome)
+para a tela de login, e pediu para essa identidade — paleta
+parchment/blood/gold/mystic, ícones FontAwesome em vez de sprites —
+virar o padrão do site inteiro:
+- `base.html` agora carrega a mesma stack Tailwind/fontes/ícones do
+  login e define a navbar, os flashes e o rodapé de "voltar" que toda
+  página autenticada herda. `ui.css` e `effects.css` foram removidos —
+  não sobrou nenhuma regra CSS própria no projeto, é tudo classes
+  utilitárias Tailwind mais um punhado de `@keyframes` locais no bloco
+  `extra_head` da tela de batalha.
+- Rank e conquistas (`_macros.html`) não usam mais imagem — são
+  emblemas desenhados com Tailwind + `<i>` do FontAwesome, então não
+  dependem mais de nenhum `icon_key` apontando pra um arquivo.
+- Os assets órfãos da geração anterior (`images/characters/`,
+  `images/backgrounds/`, `images/battle/`, `images/ui/*`, a fonte
+  pixelada) foram removidos do repo — nada mais os referencia.
+- `register.html` foi redesenhado no mesmo estilo de pergaminho da
+  tela de login (mesmo `parchment-bg`, mesmos campos), então login e
+  cadastro finalmente compartilham a mesma cara.
+
+**Sistema de batalha — reconstruído com questões e XP reais**
+A tela de prática (`mathematics/practice.html`) agora é uma arena de
+batalha de verdade, adaptada de um template de batalha fornecido pelo
+usuário: tela de história (nome do tópico + dica do mentor) → arena
+com barra de vida do "Aprendiz" vs. o "Guardião" → cada resposta
+correta ou errada dispara uma animação (golpe do herói, brilho no
+Guardião, ou um flash sutil na borda da arena) e ajusta as barras de
+HP no cliente. Nada disso é cosmético por cima de dados falsos: o
+loop de pergunta/resposta é o mesmo endpoint HTMX de sempre
+(`/math/praticar/<slug>/questao` e `/responder`), então toda resposta
+continua gerando XP, atualizando maestria e desbloqueando conquistas
+de verdade — a "barra de vida" é só uma forma mais game-like de
+mostrar acertos/erros consecutivos, sem estado novo no backend.
+Vitória e derrota abrem um "portal" (`gate-rift`) sutil no estilo dos
+portões de Solo Leveling — uma fenda estreita que brilha, não um
+círculo girando cobrindo a tela inteira. A única exceção deliberada é
+o portal de ressurgir: a pedido do usuário, esse é o "grande momento"
+— uma onda vermelha (`clip-path: circle()` animado) engole a arena
+inteira antes de revelar a batalha resetada.
 
 ## O que ainda não existe
 
-- Nenhuma animação de personagem em tela — removidas a pedido do usuário
-  (ver seção anterior). Os assets existem (`images/characters/soldier/`,
-  `images/characters/orc/`, com idle/attack/hurt/death de verdade) e
-  podem ser religados depois se fizer sentido.
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
   artefatos e o runbook estão prontos em [DEPLOY.md](DEPLOY.md), falta
   alguém com acesso a um provedor de nuvem executar os passos.
-- A tela de login foi redesenhada com Tailwind CSS via CDN + Google
-  Fonts + FontAwesome (tema medieval, ver `app/templates/auth/login.html`)
-  a partir de um template HTML fornecido pelo usuário — é a única página
-  do site que não usa `ui.css`/`base.html`, roda sua própria stack de
-  CDNs, e a tela de cadastro (`register.html`) ainda está no visual
-  antigo (não foi pedido redesenhá-la ainda).
+- Os links decorativos "O Códice" e "Salão dos Heróis" na navbar da
+  tela de login apontam para `auth.login` como placeholder — não
+  existem rotas reais para esses conceitos ainda.
 
 ## Instalação local
 

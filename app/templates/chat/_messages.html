@@ -1,19 +1,23 @@
 {% import "_macros.html" as ui %}
 {% if error %}
-  <div class="flash flash-error">{{ error }}</div>
+  <div class="font-sans text-sm font-semibold rounded p-3 border bg-red-950/60 border-blood text-red-200 mb-3">{{ error }}</div>
 {% endif %}
-<ul class="chat-log" id="chat-log">
+<ul class="flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1" id="chat-log">
   {% for m in messages %}
-    <li class="chat-line{{ ' chat-line--flagged' if m.is_flagged else '' }}">
-      <span class="chat-author-wrap">
-        {% if m.user.stats and m.user.stats.rank %}{{ ui.rank_badge(m.user.stats.rank, size='rank-badge--sm') }}{% endif %}
-        <span class="chat-author">{{ m.user.profile.display_name if m.user.profile else m.user.username }}</span>
+    <li class="flex flex-wrap items-baseline gap-2 rounded px-2 py-1.5 font-sans {{ 'bg-red-950/30 outline outline-1 outline-dashed outline-blood' if m.is_flagged else '' }}">
+      <span class="inline-flex items-center gap-1.5 shrink-0">
+        {% if m.user.stats and m.user.stats.rank %}
+          {{ ui.rank_badge(m.user.stats.rank, size='sm') }}
+        {% else %}
+          <i class="fa-solid fa-circle-user text-stone-500"></i>
+        {% endif %}
+        <span class="font-bold text-gold">{{ m.user.profile.display_name if m.user.profile else m.user.username }}</span>
       </span>
-      <span class="chat-content">{{ m.content }}</span>
-      <span class="chat-time">{{ m.created_at.strftime('%H:%M') }}</span>
+      <span class="flex-1 min-w-0 break-words text-stone-200">{{ m.content }}</span>
+      <span class="text-xs text-stone-500 shrink-0">{{ m.created_at.strftime('%H:%M') }}</span>
     </li>
   {% else %}
-    <li class="chat-empty">Nenhuma mensagem ainda — seja o primeiro a puxar assunto!</li>
+    <li class="text-stone-400 font-sans py-2"><i class="fa-solid fa-comment-slash mr-1"></i> Nenhuma mensagem ainda — seja o primeiro a puxar assunto!</li>
   {% endfor %}
 </ul>
 <script>document.getElementById('chat-log').scrollTop = document.getElementById('chat-log').scrollHeight;</script>

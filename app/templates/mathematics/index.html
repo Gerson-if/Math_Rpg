@@ -1,32 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Tópicos{% endblock %}
 {% block content %}
-<h1 style="display:flex;align-items:center;gap:0.6rem;">
-  <img src="{{ url_for('static', filename='images/ui/compass.png') }}" alt=""
-       style="width:2rem;height:2rem;image-rendering:pixelated;">
-  Tópicos
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+  <i class="fa-solid fa-compass"></i> Tópicos
 </h1>
+
 {% for subject in subjects %}
-  <div class="panel">
-    <h2 style="margin-top:0;display:flex;align-items:center;gap:0.6rem;">
-      {% if subject.icon_key %}
-        <img class="subject-icon" src="{{ url_for('static', filename=subject.icon_key) }}" alt="">
-      {% endif %}
-      {{ subject.name }}
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-4 shadow-lg">
+    <h2 class="flex items-center gap-3 text-xl font-medieval text-stone-100 mb-3">
+      <i class="fa-solid fa-book-open text-purple-400"></i> {{ subject.name }}
     </h2>
     {% if subject.topics %}
-      <ul>
+      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {% for topic in subject.topics %}
-          <li><a href="{{ url_for('mathematics.practice', topic_slug=topic.slug) }}">{{ topic.name }}</a></li>
+          <li>
+            <a href="{{ url_for('mathematics.practice', topic_slug=topic.slug) }}"
+               class="flex items-center gap-2 font-sans text-stone-300 bg-stone-800/60 border border-stone-700 rounded px-3 py-2 hover:border-gold hover:text-gold transition-colors">
+              <i class="fa-solid fa-chevron-right text-xs text-purple-400"></i> {{ topic.name }}
+            </a>
+          </li>
         {% endfor %}
       </ul>
     {% else %}
-      <p style="color:var(--color-text-muted);">Sem tópicos cadastrados ainda.</p>
+      <p class="text-stone-400 font-sans text-sm">Sem tópicos cadastrados ainda.</p>
     {% endif %}
   </div>
 {% else %}
-  <div class="panel">
-    <p>Nenhum tópico cadastrado. Rode <code>python scripts/seed.py</code> para popular o currículo inicial.</p>
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5">
+    <p class="font-sans text-stone-300">Nenhum tópico cadastrado. Rode <code class="bg-black/40 px-1 rounded">python scripts/seed.py</code> para popular o currículo inicial.</p>
   </div>
 {% endfor %}
 {% endblock %}

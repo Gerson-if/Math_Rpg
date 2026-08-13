@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Chat{% endblock %}
 {% block content %}
-<h1>💬 Chat Global</h1>
-<div class="panel">
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+  <i class="fa-solid fa-comments"></i> Chat Global
+</h1>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
   <div id="chat-messages"
        hx-get="{{ url_for('chat.messages') }}"
        hx-trigger="every 4s"
@@ -14,11 +16,15 @@
         hx-target="#chat-messages"
         hx-swap="innerHTML"
         hx-on::after-request="this.reset()"
-        class="chat-form">
+        class="flex gap-2 mt-4">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="text" name="content" maxlength="500" autocomplete="off"
-           placeholder="Escreva uma mensagem..." required>
-    <button class="btn" type="submit">Enviar</button>
+    <input type="text" name="content" maxlength="500" autocomplete="off" required
+           placeholder="Escreva uma mensagem..."
+           class="flex-1 bg-stone-800 border-2 border-stone-600 rounded p-2.5 font-sans text-white focus:border-gold focus:outline-none transition-colors">
+    <button type="submit"
+            class="px-5 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform shrink-0">
+      <i class="fa-solid fa-paper-plane"></i>
+    </button>
   </form>
 </div>
 {% endblock %}

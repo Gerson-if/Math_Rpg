@@ -2,58 +2,44 @@
 {% import "_macros.html" as ui %}
 {% block title %}Perfil{% endblock %}
 {% block content %}
-<div class="panel" style="display:flex;gap:1.5rem;align-items:center;">
-  <div class="hero-walk" aria-hidden="true"></div>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg flex gap-4 sm:gap-6 items-center flex-wrap">
+  <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold flex items-center justify-center text-3xl sm:text-4xl bg-blue-950 text-gold shadow-inner shrink-0">
+    <i class="fa-solid fa-hat-wizard"></i>
+  </div>
   {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
   <div>
-    <h1 style="margin:0;">{{ user.profile.display_name if user.profile else user.username }}</h1>
-    <p style="color:var(--color-text-muted);margin:0.25rem 0 0;">{{ user.email }}</p>
+    <h1 class="text-2xl sm:text-3xl font-medieval text-gold">{{ user.profile.display_name if user.profile else user.username }}</h1>
+    <p class="text-stone-400 font-sans mt-1">{{ user.email }}</p>
     {% if user.stats and user.stats.rank %}
-      <p style="color:var(--color-text-muted);margin:0.25rem 0 0;">{{ user.stats.rank.name }}</p>
+      <p class="text-stone-400 font-sans mt-1">{{ user.stats.rank.name }}</p>
     {% endif %}
     {% if user.profile and user.profile.title %}
-      <p style="color:var(--color-accent);margin:0.25rem 0 0;">{{ user.profile.title }}</p>
+      <p class="text-gold font-sans mt-1">{{ user.profile.title }}</p>
     {% endif %}
   </div>
 </div>
 
-<div class="panel">
-  <h2 style="margin-top:0;">Estatísticas</h2>
-  <ul>
-    <li>XP total: {{ user.stats.xp if user.stats else 0 }}</li>
-    <li>Acertos: {{ user.stats.total_correct if user.stats else 0 }}</li>
-    <li>Erros: {{ user.stats.total_wrong if user.stats else 0 }}</li>
-    <li>Melhor sequência: {{ user.stats.best_streak if user.stats else 0 }}</li>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-3">Estatísticas</h2>
+  <ul class="font-sans text-stone-300 space-y-1">
+    <li><i class="fa-solid fa-coins text-gold mr-2"></i>XP total: {{ user.stats.xp if user.stats else 0 }}</li>
+    <li><i class="fa-solid fa-check text-green-400 mr-2"></i>Acertos: {{ user.stats.total_correct if user.stats else 0 }}</li>
+    <li><i class="fa-solid fa-xmark text-red-400 mr-2"></i>Erros: {{ user.stats.total_wrong if user.stats else 0 }}</li>
+    <li><i class="fa-solid fa-fire text-orange-500 mr-2"></i>Melhor sequência: {{ user.stats.best_streak if user.stats else 0 }}</li>
   </ul>
 </div>
 
-<div class="panel">
-  <h2 style="margin-top:0;">Domínio por tópico</h2>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-3">Domínio por tópico</h2>
   {% if user.mastery_records %}
-    <ul>
+    <ul class="font-sans text-stone-300 space-y-1">
       {% for m in user.mastery_records %}
-        <li>{{ m.topic.name }} — {{ (m.mastery_score * 100) | round(1) }}%</li>
+        <li>{{ m.topic.name }} — <span class="text-gold">{{ (m.mastery_score * 100) | round(1) }}%</span></li>
       {% endfor %}
     </ul>
   {% else %}
-    <p style="color:var(--color-text-muted);">Ainda sem registros — os exercícios chegam na Fase 3.</p>
+    <p class="text-stone-400 font-sans">Ainda sem registros — pratique um tópico para começar.</p>
   {% endif %}
 </div>
-
-<style>
-  .hero-walk {
-    width: 45px;
-    height: 58px;
-    image-rendering: pixelated;
-    background-image: url("{{ url_for('static', filename='images/characters/hero/walk-spritesheet.png') }}");
-    background-repeat: no-repeat;
-    background-position: 0 0;
-    animation: hero-walk-cycle 0.7s steps(4) infinite;
-  }
-
-  @keyframes hero-walk-cycle {
-    from { background-position: 0 0; }
-    to { background-position: -180px 0; }
-  }
-</style>
 {% endblock %}

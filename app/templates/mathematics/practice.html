@@ -1,27 +1,392 @@
 {% extends "base.html" %}
 {% block title %}{{ topic.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .bg-dungeon { background: radial-gradient(circle at center, #2a1b38 0%, #0a0a0a 100%); }
+
+  .magic-dust {
+    position: absolute;
+    bottom: -10px;
+    background: #d4af37;
+    border-radius: 50%;
+    opacity: 0.5;
+    animation: floatUp 4s infinite linear;
+    box-shadow: 0 0 8px #d4af37;
+  }
+  @keyframes floatUp {
+    0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.6; }
+    100% { transform: translate3d(0, -220px, 0) scale(0); opacity: 0; }
+  }
+
+  @keyframes epicZoom { 0% { transform: scale(1.05); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .epic-enter { animation: epicZoom 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+  /* Solo Leveling-style gate: a slim glowing rift instead of a screen-filling
+     ring — opens in place, stays subtle, never covers the UI beneath it. */
+  .gate-rift {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 70px; height: 190px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scaleY(0.1) scaleX(0.3);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 40;
+  }
+  @keyframes gateOpenMystic {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scaleY(0.05) scaleX(0.2); }
+    45%  { opacity: 1; }
+    100% {
+      opacity: 1; transform: translate(-50%, -50%) scaleY(1) scaleX(1);
+      box-shadow: 0 0 30px 6px rgba(168, 85, 247, 0.45);
+    }
+  }
+  .gate-rift--mystic {
+    background: radial-gradient(ellipse at center, rgba(216,180,254,0.85) 0%, rgba(126,34,206,0.75) 40%, rgba(20,8,36,0.9) 75%, transparent 100%);
+    border: 1px solid rgba(216, 180, 254, 0.65);
+    animation: gateOpenMystic 0.9s ease-out forwards;
+  }
+  @keyframes gateOpenFire {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scaleY(0.05) scaleX(0.2); }
+    45%  { opacity: 1; }
+    100% {
+      opacity: 1; transform: translate(-50%, -50%) scaleY(1) scaleX(1);
+      box-shadow: 0 0 30px 6px rgba(239, 68, 68, 0.45);
+    }
+  }
+  .gate-rift--fire {
+    background: radial-gradient(ellipse at center, rgba(254,202,202,0.85) 0%, rgba(185,28,28,0.75) 40%, rgba(30,4,4,0.9) 75%, transparent 100%);
+    border: 1px solid rgba(254, 202, 202, 0.65);
+    animation: gateOpenFire 0.9s ease-out forwards;
+  }
+  .gate-rift--closing { animation-duration: 0.35s !important; animation-direction: reverse !important; }
+
+  /* Revive is the one moment that gets a big, impactful beat: the rift
+     swallows the whole battle screen in a ring of fire, then releases it
+     back — a proper "reborn from the ashes" transition, not a subtle one. */
+  .revive-wipe {
+    position: absolute; inset: 0; z-index: 60;
+    background:
+      radial-gradient(circle at center, rgba(239,68,68,0.35) 0%, rgba(127,29,29,0.92) 45%, rgba(8,2,2,0.98) 75%);
+    clip-path: circle(0% at 50% 50%);
+    pointer-events: none;
+  }
+  @keyframes reviveWipeIn { from { clip-path: circle(0% at 50% 50%); } to { clip-path: circle(120% at 50% 50%); } }
+  @keyframes reviveWipeOut { from { clip-path: circle(120% at 50% 50%); } to { clip-path: circle(0% at 50% 50%); } }
+  .revive-wipe--in { animation: reviveWipeIn 0.55s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
+  .revive-wipe--out { animation: reviveWipeOut 0.5s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
+
+  @keyframes heroAttack {
+    0% { transform: translateX(0) scale(1); }
+    50% { transform: translateX(14px) scale(1.08); filter: brightness(1.5) drop-shadow(0 0 10px gold); }
+    100% { transform: translateX(0) scale(1); }
+  }
+  .hero-attack-anim { animation: heroAttack 0.3s ease-out; }
+
+  @keyframes slashImpact {
+    0% { transform: scale(0) rotate(45deg); opacity: 0; }
+    50% { transform: scale(1.6) rotate(45deg); opacity: 1; }
+    100% { transform: scale(2.4) rotate(45deg); opacity: 0; }
+  }
+  .slash-effect { position: absolute; color: #d4af37; font-size: 2.5rem; z-index: 20; animation: slashImpact 0.4s ease-out forwards; pointer-events: none; }
+
+  @keyframes spellHit {
+    0% { transform: scale(1); filter: drop-shadow(0 0 0px gold); }
+    50% { transform: scale(1.08); filter: drop-shadow(0 0 25px gold) brightness(1.4); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 0px gold); }
+  }
+  .spell-hit { animation: spellHit 0.4s ease-out; }
+
+  /* Wrong-answer feedback: a soft inward red glow on the arena border and a
+     small shake on the hero's own avatar — animated, but nothing shifts the
+     whole arena or blocks the question form, which felt like a freeze. */
+  @keyframes arenaHitFlash {
+    0% { box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0); }
+    35% { box-shadow: inset 0 0 50px 8px rgba(239, 68, 68, 0.32); }
+    100% { box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+  .hit-flash { animation: arenaHitFlash 0.45s ease-out; }
+
+  @keyframes heroHurt {
+    0% { transform: translateX(0); filter: brightness(1); }
+    25% { transform: translateX(-3px); filter: brightness(1.3) drop-shadow(0 0 6px #ef4444); }
+    50% { transform: translateX(3px); }
+    75% { transform: translateX(-2px); }
+    100% { transform: translateX(0); filter: brightness(1); }
+  }
+  .hero-hurt-anim { animation: heroHurt 0.35s ease-out; }
+
+  @keyframes missSpark {
+    0% { transform: scale(0.4); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  .miss-spark { position: absolute; color: #ef4444; font-size: 1rem; animation: missSpark 0.5s ease-out forwards; pointer-events: none; }
+
+  @keyframes floatBoss { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .floating-boss { animation: floatBoss 3s ease-in-out infinite; }
+
+  .battle-overlay {
+    position: absolute; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(5, 5, 5, 0.92);
+    border-radius: 0.5rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>{{ topic.name }}</h1>
+<div class="max-w-3xl mx-auto">
 
-<div class="mentor-tip">
-  <div class="mentor-avatar" aria-hidden="true">🦉</div>
-  <div>
-    <strong>{{ "Você sabia?" if mentor_tip.kind == "curiosidade" else "Regra do jogo" }}</strong>
-    <p style="margin:0.25rem 0 0;">{{ mentor_tip.text }}</p>
+  <!-- STORY SCREEN -->
+  <div id="story-screen" class="epic-enter bg-black/70 border-2 border-purple-900 rounded-lg p-6 sm:p-10 text-center space-y-5">
+    <h1 class="text-3xl sm:text-4xl font-medieval text-gold drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]">{{ topic.name }}</h1>
+    <p class="text-stone-300 italic font-serif max-w-xl mx-auto">
+      Um Guardião do Conhecimento vigia esta trilha. Prove seu domínio de <strong class="text-gold">{{ topic.name }}</strong> para seguir em frente.
+    </p>
+
+    <div class="mentor-tip inline-flex items-start gap-3 bg-stone-900/70 border border-stone-700 rounded-lg p-4 text-left max-w-lg mx-auto">
+      <span class="text-2xl shrink-0" aria-hidden="true">🦉</span>
+      <div>
+        <strong class="text-gold font-medieval">{{ "Você sabia?" if mentor_tip.kind == "curiosidade" else "Regra do jogo" }}</strong>
+        <p class="text-stone-300 text-sm mt-1 font-sans">{{ mentor_tip.text }}</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+      <a href="{{ url_for('mathematics.index') }}"
+         class="px-6 py-3 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+        <i class="fa-solid fa-arrow-left mr-2"></i>Voltar aos tópicos
+      </a>
+      <button type="button" onclick="MathBattle.start()"
+              class="px-8 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval text-lg hover:scale-105 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] transition-all cursor-pointer">
+        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Enfrentar o Guardião
+      </button>
+    </div>
+  </div>
+
+  <!-- BATTLE ARENA -->
+  <div id="battle-arena" class="hidden relative bg-dungeon rounded-lg border-2 border-stone-800 overflow-hidden mt-4">
+    <div id="dust-container" class="absolute inset-0 pointer-events-none overflow-hidden z-0"></div>
+    <div id="portal-effect" class="gate-rift"></div>
+    <div id="revive-wipe" class="revive-wipe"></div>
+
+    <div class="relative z-10 p-3 sm:p-4 flex justify-between items-start gap-3 bg-gradient-to-b from-black/80 to-transparent">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 sm:gap-3">
+          <div id="hero-avatar" class="relative w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-blue-900 border-2 border-gold flex items-center justify-center text-lg sm:text-2xl shrink-0">
+            <i class="fa-solid fa-user-shield text-blue-200"></i>
+            <div id="hero-fx" class="absolute inset-0 flex items-center justify-center"></div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h2 class="font-medieval text-gold text-xs sm:text-lg truncate">Aprendiz</h2>
+            <div class="w-full bg-stone-900 rounded-full h-2.5 sm:h-3 border border-stone-600 mt-1">
+              <div id="player-hp" class="bg-blue-600 h-full rounded-full transition-all duration-300" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="text-lg sm:text-2xl font-medieval text-purple-400 mt-1 sm:mt-2 shrink-0">VS</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center flex-row-reverse gap-2 sm:gap-3">
+          <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-stone-800 border-2 border-purple-500 flex items-center justify-center text-xl sm:text-3xl shrink-0">
+            <i class="fa-solid fa-dragon text-purple-400"></i>
+          </div>
+          <div class="flex-1 min-w-0 text-right">
+            <h2 class="font-medieval text-purple-400 text-xs sm:text-lg truncate">Guardião</h2>
+            <div class="w-full bg-stone-900 rounded-full h-2.5 sm:h-3 border border-stone-600 mt-1 flex justify-end">
+              <div id="boss-hp" class="bg-purple-700 h-full rounded-full transition-all duration-300" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="relative z-10 flex items-center justify-center py-2 sm:py-3">
+      <div id="boss-sprite" class="floating-boss text-[3rem] sm:text-[4.5rem] text-purple-300 relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+        <i class="fa-solid fa-dragon"></i>
+        <div id="impact-fx" class="absolute inset-0 flex items-center justify-center"></div>
+      </div>
+    </div>
+
+    <div class="relative z-10 border-t-2 border-gold bg-stone-950/80 p-3 sm:p-4">
+      <div id="question-slot"
+           hx-get="{{ url_for('mathematics.new_question', topic_slug=topic.slug) }}"
+           hx-trigger="load"
+           hx-swap="outerHTML"
+           class="max-w-xl mx-auto space-y-3">
+        <p class="text-center text-stone-400 font-sans">Carregando desafio...</p>
+      </div>
+      <div class="flex justify-center mt-3">
+        <button type="button" onclick="MathBattle.flee()" class="text-stone-400 hover:text-white text-sm font-sans cursor-pointer">
+          <i class="fa-solid fa-person-running mr-1"></i> Fugir da batalha
+        </button>
+      </div>
+    </div>
+
+    <!-- VICTORY -->
+    <div id="victory-screen" class="battle-overlay hidden">
+      <div class="text-center space-y-4 max-w-md p-6 sm:p-8 bg-black/40 border-2 border-gold rounded-lg backdrop-blur-md shadow-[0_0_50px_rgba(212,175,55,0.3)]">
+        <i class="fa-solid fa-crown text-5xl sm:text-6xl text-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.8)]"></i>
+        <h2 class="text-2xl sm:text-3xl font-medieval text-white">Guardião derrotado!</h2>
+        <p class="text-stone-300 font-serif italic text-sm sm:text-base">Sua sabedoria prevaleceu. Continue avançando pela trilha.</p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <button type="button" onclick="MathBattle.nextChallenge()"
+                  class="px-5 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform cursor-pointer">
+            <i class="fa-solid fa-arrow-right mr-1"></i> Novo desafio
+          </button>
+          <a href="{{ url_for('mathematics.index') }}"
+             class="px-5 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+            <i class="fa-solid fa-map mr-1"></i> Voltar aos tópicos
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEFEAT -->
+    <div id="defeat-screen" class="battle-overlay hidden">
+      <div class="text-center space-y-4 max-w-md p-6 sm:p-8">
+        <i class="fa-solid fa-book-dead text-5xl sm:text-6xl text-stone-500"></i>
+        <h2 class="text-2xl sm:text-3xl font-medieval text-red-600 tracking-wide">Sua energia se esgotou</h2>
+        <p class="text-stone-400 font-serif italic text-sm sm:text-base">Cada resposta ainda contou — seu progresso foi salvo. Tente de novo?</p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <a href="{{ url_for('mathematics.index') }}"
+             class="px-5 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+            <i class="fa-solid fa-person-walking-arrow-right mr-1"></i> Abandonar
+          </a>
+          <button type="button" onclick="MathBattle.revive()"
+                  class="px-5 py-2.5 bg-red-900 border-2 border-red-500 text-white rounded font-medieval shadow-[0_0_15px_rgba(220,38,38,0.5)] hover:scale-105 transition-transform cursor-pointer">
+            <i class="fa-solid fa-fire-flame-curved mr-1"></i> Renascer das cinzas
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<div id="question-slot"
-     hx-get="{{ url_for('mathematics.new_question', topic_slug=topic.slug) }}"
-     hx-trigger="load"
-     hx-swap="outerHTML">
-  <div class="panel">
-    <p style="margin:0;">Carregando questão...</p>
-  </div>
-</div>
+<script>
+  const MathBattle = (() => {
+    const BOSS_STEP = 34;
+    const HERO_STEP = 40;
+    let playerHP = 100;
+    let bossHP = 100;
 
-<p style="margin-top:1rem;">
-  <a href="{{ url_for('mathematics.history') }}">Ver histórico de respostas</a>
-  · <a href="{{ url_for('mathematics.index') }}">Voltar aos tópicos</a>
-</p>
+    function $(id) { return document.getElementById(id); }
+
+    function start() {
+      $('story-screen').classList.add('hidden');
+      const arena = $('battle-arena');
+      arena.classList.remove('hidden');
+      arena.classList.add('epic-enter');
+      spawnDust();
+      arena.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      focusAnswer();
+    }
+
+    function spawnDust() {
+      const c = $('dust-container');
+      c.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const d = document.createElement('div');
+        d.className = 'magic-dust';
+        d.style.left = Math.random() * 100 + '%';
+        const size = Math.random() * 4 + 2;
+        d.style.width = size + 'px';
+        d.style.height = size + 'px';
+        d.style.animationDuration = (Math.random() * 3 + 3) + 's';
+        d.style.animationDelay = Math.random() * 3 + 's';
+        c.appendChild(d);
+      }
+    }
+
+    function focusAnswer() {
+      const input = document.querySelector('#question-slot input[name="answer"]');
+      if (input && window.innerWidth > 768) input.focus();
+    }
+
+    document.body.addEventListener('htmx:afterSwap', (evt) => {
+      if (evt.target.id !== 'question-slot') return;
+      const d = evt.target.dataset;
+      if (d.correct === 'true') onHit();
+      else if (d.correct === 'false') onMiss();
+      focusAnswer();
+    });
+
+    function onHit() {
+      const hero = $('hero-avatar');
+      hero.classList.remove('hero-attack-anim'); void hero.offsetWidth; hero.classList.add('hero-attack-anim');
+
+      const fx = $('impact-fx');
+      fx.innerHTML = '<i class="fa-solid fa-bolt slash-effect"></i>';
+      const boss = $('boss-sprite');
+      setTimeout(() => {
+        boss.classList.remove('spell-hit'); void boss.offsetWidth; boss.classList.add('spell-hit');
+        fx.innerHTML = '';
+      }, 150);
+
+      bossHP = Math.max(0, bossHP - BOSS_STEP);
+      $('boss-hp').style.width = bossHP + '%';
+      if (bossHP <= 0) setTimeout(victory, 500);
+    }
+
+    function onMiss() {
+      const arena = $('battle-arena');
+      arena.classList.remove('hit-flash'); void arena.offsetWidth; arena.classList.add('hit-flash');
+
+      const hero = $('hero-avatar');
+      hero.classList.remove('hero-hurt-anim'); void hero.offsetWidth; hero.classList.add('hero-hurt-anim');
+
+      const fx = $('hero-fx');
+      fx.innerHTML = '<i class="fa-solid fa-bolt-lightning miss-spark"></i>';
+      setTimeout(() => { fx.innerHTML = ''; }, 500);
+
+      playerHP = Math.max(0, playerHP - HERO_STEP);
+      $('player-hp').style.width = playerHP + '%';
+      if (playerHP <= 0) setTimeout(defeat, 700);
+    }
+
+    function victory() {
+      const portal = $('portal-effect');
+      portal.className = 'gate-rift gate-rift--mystic';
+      setTimeout(() => $('victory-screen').classList.remove('hidden'), 700);
+    }
+
+    function defeat() { $('defeat-screen').classList.remove('hidden'); }
+
+    function resetBars() {
+      playerHP = 100; bossHP = 100;
+      $('player-hp').style.width = '100%';
+      $('boss-hp').style.width = '100%';
+      $('portal-effect').className = 'gate-rift';
+    }
+
+    function revive() {
+      const portal = $('portal-effect');
+      portal.className = 'gate-rift gate-rift--fire';
+
+      const wipe = $('revive-wipe');
+      wipe.className = 'revive-wipe revive-wipe--in';
+
+      setTimeout(() => {
+        resetBars();
+        $('defeat-screen').classList.add('hidden');
+        wipe.className = 'revive-wipe revive-wipe--out';
+        focusAnswer();
+      }, 550);
+
+      setTimeout(() => { wipe.className = 'revive-wipe'; }, 1050);
+    }
+
+    function nextChallenge() {
+      resetBars();
+      $('victory-screen').classList.add('hidden');
+      focusAnswer();
+    }
+
+    function flee() { window.location.href = "{{ url_for('mathematics.index') }}"; }
+
+    return { start, revive, nextChallenge, flee };
+  })();
+</script>
 {% endblock %}

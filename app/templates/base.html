@@ -3,189 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Plataforma de Matemática{% endblock %}</title>
+  <title>{% block title %}Matemática RPG{% endblock %}</title>
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/ui/xp-coin.png') }}">
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            medieval: ['MedievalSharp', 'cursive'],
+            cinzel: ['Cinzel', 'serif'],
+          },
+          colors: {
+            parchment: { 100: '#fdf6e3', 200: '#f4e8c1', 300: '#e0c99a', 900: '#4a3b22' },
+            blood: '#8b0000',
+            gold: '#d4af37',
+            mystic: '#4b0082',
+          },
+        },
+      },
+    };
+  </script>
+
+  <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/ui.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/effects.css') }}">
+
   <style>
-    /*
-      Sprout Lands pixel font (non-commercial license, see
-      images/ui/CREDITS.txt) — uppercase-only and has no accented
-      characters, so it can't be used for running Portuguese text without
-      glyphs silently falling back to a different font mid-word. Scoped
-      to .pixel-num — ASCII digits only (XP amounts, level numbers) — via
-      the utility class below instead of applied broadly.
-    */
-    @font-face {
-      font-family: "Sprout Pixel";
-      src: url("{{ url_for('static', filename='fonts/pixel-sprout-lands.ttf') }}") format("truetype");
-      font-display: swap;
-    }
-
-    .pixel-num { font-family: "Sprout Pixel", var(--font-body); letter-spacing: 0.03em; }
-
-    /*
-      Placeholder palette pulled from the sample idle/walk sprite sheet.
-      This is a PROVISIONAL identity only — swap these tokens once the
-      full art pack arrives (see section 13 of the spec) and keep every
-      screen referencing these variables instead of hard-coded colors.
-    */
-    :root {
-      --color-bg: #151037;
-      --color-bg-panel: #1c154d;
-      --color-primary: #0321bc;
-      --color-primary-light: #9ea0fa;
-      --color-accent: #ff8c5e;
-      --color-accent-dark: #8c2309;
-      --color-danger: #882323;
-      --color-text: #f2f2ff;
-      --color-text-muted: #b2b2ff;
-      --radius: 10px;
-      --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
-    }
-
-    * { box-sizing: border-box; }
-
     body {
-      margin: 0;
-      font-family: var(--font-body);
-      color: var(--color-text);
-      background:
-        radial-gradient(circle at 15% -10%, rgba(158, 160, 250, 0.16), transparent 55%),
-        radial-gradient(circle at 100% 0%, rgba(255, 140, 94, 0.10), transparent 50%),
-        var(--color-bg);
-      background-attachment: fixed;
+      background-color: #111827;
+      background-image:
+        radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%),
+        url('https://www.transparenttextures.com/patterns/dark-matter.png');
+      color: #e5e7eb;
     }
-
-    a { color: var(--color-accent); }
-
-    .app-shell {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 1.5rem 1rem 4rem;
-    }
-
-    .navbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.65rem 1.25rem;
-      background: linear-gradient(180deg, #221a52, var(--color-bg-panel));
-      border-bottom: 2px solid var(--color-accent-dark);
-      box-shadow: 0 2px 14px rgba(0, 0, 0, .35);
-    }
-
-    .navbar a { text-decoration: none; color: var(--color-text); font-weight: 600; }
-
-    .navbar-brand { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; letter-spacing: 0.02em; }
-
-    .back-link { margin: 0 0 0.75rem; }
-    .back-link a { color: var(--color-text-muted); text-decoration: none; font-size: 0.9rem; }
-    .back-link a:hover { color: var(--color-accent); }
-
-    .panel {
-      background: var(--color-bg-panel);
-      border: 1px solid var(--color-primary);
-      border-radius: var(--radius);
-      padding: 1.25rem;
-      margin-top: 1rem;
-    }
-
-    /* Real pixel-art button (Sprout Lands UI pack, "dialog box medium.png")
-       instead of a CSS gradient — border-image with "fill" renders the
-       source's own cream panel into the middle, so no separate
-       background-color is needed. Non-commercial license — see
-       images/ui/CREDITS.txt before using this project commercially. */
-    .btn {
-      display: inline-block;
-      padding: 0.6rem 1.2rem;
-      color: #4a2f1c;
-      font-weight: 700;
-      cursor: pointer;
-      border: none;
-      border-image-source: url("{{ url_for('static', filename='images/ui/panel-button.png') }}");
-      border-image-slice: 8 fill;
-      border-image-width: 8px;
-      border-image-repeat: stretch;
-      image-rendering: pixelated;
-    }
-
-    .btn:hover { filter: brightness(1.12); }
-
-    /* RPG-menu styled links (dashboard quick actions) — same pixel-art
-       panel as .btn, just bigger/bolder for the handful of primary
-       destinations, with a warm hue-shift so it doesn't look identical
-       to every other button on the page. */
-    .menu-tile {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.85rem 1.5rem;
-      color: #4a2f1c;
-      font-weight: 700;
-      font-size: 1.05rem;
-      text-decoration: none;
-      border: none;
-      border-image-source: url("{{ url_for('static', filename='images/ui/panel-button.png') }}");
-      border-image-slice: 8 fill;
-      border-image-width: 10px;
-      border-image-repeat: stretch;
-      image-rendering: pixelated;
-      filter: saturate(1.3) hue-rotate(-8deg);
-    }
-
-    .menu-tile:hover { filter: saturate(1.4) hue-rotate(-8deg) brightness(1.1); }
-
-    input[type="text"], input[type="email"], input[type="password"] {
-      width: 100%;
-      padding: 0.6rem;
-      margin: 0.35rem 0 0.9rem;
-      border-radius: 6px;
-      border: 1px solid var(--color-primary-light);
-      background: #0f0c29;
-      color: var(--color-text);
-    }
-
-    .flash { padding: 0.6rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
-    .flash-error { background: var(--color-danger); }
-    .flash-info { background: var(--color-primary); }
-
-    label { font-size: 0.85rem; color: var(--color-text-muted); }
+    .magic-glow { text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
   </style>
+
+  {% block extra_head %}{% endblock %}
 </head>
-<body>
-  <nav class="navbar">
-    <a class="navbar-brand" href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
-      ⚔ Matemática RPG
-    </a>
-    {% if current_user.is_authenticated %}
-      <div>
-        <a href="{{ url_for('users.profile') }}">{{ current_user.username }}</a>
-        · <a href="{{ url_for('auth.logout') }}">Sair</a>
-      </div>
-    {% else %}
-      <div>
-        <a href="{{ url_for('auth.login') }}">Entrar</a>
-        · <a href="{{ url_for('auth.register') }}">Criar conta</a>
-      </div>
-    {% endif %}
+<body class="min-h-screen flex flex-col font-cinzel overflow-x-hidden">
+
+  <nav class="border-b-2 border-yellow-900 bg-stone-900/90 backdrop-blur-sm shadow-2xl p-4">
+    <div class="max-w-6xl mx-auto flex justify-between items-center flex-wrap gap-3">
+      <a class="flex items-center gap-3" href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+        <i class="fa-solid fa-square-root-variable text-gold text-2xl sm:text-3xl"></i>
+        <span class="text-xl sm:text-2xl font-medieval text-gold font-bold tracking-wider magic-glow">Matemática RPG</span>
+      </a>
+
+      {% if current_user.is_authenticated %}
+        <div class="flex items-center gap-4 sm:gap-6 font-medieval text-stone-300 text-sm sm:text-base flex-wrap">
+          <a href="{{ url_for('users.dashboard') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-shield-halved"></i> Salão do Herói</a>
+          <a href="{{ url_for('mathematics.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-scroll"></i> Tópicos</a>
+          <a href="{{ url_for('ranking.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-ranking-star"></i> Ranking</a>
+          <a href="{{ url_for('achievements.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-trophy"></i> Conquistas</a>
+          <a href="{{ url_for('chat.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-comments"></i> Chat</a>
+          <span class="text-stone-600">|</span>
+          <a href="{{ url_for('users.profile') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-circle-user"></i> {{ current_user.username }}</a>
+          <a href="{{ url_for('auth.logout') }}" class="hover:text-blood transition-colors" title="Sair"><i class="fa-solid fa-right-from-bracket"></i></a>
+        </div>
+      {% else %}
+        <div class="flex items-center gap-4 font-medieval text-stone-300">
+          <a href="{{ url_for('auth.login') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-right-to-bracket"></i> Entrar</a>
+          <a href="{{ url_for('auth.register') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-feather-pointed"></i> Criar conta</a>
+        </div>
+      {% endif %}
+    </div>
   </nav>
 
-  <div class="app-shell">
+  <main class="flex-grow w-full max-w-6xl mx-auto p-4 sm:p-8">
     {% if current_user.is_authenticated and request.endpoint != 'users.dashboard' %}
-      <p class="back-link"><a href="{{ url_for('users.dashboard') }}">← Voltar ao painel</a></p>
+      <p class="mb-4">
+        <a href="{{ url_for('users.dashboard') }}"
+           class="inline-flex items-center gap-2 px-3 py-1.5 rounded font-medieval text-sm text-stone-300 border-2 border-stone-700 hover:border-gold hover:text-gold transition-colors">
+          <i class="fa-solid fa-shield-halved"></i> Voltar ao Salão do Herói
+        </a>
+      </p>
     {% endif %}
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="flash flash-{{ category }}">{{ message }}</div>
-      {% endfor %}
+      {% if messages %}
+        <div class="mb-4 space-y-2">
+          {% for category, message in messages %}
+            <div class="font-sans text-sm font-semibold rounded p-3 border {{ 'bg-red-950/60 border-blood text-red-200' if category == 'error' else 'bg-yellow-950/40 border-gold text-yellow-100' }}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
     {% endwith %}
 
     {% block content %}{% endblock %}
-  </div>
+  </main>
 </body>
 </html>

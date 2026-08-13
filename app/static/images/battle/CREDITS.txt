@@ -1,5 +1,0 @@
-guardian-statue.png is cropped from Angel Statue.png; portal-spritesheet.png
-is copied unmodified from "Animated Sprites/GandalfHardcore Portal
-sheet.png" — both from the same "GandalfHardcore" scenery pack as
-../backgrounds/. See ../backgrounds/CREDITS.txt for the pack's license
-terms and links.

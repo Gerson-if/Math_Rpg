@@ -1,40 +1,54 @@
 {% import "_macros.html" as ui %}
-<div id="question-slot">
+<div id="question-slot"
+     data-correct="{{ 'true' if feedback and feedback.is_correct else ('false' if feedback else '') }}"
+     data-xp="{{ feedback.xp_awarded if feedback else '' }}"
+     data-levelup="{{ 'true' if feedback and feedback.leveled_up else 'false' }}"
+     data-level="{{ feedback.level_number if feedback else '' }}"
+     class="max-w-xl mx-auto space-y-3">
+
   {% if feedback %}
-    <div class="flash {{ 'flash-info' if feedback.is_correct else 'flash-error' }}">
+    <div class="battle-toast font-sans text-sm font-semibold rounded p-3 border text-center {{ 'bg-green-950/60 border-green-500 text-green-200' if feedback.is_correct else 'bg-red-950/60 border-blood text-red-200' }}">
       {% if feedback.is_correct %}
-        ✅ Correto! +{{ feedback.xp_awarded }} XP
-        {% if feedback.leveled_up %}· 🎉 Subiu para o nível {{ feedback.level_number }}!{% endif %}
+        <i class="fa-solid fa-check"></i> Correto! +{{ feedback.xp_awarded }} XP
+        {% if feedback.leveled_up %}· <i class="fa-solid fa-star"></i> Subiu para o nível {{ feedback.level_number }}!{% endif %}
       {% else %}
-        ❌ Quase — a resposta certa era <strong>{{ feedback.correct_answer }}</strong>.
+        <i class="fa-solid fa-xmark"></i> Quase — a resposta certa era <strong>{{ feedback.correct_answer }}</strong>.
       {% endif %}
     </div>
     {% if feedback.new_achievements %}
-      <div class="flash flash-info" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-        Nova conquista:
-        {% for a in feedback.new_achievements %}
-          {{ ui.achievement_badge(a, true) }} {{ a.name }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
+      <div class="battle-toast font-sans text-sm font-semibold rounded p-3 border bg-yellow-950/40 border-gold text-yellow-100 text-center">
+        <i class="fa-solid fa-trophy"></i> Nova conquista:
+        {% for a in feedback.new_achievements %}{{ a.name }}{% if not loop.last %}, {% endif %}{% endfor %}
       </div>
     {% endif %}
     {% if feedback.needs_review %}
-      <div class="flash flash-info">
-        <img class="inline-icon" src="{{ url_for('static', filename='images/ui/mastery-down.png') }}" alt="">
-        Seu domínio neste tópico caiu — vale uma revisão em breve.
+      <div class="battle-toast font-sans text-sm font-semibold rounded p-3 border bg-stone-800/70 border-stone-600 text-stone-300 text-center">
+        <i class="fa-solid fa-book-bookmark"></i> Seu domínio neste tópico caiu — vale uma revisão em breve.
       </div>
     {% endif %}
   {% endif %}
 
-  <div class="panel">
-    <p style="font-size:1.6rem;margin:0 0 1rem;">{{ prompt }}</p>
-    <form hx-post="{{ url_for('mathematics.answer_question', topic_slug=topic.slug) }}"
-          hx-target="#question-slot"
-          hx-swap="outerHTML">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="token" value="{{ token }}">
-      <input type="text" name="answer" inputmode="numeric" autocomplete="off" autofocus
-             placeholder="Sua resposta">
-      <button class="btn" type="submit">Responder</button>
-    </form>
+  <div class="w-full bg-black/60 border-2 border-stone-700 rounded-lg p-3 sm:p-4 text-center shadow-inner">
+    <p class="text-stone-400 font-medieval text-xs uppercase tracking-widest mb-1">
+      <i class="fa-solid fa-book-sparkles mr-1"></i> Desafio
+    </p>
+    <div class="text-xl sm:text-3xl font-serif text-white font-bold tracking-wide">{{ prompt }}</div>
   </div>
+
+  <form hx-post="{{ url_for('mathematics.answer_question', topic_slug=topic.slug) }}"
+        hx-target="#question-slot"
+        hx-swap="outerHTML"
+        class="w-full">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="token" value="{{ token }}">
+    <div class="flex gap-2 sm:gap-3">
+      <input type="text" name="answer" inputmode="numeric" autocomplete="off" autofocus
+             placeholder="Sua resposta"
+             class="w-full bg-stone-800 border-2 border-stone-600 rounded-lg p-2 sm:p-3 text-lg sm:text-2xl text-center text-white font-bold focus:border-purple-500 focus:outline-none transition-colors">
+      <button type="submit"
+              class="bg-purple-800 text-white border-2 border-purple-400 font-bold px-4 sm:px-6 rounded-lg text-lg sm:text-2xl hover:bg-purple-600 transition-colors shrink-0">
+        <i class="fa-solid fa-bolt"></i>
+      </button>
+    </div>
+  </form>
 </div>

@@ -1,5 +1,0 @@
-idle.png, walk.png, attack01.png, hurt.png, death.png are extracted
-("with shadows" variant, 100x100 uniform frames) from a "herois_v2" pack
-(Soldier character, includes a matching Soldier.aseprite source). No
-license/readme file shipped with this pack — terms unknown, verify
-before any commercial or redistributed use.
