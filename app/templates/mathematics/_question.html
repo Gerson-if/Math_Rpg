@@ -1,25 +1,12 @@
 {% import "_macros.html" as ui %}
 <div id="question-slot">
   {% if feedback %}
-    <div class="vfx-anchor">
-      <div class="flash {{ 'flash-info' if feedback.is_correct else 'flash-error' }}">
-        {% if feedback.is_correct %}
-          ✅ Correto! +{{ feedback.xp_awarded }} XP
-          {% if feedback.leveled_up %}· 🎉 Subiu para o nível {{ feedback.level_number }}!{% endif %}
-        {% else %}
-          ❌ Quase — a resposta certa era <strong>{{ feedback.correct_answer }}</strong>.
-        {% endif %}
-      </div>
+    <div class="flash {{ 'flash-info' if feedback.is_correct else 'flash-error' }}">
       {% if feedback.is_correct %}
-        <div class="vfx vfx-correct" onanimationend="this.remove()" aria-hidden="true"></div>
+        ✅ Correto! +{{ feedback.xp_awarded }} XP
+        {% if feedback.leveled_up %}· 🎉 Subiu para o nível {{ feedback.level_number }}!{% endif %}
       {% else %}
-        <div class="vfx vfx-wrong" onanimationend="this.remove()" aria-hidden="true"></div>
-      {% endif %}
-      {% if feedback.leveled_up %}
-        <div class="vfx vfx-levelup" style="animation-delay:0.15s;" onanimationend="this.remove()" aria-hidden="true"></div>
-      {% endif %}
-      {% if feedback.new_achievements %}
-        <div class="vfx vfx-achievement" style="animation-delay:0.3s;" onanimationend="this.remove()" aria-hidden="true"></div>
+        ❌ Quase — a resposta certa era <strong>{{ feedback.correct_answer }}</strong>.
       {% endif %}
     </div>
     {% if feedback.new_achievements %}
@@ -38,38 +25,16 @@
     {% endif %}
   {% endif %}
 
-  {% set hero_class, guardian_class, portal_class = '', '', '' %}
-  {% if feedback %}
-    {% if feedback.is_correct %}
-      {% set hero_class, guardian_class = ' hero-sprite--attack', ' guardian-statue--hit' %}
-    {% else %}
-      {% set hero_class, guardian_class = ' hero-sprite--defeat', ' guardian-statue--attack' %}
-    {% endif %}
-    {% if feedback.leveled_up %}
-      {% set portal_class = ' portal-sprite--surge' %}
-    {% endif %}
-  {% endif %}
   <div class="panel">
-    <div class="battle-stage">
-      {% include "_parallax.html" %}
-      <div class="battle-stage-fade"></div>
-      <div class="hero-sprite{{ hero_class }}" aria-hidden="true"></div>
-      <div class="guardian-wrap">
-        <div class="portal-sprite{{ portal_class }}" aria-hidden="true"></div>
-        <div class="guardian-statue{{ guardian_class }}" aria-hidden="true"></div>
-      </div>
-    </div>
     <p style="font-size:1.6rem;margin:0 0 1rem;">{{ prompt }}</p>
     <form hx-post="{{ url_for('mathematics.answer_question', topic_slug=topic.slug) }}"
           hx-target="#question-slot"
-          hx-swap="outerHTML"
-          hx-indicator="#answer-spinner">
+          hx-swap="outerHTML">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="token" value="{{ token }}">
       <input type="text" name="answer" inputmode="numeric" autocomplete="off" autofocus
              placeholder="Sua resposta">
       <button class="btn" type="submit">Responder</button>
-      <span id="answer-spinner" class="vfx vfx-loading vfx-inline htmx-indicator" aria-hidden="true"></span>
     </form>
   </div>
 </div>

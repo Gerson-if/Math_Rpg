@@ -154,232 +154,23 @@
   margin: 0;
 }
 
-/*
-  Hero sprite (idle-spritesheet.png, regenerated from the source
-  idle.aseprite: 10 frames, 64x64 each, packed as a uniform 640x64 strip —
-  see scripts/rebuild_hero_sprites.py). steps(10) + a fixed frame width is
-  only correct because every frame is the same size; a trimmed/variable-
-  width export would make the strip play back like a smeared filmstrip
-  instead of a clean frame-by-frame loop.
-*/
-.hero-sprite {
-  width: 96px;
-  height: 96px;
+/* Dashboard avatar: a single static frame (no animation) from the
+   soldier idle sheet. */
+.soldier-avatar {
+  width: 84px;
+  height: 84px;
   flex-shrink: 0;
   image-rendering: pixelated;
-  background-image: url("../images/characters/hero/idle-spritesheet.png?v=2");
+  background-image: url("../images/characters/soldier/idle.png");
   background-repeat: no-repeat;
-  background-size: 960px 96px;
-  animation: hero-idle-cycle 0.6s steps(10) infinite;
-}
-
-@keyframes hero-idle-cycle {
-  from { background-position: 0 0; }
-  to { background-position: -960px 0; }
-}
-
-.hero-sprite--sm { width: 51px; height: 51px; background-size: 510px 51px; }
-
-/*
-  Parallax scene: the 5 individual layers from the scenery art pack (sky,
-  castle silhouette, 3 forest bands) instead of one flattened image, each
-  drifting at its own speed via background-position — the classic
-  parallax-depth trick. Reused behind both the battle stage and the
-  login/register forms. Pure CSS animation on background-position, no JS.
-*/
-.parallax-scene {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.parallax-layer {
-  position: absolute;
-  inset: 0;
-  background-repeat: repeat-x;
-  background-size: auto 100%;
-  image-rendering: pixelated;
-}
-
-.parallax-sky { background-image: url("../images/backgrounds/parallax/sky.png"); }
-.parallax-castle { background-image: url("../images/backgrounds/parallax/castle.png"); animation: parallax-drift 100s linear infinite; }
-.parallax-far-forest { background-image: url("../images/backgrounds/parallax/far-forest.png"); animation: parallax-drift 55s linear infinite; }
-.parallax-mid-forest { background-image: url("../images/backgrounds/parallax/mid-forest.png"); animation: parallax-drift 32s linear infinite; }
-.parallax-near-forest { background-image: url("../images/backgrounds/parallax/near-forest.png"); animation: parallax-drift 18s linear infinite; }
-
-@keyframes parallax-drift {
-  from { background-position-x: 0; }
-  to { background-position-x: -1024px; }
-}
-
-.battle-stage {
-  position: relative;
-  height: 150px;
-  margin: -1.25rem -1.25rem 1rem;
-  border-radius: var(--radius) var(--radius) 0 0;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0 28px 12px;
-  background: var(--color-bg-panel);
-}
-
-.battle-stage-fade {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(to bottom, rgba(21, 16, 55, 0) 45%, var(--color-bg-panel) 96%);
-}
-
-.battle-stage .hero-sprite,
-.battle-stage .guardian-wrap {
-  position: relative;
-  z-index: 2;
-}
-
-.battle-stage .hero-sprite {
-  width: 128px;
-  height: 128px;
-  background-size: 1280px 128px;
-}
-
-/*
-  Battle feedback. No dedicated attack/hurt/death sprites exist in any art
-  pack delivered so far — only idle and walk. Mixing the idle breathing
-  loop (background-position cycling every 60ms) together with a transform
-  (lunge / fall) at the same time was the bug reported: two animations
-  telling different stories on the same sprite read as glitchy/uncontrolled.
-  Fixed by only ever running ONE animation dimension at a time per state:
-    - attack: swap to the walk spritesheet and actually run the step
-      cycle forward (legs moving = the same story as the translateX lunge).
-    - defeat: freeze on a single idle frame (no cycling at all) and only
-      play the fall/desaturate transform.
-  Declared after .battle-stage .hero-sprite on purpose — same specificity,
-  so source order is what makes these win the width/background-size fight.
-*/
-.battle-stage .hero-sprite--attack {
-  width: 106px; /* walk frames are 53x64 vs idle's 64x64 — same 2x scale, narrower frame */
-  background-image: url("../images/characters/hero/walk-spritesheet.png?v=2");
-  background-size: 2756px 128px;
-  animation: hero-walk-frames 0.5s steps(26) 1, hero-attack-lunge 0.5s ease-out 1;
-}
-
-.battle-stage .hero-sprite--defeat {
+  background-size: 504px 84px;
   background-position: 0 0;
-  animation: hero-defeat-stagger 0.7s ease-in 1 forwards;
-}
-
-@keyframes hero-walk-frames {
-  from { background-position: 0 0; }
-  to { background-position: -2756px 0; }
-}
-
-/* translateX must come before scaleX(-1) in each stop — translate is then
-   applied in real screen-space *after* the mirror, so the lunge still
-   moves right on screen instead of moving opposite to the mirrored art. */
-@keyframes hero-attack-lunge {
-  0% { transform: translateX(0) scaleX(-1); }
-  60% { transform: translateX(26px) scaleX(-1); }
-  100% { transform: translateX(0) scaleX(-1); }
-}
-
-@keyframes hero-defeat-stagger {
-  0% { transform: rotate(0deg) translateY(0); filter: grayscale(0) brightness(1); opacity: 1; }
-  60% { transform: rotate(-75deg) translateY(6px); filter: grayscale(0.7) brightness(0.7); opacity: 1; }
-  100% { transform: rotate(-88deg) translateY(12px); filter: grayscale(1) brightness(0.5); opacity: 0.4; }
-}
-
-/* Dashboard reuses the same battle-stage backdrop as a welcome banner —
-   shorter, and just the hero (no guardian/portal outside an actual
-   practice session). */
-.battle-stage--dashboard { height: 110px; justify-content: center; padding: 0 0 8px; }
-.battle-stage--dashboard .hero-sprite { width: 96px; height: 96px; background-size: 960px 96px; }
-
-/*
-  Guardian + portal: stand-ins for a real enemy. No monster/boss sprite
-  exists in either art pack delivered so far, so the "enemy" the hero
-  faces is the portal it's trying to reach plus the Angel Statue guarding
-  it (both from the scenery pack, app/static/assets/artes/) — a correct
-  answer reads as a hit landing on the guardian, a wrong one as the
-  guardian striking back, and leveling up makes the portal flare/surge,
-  standing in for "advancing forward" until real enemy art exists.
-*/
-.guardian-wrap {
-  position: relative;
-  width: 90px;
-  height: 100px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.portal-sprite {
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  width: 90px;
-  height: 90px;
-  transform: translateX(-50%);
-  image-rendering: pixelated;
-  background-image: url("../images/battle/portal-spritesheet.png");
-  background-repeat: no-repeat;
-  background-size: 900px 90px;
-  animation: portal-spin 0.9s steps(10) infinite;
-  opacity: 0.85;
-  z-index: 1;
-}
-
-@keyframes portal-spin {
-  from { background-position: 0 0; }
-  to { background-position: -900px 0; }
-}
-
-.portal-sprite--surge {
-  animation: portal-spin 0.45s steps(10) infinite, portal-flare 0.9s ease-out 1;
-}
-
-@keyframes portal-flare {
-  0%, 100% { transform: translateX(-50%) scale(1); filter: brightness(1) saturate(1); }
-  45% { transform: translateX(-50%) scale(1.4); filter: brightness(1.7) saturate(1.5); }
-}
-
-.guardian-statue {
-  position: relative;
-  z-index: 2;
-  width: 42px;
-  height: 56px;
-  image-rendering: pixelated;
-  background-image: url("../images/battle/guardian-statue.png");
-  background-repeat: no-repeat;
-  background-size: contain;
-  background-position: bottom center;
-  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .5));
-}
-
-.guardian-statue--hit { animation: guardian-hit 0.4s ease-out 1; }
-
-@keyframes guardian-hit {
-  0%, 100% { transform: translateX(0); filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .5)) brightness(1); }
-  30% { transform: translateX(5px); filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .5)) brightness(2.4) sepia(1) hue-rotate(-45deg) saturate(5); }
-}
-
-.guardian-statue--attack { animation: guardian-attack 0.6s ease-in-out 1; }
-
-@keyframes guardian-attack {
-  0%, 100% { filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .5)) brightness(1); }
-  45% { filter: drop-shadow(0 0 12px rgba(136, 35, 35, .95)) brightness(1.6); }
 }
 
 /*
-  Mentor sidekick (practice screen): no second-character art exists in
-  either art pack delivered so far, so this is a CSS-drawn avatar in the
-  --color-accent family (orange) to read as a distinct NPC from the
-  hero's --color-primary (blue/indigo) battle-stage identity.
+  Mentor sidekick (practice screen): CSS-drawn avatar in the
+  --color-accent family (orange). Static bubble background using the
+  Sprout Lands panel art (see images/ui/CREDITS.txt) — no animation.
 */
 .mentor-tip {
   display: flex;
@@ -387,9 +178,13 @@
   gap: 0.85rem;
   margin-top: 1rem;
   padding: 0.9rem 1.1rem;
-  background: var(--color-bg-panel);
-  border: 1px dashed var(--color-accent);
-  border-radius: var(--radius);
+  color: #4a2f1c;
+  border: none;
+  border-image-source: url("../images/ui/panel-button.png");
+  border-image-slice: 8 fill;
+  border-image-width: 8px;
+  border-image-repeat: stretch;
+  image-rendering: pixelated;
 }
 
 .mentor-avatar {
@@ -405,4 +200,4 @@
   box-shadow: 0 0 12px rgba(255, 140, 94, .55), inset 0 0 0 2px rgba(255, 255, 255, .2);
 }
 
-.mentor-tip strong { color: var(--color-accent); }
+.mentor-tip strong { color: var(--color-accent-dark); }

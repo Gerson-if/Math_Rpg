@@ -15,8 +15,7 @@
      hx-get="{{ url_for('mathematics.new_question', topic_slug=topic.slug) }}"
      hx-trigger="load"
      hx-swap="outerHTML">
-  <div class="panel" style="display:flex;align-items:center;gap:0.75rem;">
-    <span class="vfx vfx-loading vfx-inline" aria-hidden="true"></span>
+  <div class="panel">
     <p style="margin:0;">Carregando questão...</p>
   </div>
 </div>

@@ -14,3 +14,19 @@ terms.
 torch-flicker.png is cropped from Torch.png in a "GandalfHardcore"
 scenery pack (gandalfhardcore.itch.io) — see ../backgrounds/CREDITS.txt
 for that pack's terms, which cover this file too.
+
+panel-button.png ("dialog box medium.png") and speech-bubble.png
+("dialog box.png") are from the "Sprout Lands UI" asset pack by Cup
+Nooble (cupnooble.itch.io), Free Basic Pack. The pixel font at
+../../fonts/pixel-sprout-lands.ttf is from the same pack.
+
+License (from the pack's own read_me.txt):
+- Can modify the assets.
+- Cannot redistribute or resell, even if modified.
+- NON-COMMERCIAL PROJECTS ONLY — this is stricter than the other packs
+  used in this project. If Matemática RPG is ever monetized, either buy
+  the Premium version of this pack or replace panel-button.png,
+  speech-bubble.png, and the pixel font first.
+- No NFTs.
+
+Follow: twitter.com/Sprout_Lands

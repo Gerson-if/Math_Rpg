@@ -3,22 +3,18 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <div class="panel">
-  <div class="battle-stage battle-stage--dashboard">
-    {% include "_parallax.html" %}
-    <div class="battle-stage-fade"></div>
-    <div class="hero-sprite" aria-hidden="true"></div>
-  </div>
   <div style="display:flex;gap:1.5rem;align-items:center;">
+    <div class="soldier-avatar" aria-hidden="true"></div>
     {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
     <div>
       <h1 style="margin:0;">Olá, {{ user.profile.display_name if user.profile else user.username }}</h1>
       <p style="color:var(--color-text-muted);margin:0.25rem 0 0;">
-        Nível {{ user.stats.level.number if user.stats and user.stats.level else 1 }}
+        Nível <span class="pixel-num">{{ user.stats.level.number if user.stats and user.stats.level else 1 }}</span>
         · {{ user.stats.rank.name if user.stats and user.stats.rank else "Iniciante" }}
         · <img class="inline-icon" src="{{ url_for('static', filename='images/ui/xp-coin.png') }}" alt="">
-        {{ user.stats.xp if user.stats else 0 }} XP
+        <span class="pixel-num">{{ user.stats.xp if user.stats else 0 }} XP</span>
         · <img class="inline-icon" src="{{ url_for('static', filename='images/ui/streak-flame.png') }}" alt="">
-        Sequência atual: {{ user.stats.current_streak if user.stats else 0 }}
+        Sequência atual: <span class="pixel-num">{{ user.stats.current_streak if user.stats else 0 }}</span>
       </p>
     </div>
   </div>

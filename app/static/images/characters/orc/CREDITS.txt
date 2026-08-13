@@ -1,0 +1,5 @@
+idle.png, walk.png, attack01.png, hurt.png, death.png are extracted
+("with shadows" variant, 100x100 uniform frames) from the same
+"herois_v2" pack as ../soldier/ (Orc character, includes a matching
+Orc.aseprite source). No license/readme file shipped with this pack —
+terms unknown, verify before any commercial or redistributed use.

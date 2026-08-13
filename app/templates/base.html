@@ -12,6 +12,22 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/effects.css') }}">
   <style>
     /*
+      Sprout Lands pixel font (non-commercial license, see
+      images/ui/CREDITS.txt) — uppercase-only and has no accented
+      characters, so it can't be used for running Portuguese text without
+      glyphs silently falling back to a different font mid-word. Scoped
+      to .pixel-num — ASCII digits only (XP amounts, level numbers) — via
+      the utility class below instead of applied broadly.
+    */
+    @font-face {
+      font-family: "Sprout Pixel";
+      src: url("{{ url_for('static', filename='fonts/pixel-sprout-lands.ttf') }}") format("truetype");
+      font-display: swap;
+    }
+
+    .pixel-num { font-family: "Sprout Pixel", var(--font-body); letter-spacing: 0.03em; }
+
+    /*
       Placeholder palette pulled from the sample idle/walk sprite sheet.
       This is a PROVISIONAL identity only — swap these tokens once the
       full art pack arrives (see section 13 of the spec) and keep every
@@ -44,76 +60,6 @@
       background-attachment: fixed;
     }
 
-    /* Login/register: the same layered parallax scenery used on the battle
-       stage, fixed behind the whole viewport and dimmed enough to keep the
-       form readable — the entry point feels like "arriving" in the game
-       world instead of a bare form. Markup for .parallax-scene--fixed is
-       only rendered on these two routes (see <body> below). */
-    .parallax-scene--fixed { position: fixed; z-index: -1; }
-
-    .parallax-dim {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to bottom, rgba(21, 16, 55, .5), rgba(21, 16, 55, .92) 75%);
-    }
-
-    /* Solid ground band so the runner/guardian read as standing on
-       something instead of floating over the tree canopy — color sampled
-       from the near-forest layer's own base tone so it reads as a
-       continuation of the ground already visible in that layer. */
-    .parallax-ground {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 20%;
-      background: linear-gradient(to bottom, #4e4223, #2c2513);
-      z-index: 1;
-    }
-
-    /* Login/register ambient scene: the hero runs the walk-cycle across
-       the background on a loop (same steps(26) frame animation used for
-       the battle-stage attack, see ui.css) and passes the guardian statue
-       partway across — a small "adventure in progress" flourish behind
-       the form, built entirely from assets already used elsewhere. The
-       walk sprite's art faces/steps left, so scaleX(-1) mirrors it to
-       face the direction it's actually travelling (right) — without it,
-       the character appears to walk backwards. */
-    .login-runner {
-      position: absolute;
-      bottom: 13%;
-      left: -120px;
-      width: 106px;
-      height: 128px;
-      image-rendering: pixelated;
-      background-image: url("{{ url_for('static', filename='images/characters/hero/walk-spritesheet.png') }}?v=2");
-      background-repeat: no-repeat;
-      background-size: 2756px 128px;
-      transform: scaleX(-1);
-      animation: hero-walk-frames 0.9s steps(26) infinite, login-runner-path 11s linear infinite;
-      z-index: 2;
-    }
-
-    @keyframes login-runner-path {
-      0% { left: -120px; }
-      100% { left: 105%; }
-    }
-
-    .login-guardian {
-      position: absolute;
-      bottom: 13%;
-      right: 14%;
-      width: 42px;
-      height: 56px;
-      image-rendering: pixelated;
-      background-image: url("{{ url_for('static', filename='images/battle/guardian-statue.png') }}");
-      background-repeat: no-repeat;
-      background-size: contain;
-      background-position: bottom center;
-      filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .5));
-      z-index: 2;
-    }
-
     a { color: var(--color-accent); }
 
     .app-shell {
@@ -136,22 +82,6 @@
 
     .navbar-brand { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; letter-spacing: 0.02em; }
 
-    .navbar-torch {
-      width: 20px;
-      height: 20px;
-      flex-shrink: 0;
-      image-rendering: pixelated;
-      background-image: url("{{ url_for('static', filename='images/ui/torch-flicker.png') }}");
-      background-repeat: no-repeat;
-      background-size: 20px 80px;
-      animation: navbar-torch-flicker 0.6s steps(4) infinite;
-    }
-
-    @keyframes navbar-torch-flicker {
-      from { background-position: 0 0; }
-      to { background-position: 0 -80px; }
-    }
-
     .back-link { margin: 0 0 0.75rem; }
     .back-link a { color: var(--color-text-muted); text-decoration: none; font-size: 0.9rem; }
     .back-link a:hover { color: var(--color-accent); }
@@ -164,50 +94,50 @@
       margin-top: 1rem;
     }
 
+    /* Real pixel-art button (Sprout Lands UI pack, "dialog box medium.png")
+       instead of a CSS gradient — border-image with "fill" renders the
+       source's own cream panel into the middle, so no separate
+       background-color is needed. Non-commercial license — see
+       images/ui/CREDITS.txt before using this project commercially. */
     .btn {
       display: inline-block;
       padding: 0.6rem 1.2rem;
-      border-radius: var(--radius);
-      border: none;
-      background: var(--color-primary);
-      color: #fff;
-      font-weight: 600;
+      color: #4a2f1c;
+      font-weight: 700;
       cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      border: none;
+      border-image-source: url("{{ url_for('static', filename='images/ui/panel-button.png') }}");
+      border-image-slice: 8 fill;
+      border-image-width: 8px;
+      border-image-repeat: stretch;
+      image-rendering: pixelated;
     }
 
-    .btn:hover {
-      background: var(--color-accent-dark);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 14px rgba(255, 140, 94, .35);
-    }
+    .btn:hover { filter: brightness(1.12); }
 
-    .btn:active { transform: translateY(0); box-shadow: none; }
-
-    /* RPG-menu styled links (dashboard quick actions) — bolder than .btn,
-       meant for the handful of primary destinations on the panel, not
-       every button on the site. */
+    /* RPG-menu styled links (dashboard quick actions) — same pixel-art
+       panel as .btn, just bigger/bolder for the handful of primary
+       destinations, with a warm hue-shift so it doesn't look identical
+       to every other button on the page. */
     .menu-tile {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.75rem 1.35rem;
-      border-radius: var(--radius);
-      background: linear-gradient(160deg, var(--color-primary-light) 0%, var(--color-primary) 55%, #150f3d 160%);
-      color: #fff;
+      padding: 0.85rem 1.5rem;
+      color: #4a2f1c;
       font-weight: 700;
+      font-size: 1.05rem;
       text-decoration: none;
-      border: 1px solid rgba(255, 255, 255, .15);
-      box-shadow: 0 2px 0 rgba(0, 0, 0, .25) inset, 0 4px 10px rgba(3, 33, 188, .25);
-      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      border: none;
+      border-image-source: url("{{ url_for('static', filename='images/ui/panel-button.png') }}");
+      border-image-slice: 8 fill;
+      border-image-width: 10px;
+      border-image-repeat: stretch;
+      image-rendering: pixelated;
+      filter: saturate(1.3) hue-rotate(-8deg);
     }
 
-    .menu-tile:hover {
-      transform: translateY(-3px) scale(1.03);
-      box-shadow: 0 2px 0 rgba(0, 0, 0, .25) inset, 0 8px 20px rgba(255, 140, 94, .45);
-    }
-
-    .menu-tile:active { transform: translateY(-1px) scale(1); }
+    .menu-tile:hover { filter: saturate(1.4) hue-rotate(-8deg) brightness(1.1); }
 
     input[type="text"], input[type="email"], input[type="password"] {
       width: 100%;
@@ -226,25 +156,10 @@
     label { font-size: 0.85rem; color: var(--color-text-muted); }
   </style>
 </head>
-<body class="{{ 'auth-body' if request.endpoint in ('auth.login', 'auth.register') else '' }}">
-  {% if request.endpoint in ('auth.login', 'auth.register') %}
-    <div class="parallax-scene parallax-scene--fixed">
-      <div class="parallax-layer parallax-sky"></div>
-      <div class="parallax-layer parallax-castle"></div>
-      <div class="parallax-layer parallax-far-forest"></div>
-      <div class="parallax-layer parallax-mid-forest"></div>
-      <div class="parallax-layer parallax-near-forest"></div>
-      <div class="parallax-ground"></div>
-      <div class="login-guardian" aria-hidden="true"></div>
-      <div class="login-runner" aria-hidden="true"></div>
-      <div class="parallax-dim"></div>
-    </div>
-  {% endif %}
+<body>
   <nav class="navbar">
     <a class="navbar-brand" href="{{ url_for('users.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
-      <span class="navbar-torch" aria-hidden="true"></span>
       ⚔ Matemática RPG
-      <span class="navbar-torch" aria-hidden="true"></span>
     </a>
     {% if current_user.is_authenticated %}
       <div>

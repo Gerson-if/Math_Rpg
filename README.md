@@ -172,7 +172,7 @@ de batalha" abaixo).
   verdade não foi feito por não haver credenciais de nuvem disponíveis
   neste ambiente de desenvolvimento.
 
-**Correções e sistema de batalha (pós-Fase 8)**
+**Correções pós-Fase 8**
 - Dois tópicos de Fundamentos (`numeros-e-contagem`, `comparacao-de-quantidades`)
   estavam no currículo semeado (`scripts/seed.py`) mas sem gerador
   registrado em `mathematics_service.py` — toda tentativa de praticar
@@ -180,91 +180,40 @@ de batalha" abaixo).
   geram questões numéricas simples (contar símbolos, comparar dois
   números), compatíveis com o campo de resposta `inputmode="numeric"`
   existente, sem exigir nenhum símbolo novo de digitação.
-- O sprite idle do herói tinha um bug de origem: o export do Aseprite
-  recorta cada frame no seu próprio bounding box (larguras diferentes por
-  frame), mas o CSS lia a spritesheet como se fosse uma grade uniforme —
-  resultado, a animação "escorregava" entre poses em vez de trocar de
-  frame limpo, como uma fita de filme passando. `scripts/rebuild_hero_sprites.py`
-  lê os chunks do `.aseprite` (posição/tamanho reais de cada cel + o
-  tamanho do canvas) e repinta cada frame num tile do tamanho do canvas,
-  gerando uma strip uniforme de verdade — aí sim `steps(N)` funciona.
-  Mesma correção aplicada ao sprite de walk (ainda não usado em nenhuma
-  tela).
-- **Sistema de batalha** na tela de prática: `battle-stage` (fundo de
-  floresta + castelo) com o herói de um lado e, do outro, um portal
-  animado (`GandalfHardcore Portal sheet.png`, já vinha como grade
-  uniforme, sem precisar do mesmo tratamento do sprite do herói) com a
-  Angel Statue do pacote de cenário guardando a passagem — os dois juntos
-  fazem o papel de "inimigo" até existir arte de monstro de verdade.
-  Acertar = lunge do herói + a estátua "recebe o golpe" (flash); errar =
-  a estátua "ataca" (brilho vermelho) + o herói cambaleia e cai; subir de
-  nível = o portal reage com um flare, simbolizando avançar. Tudo CSS
-  puro (transform/filter/opacity, sem JS, sem layout thrashing) disparado
-  pelas classes condicionais em `_question.html`.
-- **Mentor sidekick**: avatar CSS (não há arte de um segundo personagem
-  ainda) que mostra uma curiosidade matemática ou uma regra do jogo por
-  sessão de prática (`app/services/mentor_tips.py`, lista curada,
-  `random.choice`), pedido explícito do usuário por um NPC que "magicamente
-  informa curiosidades e regras".
-- Novo pacote de artes de cenário (`app/static/assets/artes/`, gitignored
-  como os anteriores) trouxe camadas de parallax (céu, montanhas, floresta),
-  a estátua acima e o portal — sem nenhum personagem/inimigo novo.
-  Composto em `app/static/images/backgrounds/forest-castle.png` (variante
-  Autumn, tons quentes que combinam com `--color-accent`) — paleta base
-  da interface (`--color-bg` etc.) mantida sem alteração, conforme pedido.
-- **Navegação e identidade visual**: link "← Voltar ao painel" em toda
-  página autenticada que não seja o próprio dashboard (`base.html`, uma
-  condição só — cobre páginas futuras automaticamente); favicon de
-  verdade (`app/static/favicon.ico`, gerado a partir do ícone de XP
-  já em uso, `images/ui/xp-coin.png`); tela de login/cadastro ganhou o
-  mesmo fundo de floresta+castelo (escurecido para manter contraste);
-  dashboard reaproveita o `battle-stage` como banner de boas-vindas;
-  botões viraram `.menu-tile` (gradiente, hover com leve elevação/brilho)
-  nos links principais do dashboard, e `.btn` (formulários, "Responder")
-  ganhou uma transição de hover mais viva. Todas as animações usam só
-  `transform`/`filter`/`opacity`/`background-position`, para não pesar.
+- **Mentor sidekick**: avatar CSS que mostra uma curiosidade matemática
+  ou uma regra do jogo por sessão de prática (`app/services/mentor_tips.py`,
+  lista curada, `random.choice`), com fundo em pixel art (Sprout Lands UI
+  pack — ver `images/ui/CREDITS.txt`, licença não-comercial).
+- Link "← Voltar ao painel" em toda página autenticada que não seja o
+  próprio dashboard (`base.html`, uma condição só — cobre páginas
+  futuras automaticamente) e favicon de verdade (`app/static/favicon.ico`,
+  gerado a partir do ícone de XP já em uso).
+- Botões (`.btn`, `.menu-tile`) usam o mesmo pixel art do mentor sidekick
+  em vez de gradiente CSS; um avatar estático (sem animação) do
+  personagem "soldier" aparece no dashboard.
+- Números de estatística (XP, nível, sequência) usam uma fonte pixelada
+  (`.pixel-num`, Sprout Lands, mesma licença) — escopo restrito a dígitos
+  porque a fonte só tem maiúsculas/números, sem acentuação, então não dá
+  pra usar em texto corrido em português sem quebrar o fallback no meio
+  da palavra.
 
-**Correções da batalha e parallax de verdade (rodada seguinte)**
-- **Bug real na animação de ataque**: `.hero-sprite--attack` tocava a
-  animação de respiração do idle (`background-position` mudando a cada
-  60ms) *e* o transform do lunge ao mesmo tempo — duas histórias
-  diferentes competindo no mesmo sprite, o que lia como "descontrolado".
-  Trocado por tocar o walk-cycle de verdade (`walk-spritesheet.png`, 26
-  frames) sincronizado com o próprio lunge — legado e corpo contam a
-  mesma história agora. O estado de derrota passou a congelar num único
-  frame do idle (sem ciclar) e só tocar o transform de queda.
-- **Herói andando de costas**: a arte do walk-cycle já vem virada pra
-  esquerda (perna de apoio à frente do lado esquerdo do frame); usá-la
-  num lunge/corrida pra direita sem espelhar fazia o personagem "andar de
-  costas". Corrigido com `transform: translateX(...) scaleX(-1)` — nessa
-  ordem, porque `translateX` precisa vir antes do espelhamento pra
-  continuar significando "direita" na tela em vez de inverter também.
-- **Cache do navegador escondendo o próprio fix**: a spritesheet do idle
-  foi regravada com o mesmo nome de arquivo (`idle-spritesheet.png`), então
-  um navegador que já tinha carregado a versão quebrada continuava
-  mostrando ela até um hard-refresh. Adicionado `?v=2` nas URLs das duas
-  spritesheets do herói em `ui.css` como cache-bust.
-- **Parallax de verdade** (`.parallax-scene`/`.parallax-layer` em
-  `ui.css`, partial `_parallax.html`): em vez de uma imagem só
-  (`forest-castle.png`), as 5 camadas originais do pacote (céu, castelo,
-  3 bandas de floresta) viram elementos empilhados, cada um andando
-  (`background-position`) numa velocidade diferente — céu parado, castelo
-  bem lento, floresta próxima mais rápida. Usado no battle-stage, no
-  banner do dashboard e agora fixo atrás da tela de login/cadastro.
-- **Herói correndo no login**: `.login-runner` roda o walk-cycle cruzando
-  a tela da esquerda pra direita em loop (11s), passando pela Angel
-  Statue (`.login-guardian`) — mesma arte reaproveitada do battle-stage.
-  Uma faixa de chão sólida (`.parallax-ground`, cor extraída da própria
-  camada de floresta próxima) resolve o personagem "flutuando" sobre a
-  copa das árvores.
-- **Navbar**: duas tochas animadas (`Torch.png` do pacote de cenário,
-  recortadas em `images/ui/torch-flicker.png`, 4 frames de chama)
-  flanqueiam o logo, com gradiente + brilho embaixo no lugar do fundo
-  chapado anterior.
-- Procurei especificamente por arte de botão/painel/moldura em todo o
-  pacote de cenário (`Decor.png`, `Alchemy Decor.png`, `Other Tiles*.png`,
-  `House Tiles.png`) — não existe nada do tipo, é só terreno/decoração.
-  Os botões (`.btn`, `.menu-tile`) continuam sendo CSS puro por isso.
+**Sistema de batalha animado — implementado e depois removido**
+Entre essas correções e a versão atual, este projeto teve uma fase com
+um sistema de batalha bem mais elaborado: sprite do herói com
+idle/attack/walk reconstruído a partir de `.aseprite` fonte
+(`scripts/rebuild_hero_sprites.py` — script mantido no repo, ainda
+funciona se algum sprite precisar do mesmo tratamento no futuro),
+depois um segundo pacote de personagens (soldier vs. orc, com
+idle/attack/hurt/death de verdade), parallax em camadas reais (céu,
+castelo, floresta) atrás da tela de prática/dashboard/login, portal
+animado, tochas na navbar, e por aí vai. A pedido do usuário, **todas
+as animações e fundos/parallax foram removidos** para priorizar
+estabilidade e simplicidade — o que ficou: os elementos estáticos
+(avatar do soldier no dashboard, botões e mentor sidekick em pixel art)
+e todas as correções funcionais da rodada anterior. Os assets
+(`images/characters/soldier/`, `images/characters/orc/`,
+`images/backgrounds/`, `images/battle/`) continuam no repo caso sirvam
+de novo depois, só não são mais referenciados por nenhuma animação.
 
 ## O que ainda não existe
 
