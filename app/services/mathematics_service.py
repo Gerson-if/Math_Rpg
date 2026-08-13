@@ -53,6 +53,7 @@ def generate_question(topic_slug: str, difficulty: int) -> Question:
     generators = {
         "numeros-e-contagem": _gen_numbers_counting,
         "comparacao-de-quantidades": _gen_quantity_comparison,
+        "tabuada-mista": _gen_tabuada_mista,
         "adicao": _gen_addition,
         "subtracao": _gen_subtraction,
         "multiplicacao": _gen_multiplication,
@@ -87,6 +88,16 @@ def _gen_tabuada(base: int, difficulty: int) -> Question:
         prompt = f"{base} × ? = {result}"
         answer = factor
     return {"prompt": prompt, "answer": str(answer), "meta": {"family": "tabuada", "base": base}}
+
+
+def _gen_tabuada_mista(difficulty: int) -> Question:
+    """"Domínio completo": draws the base from the whole 1..10 range instead
+    of a single fixed table, for the mixed-review topic that sits after all
+    ten individual tabuada-do-N topics. Reuses _gen_tabuada so both the
+    straightforward and missing-factor variants (and their difficulty
+    scaling) stay in one place."""
+    base = random.randint(1, 10)
+    return _gen_tabuada(base, difficulty)
 
 
 # ---------------------------------------------------------------------------

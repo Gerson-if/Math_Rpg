@@ -184,6 +184,28 @@ def test_dynamic_difficulty_rises_after_a_streak_of_correct_answers(client, db, 
     assert max(difficulties) > topic.base_difficulty
 
 
+def test_tabuada_mista_topic_is_reachable_through_the_real_flow(client, db, app):
+    """The mixed-review tabuada topic (all ten tables, random base per
+    question) added alongside tabuada-do-1..10 — same real-HTTP round trip
+    as the other topic regression tests above."""
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="tabuada-mista")
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    assert resp.status_code == 200
+    token = _extract_token(resp.data.decode())
+
+    with app.app_context():
+        payload = question_token.read_token(token)
+
+    resp2 = client.post(
+        f"/math/praticar/{topic.slug}/responder",
+        data={"token": token, "answer": payload["answer"]},
+    )
+    assert resp2.status_code == 200
+    assert "Correto" in resp2.data.decode()
+
+
 @pytest.mark.parametrize("slug", ["numeros-e-contagem", "comparacao-de-quantidades"])
 def test_fundamentos_topic_is_reachable_through_the_real_flow(client, db, app, slug):
     """Regression: these two topics are seeded in the curriculum

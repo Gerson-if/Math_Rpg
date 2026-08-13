@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Amigos{% endblock %}
+{% block content %}
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+  <i class="fa-solid fa-people-group"></i> Amigos
+</h1>
+
+{% if dungeon_invites %}
+  <div class="bg-purple-950/30 border border-purple-500 rounded-lg p-5 sm:p-6 mb-4 shadow-lg">
+    <h2 class="text-xl font-medieval text-purple-200 mb-3">
+      <i class="fa-solid fa-dungeon mr-1"></i> Convites de masmorra
+    </h2>
+    <ul class="space-y-2">
+      {% for invite in dungeon_invites %}
+        <li class="flex items-center justify-between gap-3 bg-black/30 rounded px-3 py-2 flex-wrap">
+          <span class="font-sans text-stone-200">
+            <strong class="text-white">{{ invite.from_user.username }}</strong> te chamou para ajudar em
+            <strong class="text-purple-200">{{ invite.topic.name }}</strong>
+          </span>
+          <span class="flex gap-2">
+            <form method="POST" action="{{ url_for('friends.accept_dungeon_invite', invite_id=invite.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="px-3 py-1.5 bg-mystic border border-purple-400 text-white rounded text-sm font-medieval cursor-pointer">
+                <i class="fa-solid fa-check"></i> Ajudar
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('friends.decline_dungeon_invite', invite_id=invite.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="px-3 py-1.5 border border-stone-600 text-stone-300 rounded text-sm font-medieval cursor-pointer hover:border-gold hover:text-gold">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </form>
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+{% if incoming %}
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mb-4 shadow-lg">
+    <h2 class="text-xl font-medieval text-stone-100 mb-3">Pedidos de amizade</h2>
+    <ul class="space-y-2">
+      {% for req in incoming %}
+        <li class="flex items-center justify-between gap-3 bg-stone-800/60 rounded px-3 py-2 flex-wrap">
+          <span class="font-sans text-stone-200">{{ req.requester.username }}</span>
+          <span class="flex gap-2">
+            <form method="POST" action="{{ url_for('friends.accept_request', friendship_id=req.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="px-3 py-1.5 bg-mystic border border-purple-400 text-white rounded text-sm font-medieval cursor-pointer">
+                <i class="fa-solid fa-check"></i> Aceitar
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('friends.decline_request', friendship_id=req.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="px-3 py-1.5 border border-stone-600 text-stone-300 rounded text-sm font-medieval cursor-pointer hover:border-gold hover:text-gold">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </form>
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mb-4 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-3">Adicionar amigo</h2>
+  <form method="POST" action="{{ url_for('friends.send_request') }}" class="flex gap-2 flex-wrap">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="username" required placeholder="Nome de usuário"
+           class="flex-1 min-w-[180px] bg-stone-800 border-2 border-stone-600 rounded p-2.5 font-sans text-white focus:border-gold focus:outline-none transition-colors">
+    <button type="submit" class="px-5 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform cursor-pointer">
+      <i class="fa-solid fa-user-plus"></i> Convidar
+    </button>
+  </form>
+  {% if outgoing %}
+    <p class="text-stone-400 font-sans text-sm mt-3">
+      Aguardando resposta de: {% for req in outgoing %}{{ req.addressee.username }}{% if not loop.last %}, {% endif %}{% endfor %}
+    </p>
+  {% endif %}
+</div>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-3">Seus amigos</h2>
+  {% if friend_rows %}
+    <ul class="divide-y divide-stone-800">
+      {% for friendship_id, friend in friend_rows %}
+        <li class="py-3 flex items-center justify-between gap-3 flex-wrap">
+          <span class="flex items-center gap-2 font-sans text-stone-200">
+            <span class="w-8 h-8 rounded-full bg-blue-950 border border-gold flex items-center justify-center text-gold text-sm">
+              {{ ui.avatar_icon(friend.profile) }}
+            </span>
+            {{ friend.profile.display_name if friend.profile else friend.username }}
+          </span>
+          <span class="flex items-center gap-2 flex-wrap">
+            {% if subjects %}
+              <form method="POST" action="{{ url_for('friends.invite_to_dungeon') }}" class="flex items-center gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="friend_id" value="{{ friend.id }}">
+                <select name="topic_id" required
+                        class="bg-stone-800 border border-stone-600 rounded px-2 py-1.5 text-sm text-stone-200 font-sans focus:border-gold focus:outline-none">
+                  {% for subject in subjects %}
+                    {% for topic in subject.topics %}
+                      <option value="{{ topic.id }}">{{ subject.name }} — {{ topic.name }}</option>
+                    {% endfor %}
+                  {% endfor %}
+                </select>
+                <button type="submit" class="px-3 py-1.5 bg-mystic border border-purple-400 text-white rounded text-sm font-medieval cursor-pointer">
+                  <i class="fa-solid fa-dungeon"></i> Convidar
+                </button>
+              </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('friends.remove_friend', friendship_id=friendship_id) }}"
+                  onsubmit="return confirm('Desfazer amizade com {{ friend.username }}?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="text-stone-500 hover:text-blood transition-colors text-sm cursor-pointer" title="Desfazer amizade">
+                <i class="fa-solid fa-user-minus"></i>
+              </button>
+            </form>
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-stone-400 font-sans">Você ainda não tem amigos por aqui — envie um convite acima.</p>
+  {% endif %}
+</div>
+{% endblock %}

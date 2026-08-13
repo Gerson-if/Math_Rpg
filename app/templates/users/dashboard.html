@@ -6,7 +6,7 @@
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
   <div class="flex gap-4 sm:gap-6 items-center flex-wrap">
     <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold flex items-center justify-center text-3xl sm:text-4xl bg-blue-950 text-gold shadow-inner shrink-0">
-      <i class="fa-solid fa-user-shield"></i>
+      {{ ui.avatar_icon(user.profile) }}
     </div>
     {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
     <div>
@@ -42,6 +42,9 @@
   </a>
   <a href="{{ url_for('chat.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
     <i class="fa-solid fa-comments"></i> Chat
+  </a>
+  <a href="{{ url_for('friends.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+    <i class="fa-solid fa-people-group"></i> Amigos
   </a>
 </div>
 {% endblock %}

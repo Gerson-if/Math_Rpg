@@ -20,7 +20,7 @@ from app.models import Subject, Topic, Level, Rank, Achievement
 CURRICULUM = [
     ("fundamentos", "Fundamentos", ["numeros-e-contagem", "comparacao-de-quantidades"],
      "images/icons/subjects/fundamentos.png"),
-    ("tabuada", "Tabuada", [f"tabuada-do-{n}" for n in range(1, 11)],
+    ("tabuada", "Tabuada", [f"tabuada-do-{n}" for n in range(1, 11)] + ["tabuada-mista"],
      "images/icons/subjects/tabuada.png"),
     ("operacoes-fundamentais", "Operações Fundamentais",
      ["adicao", "subtracao", "multiplicacao", "divisao"],
@@ -71,8 +71,34 @@ ACHIEVEMENTS = [
     ("dominou_porcentagem", "Mestre da Porcentagem", "Acerte 20 questões de Porcentagem.",
      {"type": "attempts_correct_in_subject", "subject": "porcentagem", "value": 20},
      "images/icons/subjects/porcentagem.png"),
+    ("dominou_fundamentos", "Mestre dos Fundamentos", "Acerte 20 questões de Fundamentos.",
+     {"type": "attempts_correct_in_subject", "subject": "fundamentos", "value": 20},
+     "images/icons/subjects/fundamentos.png"),
+    ("dominou_tabuada", "Mestre da Tabuada", "Acerte 20 questões de Tabuada.",
+     {"type": "attempts_correct_in_subject", "subject": "tabuada", "value": 20},
+     "images/icons/subjects/tabuada.png"),
+    ("dominou_operacoes", "Mestre das Operações Fundamentais",
+     "Acerte 20 questões de Operações Fundamentais.",
+     {"type": "attempts_correct_in_subject", "subject": "operacoes-fundamentais", "value": 20},
+     "images/icons/subjects/operacoes-fundamentais.png"),
+    # No dedicated art for the ones below (the streak-flame icon they used
+    # to point at belonged to the retired UI pack) — they fall back to the
+    # FontAwesome trophy/lock badge in _macros.html, which already matches
+    # the theme just fine.
     ("sequencia_de_ferro", "Sequência de Ferro", "Alcance uma sequência de 10 acertos seguidos.",
-     {"type": "best_streak", "value": 10}, "images/ui/streak-flame.png"),
+     {"type": "best_streak", "value": 10}, None),
+    ("sequencia_lendaria", "Sequência Lendária", "Alcance uma sequência de 25 acertos seguidos.",
+     {"type": "best_streak", "value": 25}, None),
+    ("quinhentas_questoes", "500 Questões Respondidas", "Responda 500 questões.",
+     {"type": "attempts_total", "value": 500}, None),
+    ("mil_questoes", "Lenda Viva", "Responda 1000 questões.",
+     {"type": "attempts_total", "value": 1000}, None),
+    ("trinta_dias", "30 Dias de Prática", "Pratique por 30 dias diferentes.",
+     {"type": "distinct_practice_days", "value": 30}, None),
+    ("nivel_dez", "Aventureiro Experiente", "Alcance o nível 10.",
+     {"type": "level_reached", "value": 10}, None),
+    ("nivel_vinte_cinco", "Herói do Reino", "Alcance o nível 25.",
+     {"type": "level_reached", "value": 25}, None),
 ]
 
 

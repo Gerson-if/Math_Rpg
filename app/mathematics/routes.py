@@ -14,7 +14,13 @@ from flask_login import login_required, current_user
 
 from app.extensions import db, limiter
 from app.models import Subject, Topic, Attempt
-from app.services import mathematics_service, question_token, progression_service, mentor_tips
+from app.services import (
+    mathematics_service,
+    question_token,
+    progression_service,
+    mentor_tips,
+    dungeon_service,
+)
 
 mathematics_bp = Blueprint("mathematics", __name__, url_prefix="/math")
 
@@ -66,7 +72,10 @@ def list_topics():
 def practice(topic_slug):
     topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
     return render_template(
-        "mathematics/practice.html", topic=topic, mentor_tip=mentor_tips.random_tip()
+        "mathematics/practice.html",
+        topic=topic,
+        mentor_tip=mentor_tips.random_tip(),
+        ally=dungeon_service.active_ally(current_user.id, topic.id),
     )
 
 
@@ -118,7 +127,9 @@ def answer_question(topic_slug):
     db.session.add(attempt)
     db.session.flush()  # need attempt.id before progression can reference it
 
-    progress = progression_service.process_attempt(attempt)
+    ally = dungeon_service.active_ally(current_user.id, topic.id)
+    bonus_xp = dungeon_service.COOP_BONUS_XP if ally else 0
+    progress = progression_service.process_attempt(attempt, bonus_xp=bonus_xp)
 
     # Keep the loop going: hand back feedback + the next question in one
     # response so practicing doesn't require a full page reload per item.
@@ -137,6 +148,8 @@ def answer_question(topic_slug):
             "is_correct": is_correct,
             "correct_answer": payload["answer"],
             "xp_awarded": progress["xp_awarded"],
+            "bonus_xp": progress["bonus_xp"],
+            "ally_name": ally.username if ally else None,
             "leveled_up": progress["leveled_up"],
             "level_number": progress["level_number"],
             "mastery_score": progress["mastery_score"],

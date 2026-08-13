@@ -49,14 +49,22 @@ _DIFFICULTY_MIN_ATTEMPTS = 3
 _DIFFICULTY_STREAK_BONUS_AT = 5
 
 
-def process_attempt(attempt: Attempt) -> dict:
+def process_attempt(attempt: Attempt, bonus_xp: int = 0) -> dict:
     """Update stats, level/rank, mastery and achievements for one answered
     question. Commits its own transaction. Returns a summary usable for
-    immediate UI feedback (XP earned, level-up, unlocked achievements)."""
+    immediate UI feedback (XP earned, level-up, unlocked achievements).
+
+    `bonus_xp` is an optional, caller-verified extra amount — currently
+    only used by the dungeon co-op invite (see app/services/
+    dungeon_service.py): practicing the same topic as an accepted ally
+    within their invite window grants a small bonus on top of the normal
+    difficulty-based XP. It's additive and only ever applied by the route,
+    never inferred here, so this module still has no idea co-op exists."""
 
     stats = _get_or_create_stats(attempt.user_id)
 
-    xp_awarded = _xp_for_attempt(attempt)
+    applied_bonus = max(0, bonus_xp) if attempt.is_correct else 0
+    xp_awarded = _xp_for_attempt(attempt) + applied_bonus
     stats.xp += xp_awarded
 
     if attempt.is_correct:
@@ -79,6 +87,7 @@ def process_attempt(attempt: Attempt) -> dict:
 
     return {
         "xp_awarded": xp_awarded,
+        "bonus_xp": applied_bonus,
         "leveled_up": leveled_up,
         "level_number": stats.level.number if stats.level else None,
         "mastery_score": mastery.mastery_score,
@@ -272,6 +281,9 @@ def _meets_criteria(user_id: int, stats: PlayerStats, criteria: dict) -> bool:
 
     if criteria_type == "best_streak":
         return stats.best_streak >= value
+
+    if criteria_type == "level_reached":
+        return stats.level is not None and stats.level.number >= value
 
     if criteria_type == "attempts_correct_in_subject":
         count = (

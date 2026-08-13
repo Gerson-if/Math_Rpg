@@ -10,6 +10,7 @@
     <div class="battle-toast font-sans text-sm font-semibold rounded p-3 border text-center {{ 'bg-green-950/60 border-green-500 text-green-200' if feedback.is_correct else 'bg-red-950/60 border-blood text-red-200' }}">
       {% if feedback.is_correct %}
         <i class="fa-solid fa-check"></i> Correto! +{{ feedback.xp_awarded }} XP
+        {% if feedback.bonus_xp %}<span class="text-purple-300">(+{{ feedback.bonus_xp }} bônus de dupla com {{ feedback.ally_name }})</span>{% endif %}
         {% if feedback.leveled_up %}· <i class="fa-solid fa-star"></i> Subiu para o nível {{ feedback.level_number }}!{% endif %}
       {% else %}
         <i class="fa-solid fa-xmark"></i> Quase — a resposta certa era <strong>{{ feedback.correct_answer }}</strong>.

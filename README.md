@@ -6,12 +6,12 @@ modelos do banco, autenticação, motor de questões, progressão, interface
 com identidade visual em construção e chat global — tudo modular por
 blueprints, como descrito no documento de especificação original.
 
-A identidade visual ainda é parcial: só existe um personagem (o sprite
-`idle`/`walk` em `app/static/images/characters/hero/`, sem poses de
-ataque/dano), mas rank/conquista/matéria já usam ícones reais extraídos
-de um pacote de artes fantasy (ver Fase 5 abaixo), e a tela de prática
-já tem um fundo de cenário (floresta + castelo, ver "Correções e sistema
-de batalha" abaixo).
+A identidade visual é Tailwind CSS + FontAwesome em tema medieval (ver
+"Remodelagem visual completa" mais abaixo) — não há mais sprites de
+personagem; rank, conquista e matéria usam ícones reais em pixel art
+extraídos de um pacote de artes fantasy, e o avatar do jogador é um
+ícone FontAwesome escolhido entre um conjunto curado (ver "Perfil
+editável e avatar" mais abaixo).
 
 ## O que já existe
 
@@ -232,6 +232,59 @@ o portal de ressurgir: a pedido do usuário, esse é o "grande momento"
 — uma onda vermelha (`clip-path: circle()` animado) engole a arena
 inteira antes de revelar a batalha resetada.
 
+**Ícones reais de volta, currículo e conteúdo mais espertos**
+- `_macros.html` (rank/conquista) e a tela de Tópicos voltaram a mostrar
+  a arte pixel art real (`images/icons/subjects/`, `images/ranks/`,
+  `images/achievements/` — pacote "Raven Fantasy Icons", ver
+  `images/icons/CREDITS.txt`) dentro dos mesmos emblemas com borda
+  dourada do tema, em vez do ícone FontAwesome genérico — com fallback
+  automático para FontAwesome/iniciais quando um rank/conquista não tem
+  `icon_key`, então nada quebra se a arte um dia sumir de novo.
+- **Tabuada Mista**: novo tópico (`tabuada-mista`) que sorteia a base
+  entre 1 e 10 a cada pergunta — um teste de domínio completo depois de
+  praticar cada tabuada individualmente. Reaproveita o gerador de
+  `tabuada-do-N` internamente, então herda a variante de fator oculto em
+  dificuldades altas de graça.
+- Banco de dicas do mentor (`app/services/mentor_tips.py`) ganhou ~20
+  curiosidades novas baseadas em fatos reais de história da matemática
+  (numeração babilônica em base 60, papiro de Rhind, origem de
+  "álgebra"/"algoritmo" em Al-Khwarizmi, o zero na Índia, Fibonacci e o
+  Liber Abaci, Eratóstenes, número de ouro, etc.) em vez de só as ~8
+  curiosidades genéricas anteriores.
+- Mais conquistas em `scripts/seed.py`: mestre dos 3 assuntos que
+  faltavam (Fundamentos, Tabuada, Operações Fundamentais), marcos de
+  volume (500/1000 questões, 30 dias de prática, sequência de 25), e um
+  critério novo (`level_reached`) para conquistas por nível alcançado
+  (10 e 25) — `progression_service._meets_criteria` ganhou esse branch.
+- Ranking (`ranking/index.html`) redesenhado num estilo "liga" à Clash
+  of Clans: pódio com os 3 primeiros colocados (medalha
+  ouro/prata/bronze, card do 1º elevado), badge de rank/liga em cada
+  linha da tabela abaixo.
+
+**Perfil editável, avatar e amigos**
+- `/profile/editar`: nome de exibição e bio editáveis, mais um seletor
+  de avatar — deliberadamente um conjunto **curado de 12 ícones
+  FontAwesome** (`app/users/forms.py`), não upload de imagem livre. Sem
+  pipeline de upload/moderação para manter, e nenhuma forma de um
+  jogador colocar uma imagem que viole os termos de uso na tela de
+  outra pessoa. O avatar escolhido aparece no dashboard, perfil, arena
+  de batalha, ranking e no chat (quando a linha não tem badge de rank).
+- Sistema de amigos (`app/friends/`, modelo `Friendship`): pedido por
+  nome de usuário, aceitar/recusar, lista de amigos, desfazer amizade.
+  Contador de pendências (pedidos + convites de masmorra) aparece como
+  badge vermelho no "Amigos" da navbar via um `context_processor`.
+- **Convite de masmorra (co-op)**: convide um amigo aceito para ajudar
+  num tópico (`DungeonInvite`). Isso **não é** uma batalha multiplayer
+  sincronizada — o app não tem transporte realtime (WebSocket/SSE), e
+  fingir uma barra de vida compartilhada sobre duas sessões HTTP
+  independentes seria enganoso. O que existe de verdade: o aliado
+  aparece ao lado do herói na arena ("Lutando ao lado de...") e ambos
+  ganham um bônus de XP pequeno e verificado no servidor
+  (`dungeon_service.active_ally`) enquanto praticam o mesmo tópico
+  dentro da janela do convite aceito (30 min) — decisão deliberada de
+  escopo, documentada aqui para quem quiser evoluir para algo
+  sincronizado de verdade no futuro.
+
 ## O que ainda não existe
 
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
@@ -240,6 +293,8 @@ inteira antes de revelar a batalha resetada.
 - Os links decorativos "O Códice" e "Salão dos Heróis" na navbar da
   tela de login apontam para `auth.login` como placeholder — não
   existem rotas reais para esses conceitos ainda.
+- Masmorra em co-op é assíncrona por design (ver acima) — não há
+  batalha ao vivo sincronizada entre dois jogadores.
 
 ## Instalação local
 

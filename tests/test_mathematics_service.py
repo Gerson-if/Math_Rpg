@@ -18,6 +18,28 @@ def test_tabuada_missing_factor_variant_at_high_difficulty():
     assert "?" in q["prompt"]
 
 
+# --- "Tabuada mista": the mixed-review topic covering every base 1..10 ----
+
+def test_tabuada_mista_covers_the_full_base_range():
+    seen_bases = {generate_question("tabuada-mista", 1)["meta"]["base"] for _ in range(300)}
+    assert seen_bases == set(range(1, 11))
+
+
+@pytest.mark.parametrize("difficulty", [1, 2, 3, 4, 5])
+def test_tabuada_mista_answer_is_correct(difficulty):
+    for _ in range(50):
+        q = generate_question("tabuada-mista", difficulty)
+        assert q["meta"]["family"] == "tabuada"
+        base = q["meta"]["base"]
+        assert 1 <= base <= 10
+        if q["prompt"].endswith("= ?"):
+            factor = int(q["prompt"].split(" × ")[1].split(" =")[0])
+            assert int(q["answer"]) == base * factor
+        else:
+            result = int(q["prompt"].split("= ")[1])
+            assert base * int(q["answer"]) == result
+
+
 @pytest.mark.parametrize("topic", ["adicao", "subtracao", "multiplicacao", "divisao"])
 def test_basic_operations_generate_valid_answers(topic):
     for difficulty in range(1, 6):

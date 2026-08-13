@@ -1,18 +1,38 @@
-{# Rank/achievement badges — drawn purely with Tailwind + FontAwesome, no
-   image assets, so the curriculum/rank/achievement models stay free of any
-   dependency on a particular art pack. #}
+{# Rank/achievement badges. When the row has real curated art (icon_key —
+   see images/*/CREDITS.txt), show it pixelated inside the same bordered
+   circle used everywhere else in the theme; otherwise fall back to
+   FontAwesome/initials so a missing icon never breaks the layout. #}
 
 {% macro rank_badge(rank, size='md') %}
   {% if rank %}
     {% set dims = 'w-6 h-6 text-[0.6rem]' if size == 'sm' else 'w-10 h-10 text-sm' %}
-    <span class="inline-flex items-center justify-center {{ dims }} rounded-full bg-stone-800 border-2 border-gold text-gold font-medieval font-bold shrink-0 shadow-[0_0_8px_rgba(212,175,55,0.35)]"
-          title="{{ rank.name }}">{{ rank.name[:2] | upper }}</span>
+    {% set pad = 'p-0.5' if size == 'sm' else 'p-1.5' %}
+    <span class="inline-flex items-center justify-center {{ dims }} rounded-full bg-stone-800 border-2 border-gold text-gold font-medieval font-bold shrink-0 shadow-[0_0_8px_rgba(212,175,55,0.35)] {{ pad if rank.icon_key else '' }}"
+          title="{{ rank.name }}">
+      {% if rank.icon_key %}
+        <img src="{{ url_for('static', filename=rank.icon_key) }}" alt="{{ rank.name }}"
+             class="w-full h-full object-contain" style="image-rendering: pixelated;">
+      {% else %}
+        {{ rank.name[:2] | upper }}
+      {% endif %}
+    </span>
   {% endif %}
 {% endmacro %}
 
+{% macro avatar_icon(profile) %}
+  {% set valid = ['fa-user-shield','fa-hat-wizard','fa-dragon','fa-khanda','fa-shield-halved','fa-cat','fa-dove','fa-ghost','fa-chess-knight','fa-spider','fa-skull','fa-paw'] %}
+  <i class="fa-solid {{ profile.avatar_key if profile and profile.avatar_key in valid else 'fa-user-shield' }}"></i>
+{% endmacro %}
+
 {% macro achievement_badge(achievement, unlocked) %}
-  <span class="inline-flex items-center justify-center w-11 h-11 rounded-full border-2 shrink-0 {{ 'border-gold bg-yellow-900/40 text-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' if unlocked else 'border-stone-700 bg-stone-900 text-stone-600' }}"
+  <span class="inline-flex items-center justify-center w-11 h-11 rounded-full border-2 shrink-0 {{ 'border-gold bg-yellow-900/40 text-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' if unlocked else 'border-stone-700 bg-stone-900 text-stone-600' }} {{ 'p-2' if achievement.icon_key else '' }}"
         title="{{ achievement.name }}">
-    <i class="fa-solid {{ 'fa-trophy' if unlocked else 'fa-lock' }}"></i>
+    {% if achievement.icon_key %}
+      <img src="{{ url_for('static', filename=achievement.icon_key) }}" alt="{{ achievement.name }}"
+           class="w-full h-full object-contain {{ '' if unlocked else 'grayscale opacity-60' }}"
+           style="image-rendering: pixelated;">
+    {% else %}
+      <i class="fa-solid {{ 'fa-trophy' if unlocked else 'fa-lock' }}"></i>
+    {% endif %}
   </span>
 {% endmacro %}

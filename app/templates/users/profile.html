@@ -5,10 +5,10 @@
 
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg flex gap-4 sm:gap-6 items-center flex-wrap">
   <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold flex items-center justify-center text-3xl sm:text-4xl bg-blue-950 text-gold shadow-inner shrink-0">
-    <i class="fa-solid fa-hat-wizard"></i>
+    {{ ui.avatar_icon(user.profile) }}
   </div>
   {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
-  <div>
+  <div class="flex-1">
     <h1 class="text-2xl sm:text-3xl font-medieval text-gold">{{ user.profile.display_name if user.profile else user.username }}</h1>
     <p class="text-stone-400 font-sans mt-1">{{ user.email }}</p>
     {% if user.stats and user.stats.rank %}
@@ -17,7 +17,14 @@
     {% if user.profile and user.profile.title %}
       <p class="text-gold font-sans mt-1">{{ user.profile.title }}</p>
     {% endif %}
+    {% if user.profile and user.profile.bio %}
+      <p class="text-stone-300 font-sans mt-2 text-sm italic">"{{ user.profile.bio }}"</p>
+    {% endif %}
   </div>
+  <a href="{{ url_for('users.edit_profile') }}"
+     class="inline-flex items-center gap-2 px-4 py-2 rounded font-medieval text-sm text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors shrink-0">
+    <i class="fa-solid fa-pen"></i> Editar perfil
+  </a>
 </div>
 
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">

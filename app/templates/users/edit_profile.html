@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Editar perfil{% endblock %}
+{% block content %}
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+  <i class="fa-solid fa-pen"></i> Editar perfil
+</h1>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg max-w-2xl">
+  <form method="POST" class="space-y-6 font-sans">
+    {{ form.hidden_tag() }}
+
+    <div>
+      <label class="block text-stone-300 font-medieval mb-1">{{ form.display_name.label.text }}</label>
+      {{ form.display_name(class_="w-full bg-stone-800 border-2 border-stone-600 rounded p-2.5 text-white focus:border-gold focus:outline-none transition-colors") }}
+      {% for error in form.display_name.errors %}<p class="text-red-400 text-sm mt-1">{{ error }}</p>{% endfor %}
+    </div>
+
+    <div>
+      <label class="block text-stone-300 font-medieval mb-2">{{ form.avatar_key.label.text }}</label>
+      <div class="grid grid-cols-4 sm:grid-cols-6 gap-3">
+        {% for value, label in form.avatar_key.choices %}
+          <label class="cursor-pointer">
+            <input type="radio" name="avatar_key" value="{{ value }}" class="peer sr-only"
+                   {{ 'checked' if form.avatar_key.data == value else '' }}>
+            <span class="flex flex-col items-center gap-1 p-3 rounded-lg border-2 border-stone-700 bg-stone-800/60 text-stone-400 peer-checked:border-gold peer-checked:text-gold peer-checked:bg-yellow-950/30 hover:border-stone-500 transition-colors">
+              <i class="fa-solid {{ value }} text-xl"></i>
+              <span class="text-[0.65rem] text-center">{{ label }}</span>
+            </span>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-stone-300 font-medieval mb-1">{{ form.bio.label.text }}</label>
+      {{ form.bio(rows=3, class_="w-full bg-stone-800 border-2 border-stone-600 rounded p-2.5 text-white focus:border-gold focus:outline-none transition-colors resize-none", placeholder="Uma frase sobre você...") }}
+      {% for error in form.bio.errors %}<p class="text-red-400 text-sm mt-1">{{ error }}</p>{% endfor %}
+    </div>
+
+    <div class="flex gap-3">
+      {{ form.submit(class_="px-6 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform cursor-pointer") }}
+      <a href="{{ url_for('users.profile') }}"
+         class="px-6 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

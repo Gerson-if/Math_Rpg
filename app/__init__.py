@@ -39,6 +39,7 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     from app.ranking.routes import ranking_bp
     from app.achievements.routes import achievements_bp
     from app.chat.routes import chat_bp
+    from app.friends.routes import friends_bp
     from app.api.routes import api_bp
 
     app.register_blueprint(auth_bp)
@@ -48,7 +49,25 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     app.register_blueprint(ranking_bp)
     app.register_blueprint(achievements_bp)
     app.register_blueprint(chat_bp)
+    app.register_blueprint(friends_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
+
+    @app.context_processor
+    def _inject_pending_invites_count():
+        """Small badge count for the navbar's "Amigos" link — friend
+        requests + dungeon invites waiting on the current user. Cheap (two
+        indexed COUNT-shaped queries) and only runs when logged in."""
+        from flask_login import current_user
+
+        if not current_user.is_authenticated:
+            return {}
+        from app.services import friends_service, dungeon_service
+
+        count = (
+            len(friends_service.list_incoming_requests(current_user.id))
+            + len(dungeon_service.list_incoming(current_user.id))
+        )
+        return {"pending_invites_count": count}
 
     @app.after_request
     def _apply_security_headers(response):

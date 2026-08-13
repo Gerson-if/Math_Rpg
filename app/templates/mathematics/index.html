@@ -8,7 +8,15 @@
 {% for subject in subjects %}
   <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-4 shadow-lg">
     <h2 class="flex items-center gap-3 text-xl font-medieval text-stone-100 mb-3">
-      <i class="fa-solid fa-book-open text-purple-400"></i> {{ subject.name }}
+      {% if subject.icon_key %}
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-stone-800 border border-stone-700 shrink-0 p-1">
+          <img src="{{ url_for('static', filename=subject.icon_key) }}" alt=""
+               class="w-full h-full object-contain" style="image-rendering: pixelated;">
+        </span>
+      {% else %}
+        <i class="fa-solid fa-book-open text-purple-400"></i>
+      {% endif %}
+      {{ subject.name }}
     </h2>
     {% if subject.topics %}
       <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2">

@@ -61,6 +61,12 @@
           <a href="{{ url_for('ranking.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-ranking-star"></i> Ranking</a>
           <a href="{{ url_for('achievements.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-trophy"></i> Conquistas</a>
           <a href="{{ url_for('chat.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-comments"></i> Chat</a>
+          <a href="{{ url_for('friends.index') }}" class="hover:text-gold transition-colors relative">
+            <i class="fa-solid fa-people-group"></i> Amigos
+            {% if pending_invites_count %}
+              <span class="absolute -top-2 -right-3 bg-blood text-white text-[0.6rem] rounded-full w-4 h-4 flex items-center justify-center">{{ pending_invites_count }}</span>
+            {% endif %}
+          </a>
           <span class="text-stone-600">|</span>
           <a href="{{ url_for('users.profile') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-circle-user"></i> {{ current_user.username }}</a>
           <a href="{{ url_for('auth.logout') }}" class="hover:text-blood transition-colors" title="Sair"><i class="fa-solid fa-right-from-bracket"></i></a>

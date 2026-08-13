@@ -5,6 +5,7 @@ from app.models.achievements import Achievement, UserAchievement
 from app.models.ranking import LeaderboardEntry
 from app.models.chat import ChatMessage
 from app.models.misc import Notification, StudySession
+from app.models.social import Friendship, DungeonInvite
 
 __all__ = [
     "User",
@@ -23,4 +24,6 @@ __all__ = [
     "ChatMessage",
     "Notification",
     "StudySession",
+    "Friendship",
+    "DungeonInvite",
 ]

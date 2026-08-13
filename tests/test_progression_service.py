@@ -216,6 +216,31 @@ def test_achievement_unlocks_by_correct_answers_in_a_specific_subject(app, db):
         assert [a.code for a in result3["new_achievements"]] == ["dominou_potenciacao"]
 
 
+def test_achievement_unlocks_by_level_reached(app, db):
+    with app.app_context():
+        user = _make_user()
+        topic = _make_topic()
+        _seed_levels_and_ranks()  # levels 1..5 seeded
+        db.session.add(Achievement(
+            code="nivel_tres",
+            name="Nível 3",
+            description="Alcance o nível 3.",
+            criteria={"type": "level_reached", "value": 3},
+        ))
+        db.session.commit()
+
+        unlocked_codes = []
+        for _ in range(30):
+            result = progression_service.process_attempt(
+                _make_attempt(user, topic, correct=True, difficulty=5)
+            )
+            unlocked_codes += [a.code for a in result["new_achievements"]]
+
+        stats = PlayerStats.query.filter_by(user_id=user.id).first()
+        assert stats.level.number >= 3
+        assert unlocked_codes.count("nivel_tres") == 1
+
+
 def test_profile_title_is_set_from_the_newest_unlocked_achievement(app, db):
     with app.app_context():
         user = _make_user()
