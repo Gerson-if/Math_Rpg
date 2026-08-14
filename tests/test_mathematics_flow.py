@@ -224,6 +224,25 @@ def test_answer_fragment_always_carries_a_data_crit_attribute(client, db, app):
     assert 'data-crit="true"' in resp2.data.decode() or 'data-crit="false"' in resp2.data.decode()
 
 
+def test_a_single_correct_answer_never_carries_a_spurious_needs_review_flag(client, db, app):
+    """Regression: needs_review used to mirror the *persisted* Mastery flag,
+    which only ever flips after 5 attempts — a fresh topic's very first,
+    correct answer must never claim mastery just dropped."""
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="adicao")
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    token = _extract_token(resp.data.decode())
+    with app.app_context():
+        payload = question_token.read_token(token)
+
+    resp2 = client.post(
+        f"/math/praticar/{topic.slug}/responder",
+        data={"token": token, "answer": payload["answer"]},
+    )
+    assert 'data-needs-review="false"' in resp2.data.decode()
+
+
 def test_claim_victory_grants_an_item_after_a_recent_correct_answer(client, db, app):
     _create_and_login(client, db)
     topic = _create_topic(db, slug="adicao")

@@ -124,6 +124,41 @@
     100% { opacity: 0; transform: translateY(-10px); }
   }
 
+  /* Victory / chapter-reveal: same full-viewport ring+icon+fade language as
+     the invocation overlay above, gold-toned, with a second line for a
+     sliver of that subject's chronicle — the story unfolds one sentence
+     per boss defeated (progress tracked client-side, purely narrative
+     flavor, no bearing on real progression). */
+  .victory-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    background: radial-gradient(circle, rgba(42,28,4,0.98) 0%, rgba(0,0,0,1) 78%);
+    animation: introOverlayFade 3.2s ease-in-out forwards;
+  }
+  .victory-icon {
+    font-size: 3rem; line-height: 1; color: transparent;
+    background: linear-gradient(to top, #78350f 0%, #f59e0b 45%, #fef08a 80%, #fff 100%);
+    -webkit-background-clip: text; background-clip: text;
+    filter: drop-shadow(0 0 18px #f59e0b) drop-shadow(0 0 40px #b45309);
+    transform: scale(0.4); opacity: 0;
+    animation: introIconAwaken 3.2s ease-out forwards;
+  }
+  @media (min-width: 640px) { .victory-icon { font-size: 5rem; } }
+  .victory-title {
+    margin-top: 1.5rem; font-family: 'MedievalSharp', cursive; text-align: center; padding: 0 1rem;
+    font-size: 1.4rem; opacity: 0; color: #fef3c7;
+    text-shadow: 0 0 15px #f59e0b, 0 0 25px #b45309, 0 0 35px #78350f;
+    animation: introTextIn 3.2s ease-in-out forwards;
+  }
+  @media (min-width: 640px) { .victory-title { font-size: 2.1rem; } }
+  .victory-snippet {
+    margin-top: 0.75rem; font-family: 'Cinzel', serif; text-align: center; padding: 0 1.5rem;
+    max-width: 620px; font-size: 0.8rem; line-height: 1.55; opacity: 0; color: #fde68a;
+    animation: introTextIn 3.2s ease-in-out forwards;
+  }
+  @media (min-width: 640px) { .victory-snippet { font-size: 0.98rem; } }
+
   /* Solo Leveling-style gate: a slim glowing rift instead of a screen-filling
      ring — opens in place, stays subtle, never covers the UI beneath it. */
   .gate-rift {
@@ -341,15 +376,24 @@
   .flash-anim { animation: flashPop 0.35s ease-out forwards; background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(251,191,36,0.4) 40%, transparent 70%); }
   .flash-anim-big { animation: flashPop 0.6s ease-out forwards; background: radial-gradient(circle, rgba(255,255,255,1), rgba(244,114,182,0.65) 40%, transparent 75%); }
 
-  @keyframes floatDamage { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.4); opacity: 0; } }
+  /* Starts already offset above the target's center (see showFloatingDamage
+     in battle-fx.js) rather than dead-center on it, since a same-colored
+     boss icon (e.g. the green Quimera Aritmética guardian against the
+     default green hit-damage color) could otherwise swallow the number for
+     its first, most-readable moment. A thick black double-outline plus a
+     background plaque keeps it legible over any sprite color. */
+  @keyframes floatDamage { 0% { transform: translateY(0) scale(0.85); opacity: 0; } 12% { opacity: 1; transform: translateY(-4px) scale(1.15); } 100% { transform: translateY(-60px) scale(1.3); opacity: 0; } }
   .damage-text {
     position: fixed;
-    font-family: 'Cinzel', serif; font-weight: 900; font-size: 1.4rem;
-    animation: floatDamage 1s ease-out forwards;
+    font-family: 'Cinzel', serif; font-weight: 900; font-size: 1.7rem;
+    animation: floatDamage 1.3s ease-out forwards;
     pointer-events: none; z-index: 9996;
-    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+    -webkit-text-stroke: 3px #000; paint-order: stroke fill;
+    text-shadow: 0 0 8px rgba(0,0,0,0.9), 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
   }
-  .crit-text { font-size: 2rem !important; color: #fbbf24 !important; text-shadow: 0 0 12px #f97316, 2px 2px 0 #000, -1px -1px 0 #000 !important; }
+  @media (min-width: 640px) { .damage-text { font-size: 2rem; } }
+  .crit-text { font-size: 2.1rem !important; color: #fde047 !important; text-shadow: 0 0 16px #f97316, 0 0 8px rgba(0,0,0,0.9), 2px 2px 0 #000, -2px -2px 0 #000 !important; }
+  @media (min-width: 640px) { .crit-text { font-size: 2.6rem !important; } }
 
   @keyframes critShake {
     0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
@@ -361,17 +405,24 @@
   .crit-shake { animation: critShake 0.4s ease-in-out; }
 
   /* ---- loot toasts ---- */
+  /* Anchored to the arena card itself (position:absolute), not the
+     viewport — a position:fixed toast pinned to a fixed pixel offset from
+     the top of the *screen* landed in empty space above the card on any
+     viewport where the card doesn't start near y=0 (e.g. a short, wide
+     desktop window with the card vertically centered), making earned loot
+     nearly invisible. Same fix as the speech-bubble/battle-alert
+     containers: live inside #battle-arena so it's always over the card. */
   .loot-toast-container {
-    position: fixed; top: 70px; right: 10px; z-index: 9997;
+    position: absolute; top: 8px; right: 8px; z-index: 80;
     display: flex; flex-direction: column; gap: 8px;
-    pointer-events: none; max-width: min(90vw, 320px);
+    pointer-events: none; max-width: min(70vw, 300px);
   }
   .loot-toast {
-    background: rgba(10,8,14,0.94); border: 2px solid var(--rc, #cbd5e1);
+    background: rgba(10,8,14,0.97); border: 2px solid var(--rc, #cbd5e1);
     border-radius: 8px; padding: 8px 12px;
     display: flex; align-items: center; gap: 10px;
-    box-shadow: 0 0 16px var(--rc, #cbd5e1);
-    animation: lootToastIn 3.2s ease-in-out forwards;
+    box-shadow: 0 0 18px var(--rc, #cbd5e1);
+    animation: lootToastIn 3.6s ease-in-out forwards;
   }
   @keyframes lootToastIn {
     0% { opacity: 0; transform: translateX(30px); }
@@ -427,25 +478,29 @@
   @media (min-width: 640px) { .speech-bubble-container { left: 10px; max-width: 52%; } }
   .speech-bubble {
     position: relative; align-self: flex-start; max-width: 100%;
-    background: rgba(10,8,14,0.94); border: 2px solid #d4af37; border-radius: 14px;
-    padding: 6px 14px; font-family: 'Cinzel', serif; font-size: 0.68rem; line-height: 1.35;
-    color: #f5f5f4; box-shadow: 0 0 14px rgba(212,175,55,0.35);
+    background: rgba(8,6,10,0.97); border: 2px solid #d4af37; border-radius: 14px;
+    padding: 7px 14px; font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.74rem; line-height: 1.4;
+    color: #fff; box-shadow: 0 0 14px rgba(212,175,55,0.45);
     animation: bubbleInOut 3.4s ease-in-out forwards;
   }
-  @media (min-width: 640px) { .speech-bubble { font-size: 0.8rem; padding: 8px 16px; } }
+  @media (min-width: 640px) { .speech-bubble { font-size: 0.88rem; padding: 8px 16px; } }
   .speech-bubble::after {
     content: ""; position: absolute; left: 20px; bottom: -8px;
     border-width: 8px 8px 0 0; border-style: solid;
     border-color: #d4af37 transparent transparent transparent;
   }
-  .speech-bubble.bubble-correct { border-color: #4ade80; box-shadow: 0 0 14px rgba(74,222,128,0.4); }
+  /* Every variant follows the same bold, high-contrast model as the
+     achievement bubble — only the border/text tint changes per type. */
+  .speech-bubble.bubble-correct { border-color: #4ade80; color: #bbf7d0; box-shadow: 0 0 14px rgba(74,222,128,0.45); }
   .speech-bubble.bubble-correct::after { border-color: #4ade80 transparent transparent transparent; }
-  .speech-bubble.bubble-wrong { border-color: #ef4444; box-shadow: 0 0 14px rgba(239,68,68,0.4); }
-  .speech-bubble.bubble-wrong::after { border-color: #ef4444 transparent transparent transparent; }
-  .speech-bubble.bubble-achievement { border-color: #fbbf24; color: #fff7cc; }
+  .speech-bubble.bubble-wrong { border-color: #f87171; color: #fecaca; box-shadow: 0 0 14px rgba(248,113,113,0.45); }
+  .speech-bubble.bubble-wrong::after { border-color: #f87171 transparent transparent transparent; }
+  .speech-bubble.bubble-achievement { border-color: #fbbf24; color: #fef08a; box-shadow: 0 0 16px rgba(251,191,36,0.55); }
   .speech-bubble.bubble-achievement::after { border-color: #fbbf24 transparent transparent transparent; }
-  .speech-bubble.bubble-review { border-color: #78716c; color: #d6d3d1; }
-  .speech-bubble.bubble-review::after { border-color: #78716c transparent transparent transparent; }
+  .speech-bubble.bubble-review { border-color: #a8a29e; color: #e7e5e4; box-shadow: 0 0 12px rgba(168,162,158,0.4); }
+  .speech-bubble.bubble-review::after { border-color: #a8a29e transparent transparent transparent; }
+  .speech-bubble.bubble-recovered { border-color: #4ade80; color: #bbf7d0; box-shadow: 0 0 16px rgba(74,222,128,0.55); }
+  .speech-bubble.bubble-recovered::after { border-color: #4ade80 transparent transparent transparent; }
   @keyframes bubbleInOut {
     0% { opacity: 0; transform: translateY(8px) scale(0.92); }
     8% { opacity: 1; transform: translateY(0) scale(1); }
@@ -479,8 +534,6 @@
 {% endblock %}
 
 {% block content %}
-<div id="loot-toast-container" class="loot-toast-container"></div>
-
 <!-- Battle mode is a dedicated, exclusive screen — fixed over the whole
      viewport (navbar included), matching the reference template's own
      fullscreen app feel, not a section embedded in the normal page. -->
@@ -557,6 +610,7 @@
     <div id="revive-wipe" class="revive-wipe"></div>
     <div id="next-portal-ring" class="portal-ring"></div>
     <div id="battle-alert-container" class="battle-alert-container"></div>
+    <div id="loot-toast-container" class="loot-toast-container"></div>
 
     <div id="arena-content">
     <div class="relative z-10 p-3 sm:p-4 flex justify-between items-start gap-3 bg-gradient-to-b from-black/80 to-transparent">
@@ -728,6 +782,8 @@
     victoryUrl: {{ url_for('mathematics.claim_victory', topic_slug=topic.slug) | tojson }},
     csrfToken: {{ csrf_token() | tojson }},
     buffs: {{ buffs | tojson }},
+    subjectSlug: {{ topic.subject.slug | tojson }},
+    chronicle: {{ chronicle | tojson }},
   });
 </script>
 {% endblock %}

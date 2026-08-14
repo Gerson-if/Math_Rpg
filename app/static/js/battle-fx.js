@@ -130,10 +130,13 @@ const BattleFx = (() => {
     el.className = "damage-text" + (isCrit ? " crit-text" : "");
     el.style.color = color;
     el.innerText = text;
+    // Start above the sprite's center, not dead on top of it — a same-
+    // colored sprite (e.g. a green boss + the default green hit color)
+    // could otherwise swallow the number for its first, most-readable frame.
     el.style.left = rect.left + rect.width / 2 + "px";
-    el.style.top = rect.top + rect.height / 2 + "px";
+    el.style.top = rect.top - 6 + "px";
     document.body.appendChild(el);
-    setTimeout(() => el.remove(), 1000);
+    setTimeout(() => el.remove(), 1300);
   }
 
   return { init, launchProjectile, spawnBurst, spawnShockwave, triggerCritFlash, showFloatingDamage };

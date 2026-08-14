@@ -79,7 +79,7 @@ def process_attempt(attempt: Attempt, bonus_xp: int = 0) -> dict:
     leveled_up = _update_level(stats)
     _update_rank(stats)
 
-    mastery = _update_mastery(attempt)
+    mastery, mastery_just_dropped, mastery_just_recovered = _update_mastery(attempt)
 
     new_achievements = _check_achievements(attempt.user_id, stats)
 
@@ -92,6 +92,8 @@ def process_attempt(attempt: Attempt, bonus_xp: int = 0) -> dict:
         "level_number": stats.level.number if stats.level else None,
         "mastery_score": mastery.mastery_score,
         "needs_review": mastery.needs_review,
+        "mastery_just_dropped": mastery_just_dropped,
+        "mastery_just_recovered": mastery_just_recovered,
         "new_achievements": new_achievements,
     }
 
@@ -206,7 +208,14 @@ def _update_rank(stats: PlayerStats) -> None:
         stats.rank_id = new_rank.id
 
 
-def _update_mastery(attempt: Attempt) -> Mastery:
+def _update_mastery(attempt: Attempt) -> tuple[Mastery, bool, bool]:
+    """Returns (mastery, just_started_needing_review, just_recovered) —
+    the two *transitions* of the needs_review flag, not just its current
+    value. needs_review stays true across every attempt while mastery
+    sits below threshold, so a caller reading only the current value would
+    re-notify "mastery dropped" on every single correct answer for as long
+    as it takes to climb back over the line. Only the edges are
+    notification-worthy."""
     mastery = Mastery.query.filter_by(
         user_id=attempt.user_id, topic_id=attempt.topic_id
     ).first()
@@ -215,6 +224,7 @@ def _update_mastery(attempt: Attempt) -> Mastery:
         db.session.add(mastery)
         db.session.flush()
 
+    was_needs_review = mastery.needs_review
     now = datetime.utcnow()
 
     # Retention: a long gap since last practice erodes mastery even though
@@ -258,8 +268,10 @@ def _update_mastery(attempt: Attempt) -> Mastery:
     # Require a handful of data points before flagging for review, so one
     # unlucky slip on a brand-new topic doesn't trigger it immediately.
     mastery.needs_review = total_attempts >= 5 and mastery.mastery_score < threshold
+    just_started_needing_review = (not was_needs_review) and mastery.needs_review
+    just_recovered = was_needs_review and not mastery.needs_review
 
-    return mastery
+    return mastery, just_started_needing_review, just_recovered
 
 
 def _check_achievements(user_id: int, stats: PlayerStats) -> list[Achievement]:

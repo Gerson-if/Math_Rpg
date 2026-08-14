@@ -10,10 +10,11 @@
     {% for slot, label, icon in [('arma', 'Arma', 'fa-khanda'), ('anel', 'Anel', 'fa-ring'), ('amuleto', 'Amuleto', 'fa-gem'), ('armadura', 'Armadura', 'fa-shield'), ('capacete', 'Capacete', 'fa-hat-wizard'), ('botas', 'Botas', 'fa-shoe-prints')] %}
       {% set item = equipped[slot] %}
       {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity if item else '', '#57534e') %}
-      <div class="item-slot border-2 rounded-lg p-4 text-center transition-all hover:brightness-125" style="border-color: {{ rc }};">
+      <div class="item-slot border-2 rounded-lg p-4 text-center transition-all hover:brightness-125"
+           style="border-color: {{ rc }};{{ ' background: color-mix(in srgb, ' + rc + ' 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, ' + rc + ' 35%, transparent);' if item else '' }}">
         <p class="text-stone-400 font-medieval text-xs uppercase tracking-widest mb-2">{{ label }}</p>
         {% if item %}
-          <i class="fa-solid {{ item.icon_key }} text-3xl mb-2" style="color: {{ rc }};"></i>
+          <i class="fa-solid {{ item.icon_key }} text-4xl mb-2" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
           <p class="font-sans font-bold text-white text-sm">{{ item.name }}</p>
           <p class="font-sans text-xs mt-1" style="color: {{ rc }};">
             {{ item.rarity | capitalize }} · {{ item.passive_type }} +{{ (item.passive_value * 100) | round(1) }}%

@@ -70,6 +70,62 @@ const MathBattle = (() => {
     setTimeout(() => overlay.remove(), 3400);
   }
 
+  const ADVANCE_PHRASES = ["Uma Nova Provação Surge no Horizonte", "O Caminho Segue Adiante", "Outro Enigma Aguarda em Arith"];
+
+  /* Same ring+icon+fade language as the invocation, reused verbatim for
+     "moving forward" (next challenge) so the two moments read as a pair,
+     per the request to make these transitions feel like the opening one. */
+  function showAdvanceOverlay() {
+    const phrase = ADVANCE_PHRASES[rand(0, ADVANCE_PHRASES.length - 1)];
+    const overlay = document.createElement("div");
+    overlay.className = "intro-overlay";
+    overlay.innerHTML =
+      '<div class="intro-sigil-wrap">' +
+      '<div class="intro-ring"></div>' +
+      '<div class="intro-ring reverse"></div>' +
+      '<div class="intro-icon"><i class="fa-solid fa-road"></i></div>' +
+      "</div>" +
+      `<div class="intro-text">${phrase}</div>`;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 2800);
+  }
+
+  /* One sentence of that subject's chronicle per boss defeated — purely
+     narrative flavor (see app/services/lore.py), tracked client-side only
+     since it has no bearing on real progression. Loops back to the last
+     sentence once the chronicle has been fully told bit by bit. */
+  function nextLoreSnippet() {
+    const chronicle = cfg.chronicle;
+    if (!chronicle || !chronicle.text) return null;
+    const sentences = chronicle.text.match(/[^.!?]+[.!?]+/g) || [chronicle.text];
+    const key = "mathrpg_lore_" + (cfg.subjectSlug || "geral");
+    let idx = parseInt(localStorage.getItem(key) || "0", 10);
+    if (isNaN(idx) || idx < 0) idx = 0;
+    const snippet = sentences[Math.min(idx, sentences.length - 1)].trim();
+    const isComplete = idx >= sentences.length - 1;
+    localStorage.setItem(key, String(Math.min(idx + 1, sentences.length - 1)));
+    return { title: chronicle.title, snippet, isComplete };
+  }
+
+  function showVictoryReveal() {
+    const lore = nextLoreSnippet();
+    const overlay = document.createElement("div");
+    overlay.className = "victory-overlay";
+    let html =
+      '<div class="intro-sigil-wrap">' +
+      '<div class="intro-ring"></div>' +
+      '<div class="intro-ring reverse"></div>' +
+      '<div class="victory-icon"><i class="fa-solid fa-scroll"></i></div>' +
+      "</div>" +
+      '<div class="victory-title">Vitória!</div>';
+    if (lore) {
+      html += `<div class="victory-snippet"><strong>${escapeHtml(lore.title)}</strong><br>${escapeHtml(lore.snippet)}${lore.isComplete ? " <em>(crônica completa — reveja em Crônicas do Reino)</em>" : ""}</div>`;
+    }
+    overlay.innerHTML = html;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 3200);
+  }
+
   /* ---------------- screen flow (story -> arena -> victory/defeat) ---------------- */
 
   function start() {
@@ -104,6 +160,7 @@ const MathBattle = (() => {
     $("scroll-count") && ($("scroll-count").innerText = furyScrolls);
     $("speech-bubble-container") && ($("speech-bubble-container").innerHTML = "");
     $("battle-alert-container") && ($("battle-alert-container").innerHTML = "");
+    $("loot-toast-container") && ($("loot-toast-container").innerHTML = "");
   }
 
   function spawnDust() {
@@ -171,6 +228,9 @@ const MathBattle = (() => {
     }
     if (d.needsReview === "true") {
       showSpeechBubble(`<i class="fa-solid fa-book-bookmark"></i> Domínio caiu — vale revisar em breve.`, "review");
+    }
+    if (d.masteryRecovered === "true") {
+      showSpeechBubble(`<i class="fa-solid fa-arrow-trend-up"></i> Domínio recuperado!`, "recovered");
     }
     focusAnswer();
   });
@@ -394,6 +454,7 @@ const MathBattle = (() => {
     BattleAudio.sfx.victory();
     const portal = $("portal-effect");
     portal.className = "gate-rift gate-rift--mystic";
+    showVictoryReveal();
 
     if (claimingVictory) return;
     claimingVictory = true;
@@ -412,7 +473,9 @@ const MathBattle = (() => {
       })
       .catch(() => { claimingVictory = false; });
 
-    setTimeout(() => $("victory-screen").classList.remove("hidden"), 700);
+    // Held back until the full-viewport chapter-reveal overlay (~3.2s)
+    // has faded, so the victory screen doesn't pop up underneath it.
+    setTimeout(() => $("victory-screen").classList.remove("hidden"), 3000);
   }
 
   function defeat() {
@@ -448,6 +511,7 @@ const MathBattle = (() => {
     const ring = $("next-portal-ring");
     const content = $("arena-content");
 
+    showAdvanceOverlay();
     ring.className = "portal-ring portal-ring--open";
 
     setTimeout(() => {
@@ -458,9 +522,9 @@ const MathBattle = (() => {
       content.classList.add("arena-portal-reveal");
       spawnDust();
       focusAnswer();
-    }, 380);
+    }, 1200);
 
-    setTimeout(() => { ring.className = "portal-ring"; }, 950);
+    setTimeout(() => { ring.className = "portal-ring"; }, 1800);
   }
 
   function flee() { window.location.href = cfg.indexUrl; }

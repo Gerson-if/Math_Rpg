@@ -99,6 +99,7 @@ def practice(topic_slug):
         ally=dungeon_service.active_ally(current_user.id, topic.id),
         equipped=loot_service.list_equipped(current_user.id),
         buffs=loot_service.compute_buffs(current_user.id),
+        chronicle=lore.for_subject(topic.subject.slug),
     )
 
 
@@ -184,7 +185,8 @@ def answer_question(topic_slug):
             "leveled_up": progress["leveled_up"],
             "level_number": progress["level_number"],
             "mastery_score": progress["mastery_score"],
-            "needs_review": progress["needs_review"],
+            "needs_review": progress["mastery_just_dropped"],
+            "mastery_recovered": progress["mastery_just_recovered"],
             "new_achievements": progress["new_achievements"],
             "is_crit": is_crit,
             "crit_item": crit_item,

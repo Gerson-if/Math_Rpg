@@ -132,6 +132,53 @@ def test_needs_review_flag_after_poor_performance(app, db):
         assert mastery.needs_review is True
 
 
+def test_mastery_just_dropped_fires_only_on_the_transition_into_review(app, db):
+    """process_attempt used to return the *current* needs_review value, so
+    every subsequent attempt (even correct ones) kept re-reporting "mastery
+    dropped" for as long as the topic stayed below threshold. Only the
+    attempt that actually crosses the line should flag it."""
+    with app.app_context():
+        user = _make_user()
+        topic = _make_topic()
+        _seed_levels_and_ranks()
+
+        results = [
+            progression_service.process_attempt(_make_attempt(user, topic, correct=False))
+            for _ in range(7)
+        ]
+
+        dropped_flags = [r["mastery_just_dropped"] for r in results]
+        assert dropped_flags.count(True) == 1
+        assert dropped_flags[4] is True  # 5th attempt: total_attempts first reaches 5
+
+
+def test_mastery_just_recovered_fires_once_when_crossing_back_above_threshold(app, db):
+    with app.app_context():
+        user = _make_user()
+        topic = _make_topic()
+        _seed_levels_and_ranks()
+
+        for _ in range(5):
+            progression_service.process_attempt(_make_attempt(user, topic, correct=False))
+        mastery = Mastery.query.filter_by(user_id=user.id, topic_id=topic.id).first()
+        assert mastery.needs_review is True
+
+        recovered_flags = []
+        for _ in range(40):
+            result = progression_service.process_attempt(_make_attempt(user, topic, correct=True))
+            recovered_flags.append(result["mastery_just_recovered"])
+            if result["mastery_just_recovered"]:
+                break
+
+        assert recovered_flags.count(True) == 1
+        mastery = Mastery.query.filter_by(user_id=user.id, topic_id=topic.id).first()
+        assert mastery.needs_review is False
+
+        # Already recovered — one more correct answer must not re-flag it.
+        result = progression_service.process_attempt(_make_attempt(user, topic, correct=True))
+        assert result["mastery_just_recovered"] is False
+
+
 def test_retention_decay_reduces_mastery_after_a_long_gap(app, db):
     with app.app_context():
         user = _make_user()
