@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Mercado{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between flex-wrap gap-3 mb-6">
+  <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold">
+    <i class="fa-solid fa-coins"></i> Mercado
+  </h1>
+  <div class="flex items-center gap-3 font-sans text-sm">
+    <span class="inline-flex items-center gap-1.5 bg-stone-900/70 border border-stone-700 rounded-full px-3 py-1.5 text-purple-300">
+      <i class="fa-solid fa-shield-halved"></i> Nível {{ player_level }}
+    </span>
+    <span class="inline-flex items-center gap-1.5 bg-stone-900/70 border border-gold/50 rounded-full px-3 py-1.5 text-gold">
+      <i class="fa-solid fa-coins"></i> {{ gold }} Ouro
+    </span>
+  </div>
+</div>
+
+<!-- LOJA DO REINO: rotating NPC shop -->
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg mb-6">
+  <h2 class="text-xl font-medieval text-stone-100 mb-1"><i class="fa-solid fa-landmark-dome text-gold mr-2"></i>Loja do Reino</h2>
+  <p class="text-stone-500 font-sans text-sm mb-4">O estoque do reino se renova periodicamente — compre com Ouro.</p>
+  {% if shop_stock %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {% for offer in shop_stock %}
+        {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(offer.rarity, '#57534e') %}
+        <div class="border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
+             style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
+          <i class="fa-solid {{ offer.icon_key }} text-3xl mb-2" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
+          <p class="font-sans font-bold text-white text-xs">{{ offer.name }}</p>
+          <p class="font-sans text-[0.65rem] mt-1" style="color: {{ rc }};">{{ offer.rarity | capitalize }} · {{ ui.passive_label(offer) }}</p>
+          {% set min_level = min_level_by_rarity.get(offer.rarity, 1) %}
+          {% if player_level < min_level %}
+            <p class="text-stone-500 font-sans text-[0.6rem] mt-2"><i class="fa-solid fa-lock"></i> Equipar requer nível {{ min_level }}</p>
+          {% endif %}
+          <form method="POST" action="{{ url_for('market.comprar_da_loja', offer_id=offer.id) }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" {{ 'disabled' if gold < offer.price else '' }}
+                    class="text-gold hover:text-yellow-200 text-xs font-sans cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-coins"></i> Comprar por {{ offer.price }}
+            </button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-stone-400 font-sans text-sm">A loja está vazia no momento.</p>
+  {% endif %}
+</div>
+
+<!-- LOJA DOS JOGADORES: player marketplace -->
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg mb-6">
+  <h2 class="text-xl font-medieval text-stone-100 mb-1"><i class="fa-solid fa-people-arrows text-purple-400 mr-2"></i>Loja dos Jogadores</h2>
+  <p class="text-stone-500 font-sans text-sm mb-4">Espólios anunciados por outros aventureiros — anúncios expiram em {{ listing_duration_days }} dias se não vendidos.</p>
+  {% if listings %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {% for item in listings %}
+        {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
+        <div class="border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
+             style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
+          <i class="fa-solid {{ item.icon_key }} text-3xl mb-2" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
+          <p class="font-sans font-bold text-white text-xs">{{ item.name }}</p>
+          <p class="font-sans text-[0.65rem] mt-1" style="color: {{ rc }};">{{ item.rarity | capitalize }} · {{ ui.passive_label(item) }}</p>
+          <p class="text-stone-500 font-sans text-[0.6rem] mt-1">
+            de {{ item.user.profile.display_name if item.user.profile else item.user.username }} · expira em {{ days_left.get(item.id, 0) }}d
+          </p>
+          <form method="POST" action="{{ url_for('market.comprar', item_id=item.id) }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" {{ 'disabled' if gold < item.list_price else '' }}
+                    class="text-gold hover:text-yellow-200 text-xs font-sans cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+              <i class="fa-solid fa-coins"></i> Comprar por {{ item.list_price }}
+            </button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-stone-400 font-sans text-sm">Nenhum item anunciado por outros jogadores no momento.</p>
+  {% endif %}
+</div>
+
+<!-- MEUS ANÚNCIOS -->
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-1"><i class="fa-solid fa-tags text-stone-400 mr-2"></i>Meus Anúncios</h2>
+  <p class="text-stone-500 font-sans text-sm mb-4">
+    Anuncie um espólio a partir da tela de
+    <a href="{{ url_for('character.espolios') }}" class="text-purple-300 hover:text-purple-200 underline">Espólios</a>.
+  </p>
+  {% if my_listings %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {% for item in my_listings %}
+        {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
+        <div class="border-2 rounded-lg p-3 text-center" style="border-color: {{ rc }};">
+          <i class="fa-solid {{ item.icon_key }} text-3xl mb-2" style="color: {{ rc }};"></i>
+          <p class="font-sans font-bold text-white text-xs">{{ item.name }}</p>
+          <p class="font-sans text-[0.65rem] mt-1 text-gold">{{ item.list_price }} Ouro</p>
+          <form method="POST" action="{{ url_for('market.cancelar_anuncio', item_id=item.id) }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="text-stone-400 hover:text-blood text-xs font-sans cursor-pointer">
+              <i class="fa-solid fa-ban"></i> Cancelar
+            </button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-stone-400 font-sans text-sm">Você não tem nenhum item anunciado no momento.</p>
+  {% endif %}
+</div>
+{% endblock %}

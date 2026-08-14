@@ -19,7 +19,7 @@ RARITIES = [
     {"id": "raro", "label": "Raro", "color": "#c084fc", "mult": 2.6, "weight": 15},
     {"id": "lendario", "label": "Lendário", "color": "#fbbf24", "mult": 4.0, "weight": 5},
 ]
-_RARITY_BY_ID = {r["id"]: r for r in RARITIES}
+RARITY_BY_ID = {r["id"]: r for r in RARITIES}
 
 # A rare item some jogador ainda no nível 1 shouldn't be able to slap on —
 # gates equipping (not owning/rolling) by player level, aligned to the same
@@ -28,9 +28,10 @@ _RARITY_BY_ID = {r["id"]: r for r in RARITIES}
 # powerful gear tied to real progress instead of pure drop luck.
 MIN_LEVEL_BY_RARITY = {"comum": 1, "magico": 5, "raro": 10, "lendario": 20}
 
-# Selling converts an item you don't want into a small amount of gold —
-# no shop to spend it in yet (that's a separate feature), but the sell
-# side is real and permanent, same as discarding.
+# Selling converts an item you don't want into a small amount of gold,
+# permanent like discarding — see app/services/market_service.py for where
+# that gold gets spent (the kingdom's own rotating shop, and other
+# players' marketplace listings).
 GOLD_BY_RARITY = {"comum": 5, "magico": 15, "raro": 40, "lendario": 100}
 
 # base passive value per point of rarity multiplier — mirrors PASSIVOS in
@@ -120,7 +121,7 @@ def equip(item_id: int, user_id: int) -> ItemInstance:
 
     min_level = MIN_LEVEL_BY_RARITY.get(item.rarity, 1)
     if player_level(user_id) < min_level:
-        rarity_label = _RARITY_BY_ID.get(item.rarity, {}).get("label", item.rarity)
+        rarity_label = RARITY_BY_ID.get(item.rarity, {}).get("label", item.rarity)
         raise ValueError(
             f"Equipamento {rarity_label} exige nível {min_level} — continue praticando para desbloqueá-lo."
         )

@@ -41,6 +41,7 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     from app.chat.routes import chat_bp
     from app.friends.routes import friends_bp
     from app.character.routes import character_bp
+    from app.market.routes import market_bp
     from app.api.routes import api_bp
 
     app.register_blueprint(auth_bp)
@@ -52,6 +53,7 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     app.register_blueprint(chat_bp)
     app.register_blueprint(friends_bp)
     app.register_blueprint(character_bp)
+    app.register_blueprint(market_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
 
     @app.context_processor

@@ -465,6 +465,23 @@ apresentação por cima dela:
   ambientação — o mistério da princesa Sela e a missão do jogador —
   em vez de ir direto para o formulário.
 
+### Mercado: loja do reino (NPC) + loja entre jogadores
+
+- Novo blueprint `app/market/` (`/mercado`) e `app/services/
+  market_service.py`, complementando a venda instantânea ao sistema
+  (`loot_service.sell`) que já existia:
+  - **Loja do Reino**: estoque de 6 itens gerado pelo próprio jogo,
+    comprável com Ouro, que se renova sozinho a cada 24h (checado de
+    forma preguiçosa a cada visita — sem depender de um cron job).
+  - **Loja dos Jogadores**: qualquer espólio não equipado pode ser
+    anunciado por um preço (definido pelo dono) a partir da tela de
+    Espólios; o anúncio fica visível para outros jogadores por 3 dias
+    — se ninguém comprar, volta sozinho ao inventário do dono.
+    Comprar transfere o item e o Ouro entre os dois `PlayerStats` numa
+    única transação.
+  - Comprar nunca contorna o nível mínimo para *equipar* itens raros
+    (`loot_service.MIN_LEVEL_BY_RARITY`) — só a mesma regra de sempre.
+
 ## O que ainda não existe
 
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
