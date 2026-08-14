@@ -102,6 +102,8 @@ const MathBattle = (() => {
     updateBossPhaseUi(1);
     $("potion-count") && ($("potion-count").innerText = potions);
     $("scroll-count") && ($("scroll-count").innerText = furyScrolls);
+    $("speech-bubble-container") && ($("speech-bubble-container").innerHTML = "");
+    $("battle-alert-container") && ($("battle-alert-container").innerHTML = "");
   }
 
   function spawnDust() {
@@ -127,6 +129,25 @@ const MathBattle = (() => {
 
   /* ---------------- reacting to the real question loop ---------------- */
 
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str == null ? "" : str;
+    return div.innerHTML;
+  }
+
+  /* Answer/achievement/mastery-review feedback as floating speech bubbles
+     near the hero — never inline blocks, so the challenge box below never
+     shifts position between questions. */
+  function showSpeechBubble(html, variant) {
+    const container = $("speech-bubble-container");
+    if (!container) return;
+    const el = document.createElement("div");
+    el.className = "speech-bubble" + (variant ? " bubble-" + variant : "");
+    el.innerHTML = html;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 3400);
+  }
+
   document.body.addEventListener("htmx:afterSwap", (evt) => {
     if (evt.target.id !== "question-slot") return;
     const d = evt.target.dataset;
@@ -135,8 +156,21 @@ const MathBattle = (() => {
         name: d.lootName, icon_key: d.lootIcon, rarity: d.lootRarity,
         passive_type: d.lootPassive, passive_value: parseFloat(d.lootValue || "0"),
       });
+      let msg = `<i class="fa-solid fa-check"></i> Correto! +${escapeHtml(d.xp || "0")} XP`;
+      if (d.bonusXp) msg += ` <span style="color:#c084fc">(+${escapeHtml(d.bonusXp)} dupla c/ ${escapeHtml(d.allyName)})</span>`;
+      if (d.levelup === "true") msg += ` · <i class="fa-solid fa-star"></i> Nível ${escapeHtml(d.level)}!`;
+      showSpeechBubble(msg, "correct");
     } else if (d.correct === "false") {
       onMiss();
+      showSpeechBubble(`<i class="fa-solid fa-xmark"></i> Quase — era <strong>${escapeHtml(d.correctAnswer)}</strong>`, "wrong");
+    }
+    if (d.achievements) {
+      d.achievements.split("||").forEach((name) => {
+        showSpeechBubble(`<i class="fa-solid fa-trophy"></i> Nova conquista: <strong>${escapeHtml(name)}</strong>`, "achievement");
+      });
+    }
+    if (d.needsReview === "true") {
+      showSpeechBubble(`<i class="fa-solid fa-book-bookmark"></i> Domínio caiu — vale revisar em breve.`, "review");
     }
     focusAnswer();
   });

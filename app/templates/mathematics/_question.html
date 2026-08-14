@@ -10,33 +10,12 @@
      data-loot-rarity="{{ feedback.crit_item.rarity if feedback and feedback.crit_item else '' }}"
      data-loot-passive="{{ feedback.crit_item.passive_type if feedback and feedback.crit_item else '' }}"
      data-loot-value="{{ feedback.crit_item.passive_value if feedback and feedback.crit_item else '' }}"
+     data-correct-answer="{{ feedback.correct_answer if feedback and not feedback.is_correct else '' }}"
+     data-bonus-xp="{{ feedback.bonus_xp if feedback and feedback.bonus_xp else '' }}"
+     data-ally-name="{{ feedback.ally_name if feedback and feedback.ally_name else '' }}"
+     data-achievements="{{ (feedback.new_achievements | map(attribute='name') | join('||')) if feedback and feedback.new_achievements else '' }}"
+     data-needs-review="{{ 'true' if feedback and feedback.needs_review else 'false' }}"
      class="max-w-xl mx-auto space-y-3">
-
-  {% if feedback %}
-    <div class="battle-toast font-sans text-sm font-semibold rounded p-3 border text-center {{ 'bg-green-950/60 border-green-500 text-green-200' if feedback.is_correct else 'bg-red-950/60 border-blood text-red-200' }}">
-      {% if feedback.is_correct %}
-        <i class="fa-solid fa-check"></i>
-        Correto!
-        {% if feedback.is_crit %}<span class="text-yellow-300">Golpe Crítico!</span>{% endif %}
-        +{{ feedback.xp_awarded }} XP
-        {% if feedback.bonus_xp %}<span class="text-purple-300">(+{{ feedback.bonus_xp }} bônus de dupla com {{ feedback.ally_name }})</span>{% endif %}
-        {% if feedback.leveled_up %}· <i class="fa-solid fa-star"></i> Subiu para o nível {{ feedback.level_number }}!{% endif %}
-      {% else %}
-        <i class="fa-solid fa-xmark"></i> Quase — a resposta certa era <strong>{{ feedback.correct_answer }}</strong>.
-      {% endif %}
-    </div>
-    {% if feedback.new_achievements %}
-      <div class="battle-toast font-sans text-sm font-semibold rounded p-3 border bg-yellow-950/40 border-gold text-yellow-100 text-center">
-        <i class="fa-solid fa-trophy"></i> Nova conquista:
-        {% for a in feedback.new_achievements %}{{ a.name }}{% if not loop.last %}, {% endif %}{% endfor %}
-      </div>
-    {% endif %}
-    {% if feedback.needs_review %}
-      <div class="battle-toast font-sans text-sm font-semibold rounded p-3 border bg-stone-800/70 border-stone-600 text-stone-300 text-center">
-        <i class="fa-solid fa-book-bookmark"></i> Seu domínio neste tópico caiu — vale uma revisão em breve.
-      </div>
-    {% endif %}
-  {% endif %}
 
   <div class="w-full bg-black/60 border-2 border-stone-700 rounded-lg p-3 sm:p-4 text-center shadow-inner">
     <p class="text-stone-400 font-medieval text-xs uppercase tracking-widest mb-1">

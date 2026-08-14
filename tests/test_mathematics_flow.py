@@ -54,8 +54,8 @@ def test_correct_answer_is_recorded(client, db, app):
         data={"token": token, "answer": correct_answer},
     )
     assert resp2.status_code == 200
-    assert "Correto" in resp2.data.decode()
-    assert "XP" in resp2.data.decode()
+    assert 'data-correct="true"' in resp2.data.decode()
+    assert 'data-xp=' in resp2.data.decode()
 
     attempt = Attempt.query.filter_by(user_id=user.id, topic_id=topic.id).first()
     assert attempt is not None
@@ -110,7 +110,7 @@ def test_fraction_answer_is_accepted_through_the_real_flow(client, db, app):
         f"/math/praticar/{topic.slug}/responder",
         data={"token": token, "answer": correct_answer},
     )
-    assert "Correto" in resp2.data.decode()
+    assert 'data-correct="true"' in resp2.data.decode()
 
     attempt = Attempt.query.filter_by(user_id=user.id, topic_id=topic.id).first()
     assert attempt.is_correct is True
@@ -133,7 +133,7 @@ def test_decimal_answer_with_pt_br_comma_is_accepted(client, db, app):
         f"/math/praticar/{topic.slug}/responder",
         data={"token": token, "answer": comma_answer},
     )
-    assert "Correto" in resp2.data.decode()
+    assert 'data-correct="true"' in resp2.data.decode()
 
 
 def test_decimal_operation_whole_result_matches_plain_integer_input(client, db, app):
@@ -153,7 +153,7 @@ def test_decimal_operation_whole_result_matches_plain_integer_input(client, db, 
                 f"/math/praticar/{topic.slug}/responder",
                 data={"token": token, "answer": str(int(float(answer)))},
             )
-            assert "Correto" in resp2.data.decode()
+            assert 'data-correct="true"' in resp2.data.decode()
             return
     raise AssertionError("did not draw a whole-number decimal result in 30 tries")
 
@@ -203,7 +203,7 @@ def test_tabuada_mista_topic_is_reachable_through_the_real_flow(client, db, app)
         data={"token": token, "answer": payload["answer"]},
     )
     assert resp2.status_code == 200
-    assert "Correto" in resp2.data.decode()
+    assert 'data-correct="true"' in resp2.data.decode()
 
 
 # --- Battle arena combat feel: crit roll + boss-kill loot claim --------
@@ -276,4 +276,4 @@ def test_fundamentos_topic_is_reachable_through_the_real_flow(client, db, app, s
         data={"token": token, "answer": payload["answer"]},
     )
     assert resp2.status_code == 200
-    assert "Correto" in resp2.data.decode()
+    assert 'data-correct="true"' in resp2.data.decode()

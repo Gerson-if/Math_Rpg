@@ -410,6 +410,45 @@
     100% { opacity: 0; transform: translateY(-6px) scale(0.95); }
   }
 
+  /* ---- speech-bubble toasts: answer feedback / achievement / mastery
+     review, styled like a comic balloon coming from the hero rather than
+     a block that pushes the challenge box around. Always the same
+     fixed spot regardless of how many appear, so the arena layout below
+     never shifts between questions. ---- */
+  .speech-bubble-container {
+    position: absolute; top: 80px; left: 8px; right: 8px; z-index: 68;
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: none;
+  }
+  @media (min-width: 640px) { .speech-bubble-container { top: 96px; left: 14px; right: auto; max-width: 62%; } }
+  .speech-bubble {
+    position: relative; align-self: flex-start; max-width: 100%;
+    background: rgba(10,8,14,0.94); border: 2px solid #d4af37; border-radius: 14px;
+    padding: 6px 14px; font-family: 'Cinzel', serif; font-size: 0.68rem; line-height: 1.35;
+    color: #f5f5f4; box-shadow: 0 0 14px rgba(212,175,55,0.35);
+    animation: bubbleInOut 3.4s ease-in-out forwards;
+  }
+  @media (min-width: 640px) { .speech-bubble { font-size: 0.8rem; padding: 8px 16px; } }
+  .speech-bubble::after {
+    content: ""; position: absolute; left: 20px; bottom: -8px;
+    border-width: 8px 8px 0 0; border-style: solid;
+    border-color: #d4af37 transparent transparent transparent;
+  }
+  .speech-bubble.bubble-correct { border-color: #4ade80; box-shadow: 0 0 14px rgba(74,222,128,0.4); }
+  .speech-bubble.bubble-correct::after { border-color: #4ade80 transparent transparent transparent; }
+  .speech-bubble.bubble-wrong { border-color: #ef4444; box-shadow: 0 0 14px rgba(239,68,68,0.4); }
+  .speech-bubble.bubble-wrong::after { border-color: #ef4444 transparent transparent transparent; }
+  .speech-bubble.bubble-achievement { border-color: #fbbf24; color: #fff7cc; }
+  .speech-bubble.bubble-achievement::after { border-color: #fbbf24 transparent transparent transparent; }
+  .speech-bubble.bubble-review { border-color: #78716c; color: #d6d3d1; }
+  .speech-bubble.bubble-review::after { border-color: #78716c transparent transparent transparent; }
+  @keyframes bubbleInOut {
+    0% { opacity: 0; transform: translateY(8px) scale(0.92); }
+    8% { opacity: 1; transform: translateY(0) scale(1); }
+    85% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  }
+
   /* ---- quick inventory shortcut, right under the fury bar ---- */
   .fury-inventory-btn {
     display: inline-flex; align-items: center; gap: 4px;
@@ -442,7 +481,7 @@
      viewport (navbar included), matching the reference template's own
      fullscreen app feel, not a section embedded in the normal page. -->
 <div id="battle-fullscreen" class="fixed inset-0 z-[200] bg-black overflow-y-auto">
-<div class="max-w-3xl mx-auto p-3 sm:p-6 min-h-full flex flex-col justify-center">
+<div class="max-w-3xl lg:max-w-4xl mx-auto p-3 sm:p-6 min-h-full flex flex-col justify-center">
 
   <!-- STORY SCREEN -->
   <div id="story-screen" class="epic-enter bg-black/70 border-2 border-purple-900 rounded-lg p-6 sm:p-10 text-center space-y-5">
@@ -459,10 +498,15 @@
     {% endif %}
 
     {% if recommend_first %}
-      <div class="inline-flex items-center gap-2 bg-yellow-950/40 border border-gold rounded-full px-4 py-1.5 text-yellow-100 text-sm font-sans">
+      <div class="flex flex-wrap items-center justify-center gap-2 bg-yellow-950/40 border border-gold rounded-full px-4 py-1.5 text-yellow-100 text-sm font-sans">
         <i class="fa-solid fa-compass text-gold"></i>
         Recomendado praticar primeiro:
-        {% for t in recommend_first %}<a href="{{ url_for('mathematics.practice', topic_slug=t.slug) }}" class="underline hover:text-gold">{{ t.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+        {% for t in recommend_first %}
+          <a href="{{ url_for('mathematics.practice', topic_slug=t.slug) }}"
+             class="inline-flex items-center gap-1 bg-black/30 border border-gold/60 rounded-full px-3 py-0.5 text-gold hover:bg-gold hover:text-black transition-colors">
+            <i class="fa-solid fa-map-pin"></i> {{ t.name }}
+          </a>
+        {% endfor %}
       </div>
     {% endif %}
 
@@ -474,7 +518,10 @@
       {% else %}
         Nenhum equipamento ativo
       {% endif %}
-      <a href="{{ url_for('character.equipamentos') }}" class="text-purple-300 hover:text-purple-200 underline">preparar</a>
+      <a href="{{ url_for('character.equipamentos') }}"
+         class="inline-flex items-center gap-1 bg-purple-950/50 border border-purple-500 rounded-full px-3 py-0.5 text-purple-200 hover:bg-purple-800 hover:text-white transition-colors">
+        <i class="fa-solid fa-shield-halved"></i> preparar
+      </a>
     </div>
 
     <div class="mentor-tip inline-flex items-start gap-3 bg-stone-900/70 border border-stone-700 rounded-lg p-4 text-left max-w-lg mx-auto">
@@ -506,6 +553,7 @@
     <div id="revive-wipe" class="revive-wipe"></div>
     <div id="next-portal-ring" class="portal-ring"></div>
     <div id="battle-alert-container" class="battle-alert-container"></div>
+    <div id="speech-bubble-container" class="speech-bubble-container"></div>
 
     <div id="arena-content">
     <div class="relative z-10 p-3 sm:p-4 flex justify-between items-start gap-3 bg-gradient-to-b from-black/80 to-transparent">

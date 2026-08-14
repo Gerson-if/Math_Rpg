@@ -110,8 +110,9 @@ def test_dungeon_invite_accept_redirects_to_the_topic_and_grants_a_coop_bonus(cl
         data={"token": token, "answer": payload["answer"]},
     )
     body = resp4.data.decode()
-    assert "Correto" in body
-    assert "bônus de dupla" in body
+    assert 'data-correct="true"' in body
+    assert f'data-bonus-xp="{dungeon_service.COOP_BONUS_XP}"' in body
+    assert 'data-ally-name="bob"' in body
 
     stats = PlayerStats.query.filter_by(user_id=alice.id).first()
     assert stats.xp == 10 + dungeon_service.COOP_BONUS_XP  # difficulty 1 -> 10 XP + 5 bonus
