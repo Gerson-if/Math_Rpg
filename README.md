@@ -489,7 +489,29 @@ apresentação por cima dela:
   uma grade de cartões clicáveis (um por matéria); cada crônica abre
   em `/math/cronicas/<matéria>`, um leitor dedicado em tela cheia —
   um capítulo por vez, com transição animada de página, poeira mágica
-  flutuante e navegação por setas/pontos.
+  flutuante e navegação por setas/pontos. O leitor também ganhou uma
+  animação de entrada, clique em qualquer lugar do texto para avançar
+  (não só nas setas) e um aviso de "fim deste capítulo" na última página.
+
+### Chefe de verdade só no último tópico de cada matéria
+
+- Todo tópico de uma matéria mostrava o mesmo guardião nomeado, então
+  chegar "no chefe" nunca parecia uma escalada — já era o inimigo do
+  primeiro tópico também. Agora só o **último** tópico de cada matéria
+  (`guardians.for_topic`) enfrenta o guardião de verdade; tópicos
+  anteriores enfrentam um "servo" com o mesmo ícone/cor mas nome e HP
+  menores — o chefe de verdade passa a ser conquistado, não repetido.
+
+### Corrige a batalha "travando" ao ficar parado tempo demais
+
+- O token assinado de uma pergunta expirava em 5 minutos; parar para
+  ler uma crônica ou se distrair por mais tempo que isso fazia a
+  próxima resposta falhar silenciosamente — o HTMX só troca o
+  conteúdo em respostas 2xx por padrão, então o formulário ficava
+  "travado", sem aceitar mais nada e sem avisar nada. A janela subiu
+  para 30 minutos, e um listener de `htmx:responseError` agora se
+  autorrecupera buscando uma pergunta nova em vez de deixar o jogador
+  preso numa pergunta morta.
 
 ## O que ainda não existe
 

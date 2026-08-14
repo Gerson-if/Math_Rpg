@@ -26,10 +26,13 @@ def make_token(topic_slug: str, difficulty: int, answer: str) -> str:
     return _serializer().dumps({"topic": topic_slug, "difficulty": difficulty, "answer": answer})
 
 
-def read_token(token: str, max_age: int = 300, return_timestamp: bool = False):
-    """max_age is in seconds — 5 minutes is generous for answering one
-    question but still bounds how long a token (and thus an inflated
-    response_time) can be replayed."""
+def read_token(token: str, max_age: int = 1800, return_timestamp: bool = False):
+    """max_age is in seconds. Doesn't need to tightly bound response_time
+    forgery on its own — app/mathematics/routes.py separately clamps
+    elapsed_ms to 10 minutes regardless of this value — so it can afford
+    to be generous: 30 minutes covers a player who steps away mid-battle
+    (reads a chronicle, gets distracted) without silently stranding them
+    on an expired question that no longer accepts answers."""
     try:
         return _serializer().loads(token, max_age=max_age, return_timestamp=return_timestamp)
     except (BadSignature, SignatureExpired) as exc:

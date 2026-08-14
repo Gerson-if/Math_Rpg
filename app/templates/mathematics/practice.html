@@ -810,10 +810,12 @@
     topicSlug: {{ topic.slug | tojson }},
     indexUrl: {{ url_for('mathematics.index') | tojson }},
     victoryUrl: {{ url_for('mathematics.claim_victory', topic_slug=topic.slug) | tojson }},
+    newQuestionUrl: {{ url_for('mathematics.new_question', topic_slug=topic.slug) | tojson }},
     csrfToken: {{ csrf_token() | tojson }},
     buffs: {{ buffs | tojson }},
     subjectSlug: {{ topic.subject.slug | tojson }},
     chronicle: {{ chronicle | tojson }},
+    isFinalBoss: {{ is_final_boss | tojson }},
   });
 </script>
 {% endblock %}

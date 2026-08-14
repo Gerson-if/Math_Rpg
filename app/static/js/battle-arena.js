@@ -22,6 +22,7 @@ const MathBattle = (() => {
   };
   const BASE_MAX_HP = 100;
   const BOSS_MAX_HP = 150;
+  const MINION_MAX_HP = 90; // every topic but a subject's last used to fight the exact same boss at the exact same HP — minions now die faster, so reaching the real guardian reads as an escalation
 
   let cfg = { topicSlug: "", indexUrl: "/math/", buffs: {} };
   let maxHP = BASE_MAX_HP, playerHP = maxHP;
@@ -157,6 +158,7 @@ const MathBattle = (() => {
   }
 
   function resetCombatState() {
+    bossMaxHP = cfg.isFinalBoss ? BOSS_MAX_HP : MINION_MAX_HP;
     playerHP = maxHP; bossHP = bossMaxHP;
     combo = 0; fury = 0; lastPhase = 1;
     furyWasReady = false; comboAlertedTier = 0;
@@ -246,6 +248,24 @@ const MathBattle = (() => {
       showSpeechBubble(`<i class="fa-solid fa-arrow-trend-up"></i> Domínio recuperado!`, "recovered");
     }
     focusAnswer();
+  });
+
+  /* A question's signed token expires (30min — see question_token.py) or a
+     request can otherwise fail; htmx only swaps on 2xx by default, so
+     without this the old, now-dead form just sits there silently
+     "frozen", accepting no input and giving no feedback. Self-heal by
+     pulling a fresh question instead of leaving the player stuck. */
+  document.body.addEventListener("htmx:responseError", (evt) => {
+    const slot = $("question-slot");
+    if (!slot || !evt.detail.elt || !slot.contains(evt.detail.elt)) return;
+    showBattleAlert("⏳ Pergunta expirou — carregando uma nova...", "danger");
+    if (window.htmx) htmx.ajax("GET", cfg.newQuestionUrl, { target: "#question-slot", swap: "outerHTML" });
+  });
+
+  document.body.addEventListener("htmx:sendError", (evt) => {
+    const slot = $("question-slot");
+    if (!slot || !evt.detail.elt || !slot.contains(evt.detail.elt)) return;
+    showBattleAlert("⚠️ Falha de conexão — tente responder de novo.", "danger");
   });
 
   function onHit(isCrit, lootItem) {

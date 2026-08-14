@@ -96,10 +96,12 @@ def list_topics():
 @login_required
 def practice(topic_slug):
     topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
+    display_guardian, is_final_boss = guardians.for_topic(topic)
     return render_template(
         "mathematics/practice.html",
         topic=topic,
-        guardian=guardians.for_subject(topic.subject.slug),
+        guardian=display_guardian,
+        is_final_boss=is_final_boss,
         recommend_first=progression_service.unmet_prerequisites(current_user.id, topic),
         mentor_tip=mentor_tips.random_tip(),
         ally=dungeon_service.active_ally(current_user.id, topic.id),

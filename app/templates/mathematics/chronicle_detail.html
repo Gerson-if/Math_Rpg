@@ -15,6 +15,12 @@
     overflow: hidden;
     display: flex; flex-direction: column;
     box-shadow: 0 12px 30px rgba(0,0,0,0.6), inset 0 0 60px rgba(0,0,0,0.55);
+    opacity: 0; transform: scale(0.96) translateY(14px);
+    animation: readerFrameIn 0.85s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  @keyframes readerFrameIn {
+    0% { opacity: 0; transform: scale(0.96) translateY(14px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
   }
 
   .reader-dust { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
@@ -25,7 +31,14 @@
   }
   @keyframes dustFloat { 0% { transform: translateY(0); opacity: 0.6; } 100% { transform: translateY(-320px); opacity: 0; } }
 
-  .reader-page { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2.5rem 1.5rem; text-align: center; position: relative; z-index: 1; }
+  .reader-page { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2.5rem 1.5rem; text-align: center; position: relative; z-index: 1; cursor: pointer; }
+  .reader-continue-hint {
+    font-family: 'Cinzel', serif; font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #a1801f; margin-top: 1.5rem; display: flex; align-items: center; gap: 0.4rem;
+    animation: continuePulse 1.8s ease-in-out infinite;
+  }
+  .reader-continue-hint.is-final { color: #d4af37; animation: none; opacity: 1; }
+  @keyframes continuePulse { 0%, 100% { opacity: 0.45; transform: translateY(0); } 50% { opacity: 1; transform: translateY(3px); } }
   .reader-chapter-label { font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: #a1801f; margin-bottom: 0.75rem; }
   .reader-title { font-family: 'MedievalSharp', cursive; color: #f4e8c1; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
   .reader-text { font-family: 'Cinzel', serif; font-size: 1rem; line-height: 1.85; color: #e7d5ab; max-width: 640px; }
@@ -59,10 +72,13 @@
 
 <div class="reader-frame">
   <div class="reader-dust" id="reader-dust"></div>
-  <div class="reader-page">
+  <div class="reader-page" id="reader-page" title="Clique para continuar">
     <p class="reader-chapter-label" id="reader-chapter-label">Capítulo 1 de {{ chronicle.stages | length }}</p>
     <h1 class="reader-title text-2xl sm:text-3xl mb-4">{{ chronicle.title }}</h1>
     <p class="reader-text page-enter" id="reader-text">{{ chronicle.stages[0] }}</p>
+    <p class="reader-continue-hint" id="reader-continue-hint">
+      <i class="fa-solid fa-chevron-down"></i> Toque para continuar
+    </p>
   </div>
   <div class="reader-nav">
     <button type="button" id="reader-prev" class="reader-nav-btn" aria-label="Capítulo anterior" disabled>
@@ -94,6 +110,8 @@
   var dotsEl = document.getElementById("reader-dots");
   var prevBtn = document.getElementById("reader-prev");
   var nextBtn = document.getElementById("reader-next");
+  var pageEl = document.getElementById("reader-page");
+  var hintEl = document.getElementById("reader-continue-hint");
 
   stages.forEach(function (_, i) {
     var dot = document.createElement("button");
@@ -111,6 +129,13 @@
     });
     prevBtn.disabled = idx === 0;
     nextBtn.disabled = idx === stages.length - 1;
+
+    var isFinal = idx === stages.length - 1;
+    hintEl.classList.toggle("is-final", isFinal);
+    hintEl.innerHTML = isFinal
+      ? '<i class="fa-solid fa-flag-checkered"></i> Fim deste capítulo da crônica'
+      : '<i class="fa-solid fa-chevron-down"></i> Toque para continuar';
+    pageEl.style.cursor = isFinal ? "default" : "pointer";
   }
 
   function goTo(newIdx) {
@@ -128,6 +153,7 @@
 
   prevBtn.addEventListener("click", function () { goTo(idx - 1); });
   nextBtn.addEventListener("click", function () { goTo(idx + 1); });
+  pageEl.addEventListener("click", function () { goTo(idx + 1); });
   render();
 })();
 </script>
