@@ -67,17 +67,17 @@
                 <h1 class="text-3xl font-medieval text-gold font-bold tracking-wider magic-glow">Matemática RPG</h1>
             </div>
             <div class="hidden md:flex gap-6 font-medieval text-stone-300">
-                <a href="{{ url_for('auth.login') }}" class="hover:text-gold transition"><i class="fa-solid fa-scroll"></i> O Códice</a>
-                <a href="{{ url_for('auth.login') }}" class="hover:text-gold transition"><i class="fa-solid fa-ranking-star"></i> Salão dos Heróis</a>
+                <a href="{{ url_for('auth.codice') }}" class="hover:text-gold transition"><i class="fa-solid fa-scroll"></i> O Códice</a>
+                <a href="{{ url_for('auth.salao_dos_herois') }}" class="hover:text-gold transition"><i class="fa-solid fa-ranking-star"></i> Salão dos Heróis</a>
                 <a href="{{ url_for('auth.register') }}" class="hover:text-gold transition"><i class="fa-solid fa-dragon"></i> Criar conta</a>
             </div>
         </div>
     </nav>
 
-    <main class="flex-grow flex items-center justify-center p-4 sm:p-8 relative">
-        <div class="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+    <main class="flex-grow flex items-start justify-center p-4 sm:p-8 relative">
+        <div class="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:items-center">
 
-            <div class="space-y-8">
+            <div class="space-y-8 order-2 lg:order-1">
                 <div class="text-center lg:text-left">
                     <h2 class="text-4xl sm:text-5xl font-medieval text-gold mb-4 leading-tight">
                         Desvende os Mistérios da <br/><span class="text-blood font-bold">Magia Algébrica</span>
@@ -117,7 +117,7 @@
                 </div>
             </div>
 
-            <div class="flex justify-center relative">
+            <div class="flex justify-center relative order-1 lg:order-2">
                 <div class="absolute inset-0 bg-gold opacity-10 blur-[100px] rounded-full"></div>
 
                 <div class="parchment-bg w-full max-w-md rounded-sm border-8 border-double border-yellow-900/60 p-8 relative z-10 text-parchment-900">

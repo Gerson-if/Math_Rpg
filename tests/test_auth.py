@@ -8,6 +8,48 @@ def test_health(client):
     assert resp.get_json() == {"status": "ok"}
 
 
+def test_codice_is_publicly_reachable_without_login(client):
+    resp = client.get("/auth/codice")
+    assert resp.status_code == 200
+    assert "Códice" in resp.data.decode()
+
+
+def test_salao_dos_herois_is_publicly_reachable_without_login(client, db):
+    resp = client.get("/auth/salao-dos-herois")
+    assert resp.status_code == 200
+    assert "Salão dos Heróis" in resp.data.decode()
+
+
+def test_salao_dos_herois_shows_current_activity_for_a_recently_active_player(client, db, app):
+    from datetime import datetime
+    from app.models import Profile, PlayerStats, Subject, Topic, Attempt
+
+    user = User(email="ativo@example.com", username="ativo")
+    user.set_password("senhaforte123")
+    db.session.add(user)
+    db.session.flush()
+    db.session.add(Profile(user_id=user.id, display_name="Ativo"))
+    db.session.add(PlayerStats(user_id=user.id, xp=100))
+
+    subject = Subject(slug="tabuada", name="Tabuada", order=0)
+    db.session.add(subject)
+    db.session.flush()
+    topic = Topic(slug="tabuada-do-7", name="Tabuada do 7", subject_id=subject.id, order=0, base_difficulty=1)
+    db.session.add(topic)
+    db.session.flush()
+    db.session.add(Attempt(
+        user_id=user.id, topic_id=topic.id, difficulty=1, is_correct=True,
+        response_time_ms=1000, created_at=datetime.utcnow(),
+    ))
+    db.session.commit()
+
+    resp = client.get("/auth/salao-dos-herois")
+    body = resp.data.decode()
+    assert "Ativo" in body
+    assert "Tabuada do 7" in body
+    assert "agora" in body
+
+
 def test_register_creates_user_and_dependents(client, db):
     resp = client.post(
         "/auth/register",

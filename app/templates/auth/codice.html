@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}O Códice{% endblock %}
+{% block content %}
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
+  <i class="fa-solid fa-scroll"></i> O Códice
+</h1>
+<p class="text-stone-400 font-sans text-sm mb-6 max-w-2xl">
+  As regras do Reino de Arith, para quem ainda está decidindo se vai se juntar à aventura.
+</p>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 shadow-lg">
+    <i class="fa-solid fa-wand-sparkles text-2xl text-purple-400 mb-3"></i>
+    <h2 class="font-medieval text-lg text-stone-100 mb-2">Prática vira batalha</h2>
+    <p class="text-stone-400 font-sans text-sm">Cada questão respondida certo é um golpe no guardião da trilha; errar custa vida. XP e domínio real vêm sempre das suas respostas — o resto é vitrine.</p>
+  </div>
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 shadow-lg">
+    <i class="fa-solid fa-chart-line text-2xl text-blue-400 mb-3"></i>
+    <h2 class="font-medieval text-lg text-stone-100 mb-2">Dificuldade adaptativa</h2>
+    <p class="text-stone-400 font-sans text-sm">Acertos seguidos trazem desafios maiores; dificuldades trazem questões mais simples de volta — o jogo persegue seu ritmo, não o contrário.</p>
+  </div>
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 shadow-lg">
+    <i class="fa-solid fa-book-bookmark text-2xl text-emerald-400 mb-3"></i>
+    <h2 class="font-medieval text-lg text-stone-100 mb-2">Revisão espaçada</h2>
+    <p class="text-stone-400 font-sans text-sm">Tópicos que seu domínio esquecer voltam para uma fila de revisão — o Reino não deixa você esquecer o que já aprendeu.</p>
+  </div>
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 shadow-lg">
+    <i class="fa-solid fa-map-location-dot text-2xl text-orange-400 mb-3"></i>
+    <h2 class="font-medieval text-lg text-stone-100 mb-2">Mapa de Aventura</h2>
+    <p class="text-stone-400 font-sans text-sm">Da tabuada às frações, potências e porcentagem — cada matéria é uma trilha com seu próprio guardião e crônica.</p>
+  </div>
+</div>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-4"><i class="fa-solid fa-shield-halved text-gold mr-2"></i>Classes de personagem</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+    {% for key, cls in classes.items() %}
+      <div class="flex items-center gap-3 bg-stone-800/60 border border-stone-700 rounded-lg p-3">
+        <div class="w-10 h-10 rounded-full border-2 flex items-center justify-center text-lg border-{{ cls.color }} text-{{ cls.color }} shrink-0">
+          <i class="fa-solid {{ cls.icon }}"></i>
+        </div>
+        <span class="font-sans text-stone-200 text-sm font-bold">{{ cls.name }}</span>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="text-center mt-6">
+  <a href="{{ url_for('auth.register') }}"
+     class="inline-flex items-center gap-2 px-8 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval text-lg hover:scale-105 transition-transform">
+    <i class="fa-solid fa-dragon"></i> Juntar-se à aventura
+  </a>
+</div>
+{% endblock %}

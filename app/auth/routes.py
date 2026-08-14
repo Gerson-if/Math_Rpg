@@ -1,13 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 
 from app.extensions import db, limiter
-from app.models import User, Profile, PlayerStats, Level, Rank
+from app.models import User, Profile, PlayerStats, Level, Rank, Attempt
 from app.auth.forms import RegisterForm, LoginForm
+from app.services import classes as classes_service, guardians as guardians_service
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+# How recent an Attempt has to be for a top player to show as "currently
+# facing" a guardian on the public Salão dos Heróis page.
+_ACTIVITY_RECENCY_MINUTES = 30
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
@@ -73,3 +78,38 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/codice")
+def codice():
+    """Public "how it works" page linked from the login screen's navbar —
+    no login required, since its whole point is to sell the game to
+    someone who hasn't signed up yet."""
+    return render_template("auth/codice.html", classes=classes_service.CLASSES)
+
+
+@auth_bp.route("/salao-dos-herois")
+def salao_dos_herois():
+    """Public leaderboard preview — top players, plus (if they've answered
+    something recently enough) which guardian they're currently facing.
+    A public teaser, not the authenticated dashboard of the same name."""
+    top_players = (
+        PlayerStats.query.filter(PlayerStats.xp > 0)
+        .order_by(PlayerStats.xp.desc())
+        .limit(10)
+        .all()
+    )
+    cutoff = datetime.utcnow() - timedelta(minutes=_ACTIVITY_RECENCY_MINUTES)
+    activity = {}
+    for stats in top_players:
+        recent = (
+            Attempt.query.filter(Attempt.user_id == stats.user_id, Attempt.created_at >= cutoff)
+            .order_by(Attempt.created_at.desc())
+            .first()
+        )
+        if recent and recent.topic:
+            activity[stats.user_id] = {
+                "topic": recent.topic,
+                "guardian": guardians_service.for_subject(recent.topic.subject.slug),
+            }
+    return render_template("auth/salao_dos_herois.html", top_players=top_players, activity=activity)

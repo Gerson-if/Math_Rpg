@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Salão dos Heróis{% endblock %}
+{% block content %}
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
+  <i class="fa-solid fa-ranking-star"></i> Salão dos Heróis
+</h1>
+<p class="text-stone-400 font-sans text-sm mb-6 max-w-2xl">
+  Os aventureiros mais experientes do Reino de Arith — e, quando ativos recentemente, qual guardião estão enfrentando agora.
+</p>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-3 sm:p-5 shadow-lg">
+  {% if top_players %}
+    <ul class="divide-y divide-stone-800">
+      {% for stats in top_players %}
+        {% set act = activity.get(stats.user_id) %}
+        <li class="flex items-center gap-3 sm:gap-4 py-3">
+          <span class="w-6 text-center font-medieval text-stone-500 shrink-0">{{ loop.index }}</span>
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-gold flex items-center justify-center text-lg sm:text-xl bg-blue-950 text-gold shrink-0">
+            {{ ui.avatar_icon(stats.user.profile) }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-sans font-bold text-stone-100 truncate">{{ stats.user.profile.display_name if stats.user.profile else stats.user.username }}</p>
+            <p class="text-stone-500 font-sans text-xs">
+              Nível {{ stats.level.number if stats.level else 1 }} · {{ stats.rank.name if stats.rank else "Iniciante" }} · {{ stats.xp }} XP
+            </p>
+            {% if act %}
+              <p class="text-purple-300 font-sans text-xs mt-0.5">
+                <i class="fa-solid {{ act.guardian.icon }} mr-1"></i>
+                Enfrentando <span class="text-{{ act.guardian.color }}">{{ act.guardian.name }}</span> em {{ act.topic.name }} agora
+              </p>
+            {% endif %}
+          </div>
+          {% if stats.rank %}{{ ui.rank_badge(stats.rank, size='sm') }}{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-stone-400 font-sans">Ainda não há heróis suficientes para formar um ranking — seja o primeiro.</p>
+  {% endif %}
+</div>
+
+<div class="text-center mt-6">
+  <a href="{{ url_for('auth.register') }}"
+     class="inline-flex items-center gap-2 px-8 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval text-lg hover:scale-105 transition-transform">
+    <i class="fa-solid fa-dragon"></i> Entrar para o ranking
+  </a>
+</div>
+{% endblock %}
