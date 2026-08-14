@@ -9,7 +9,7 @@ service" requirement from the spec.
 """
 from datetime import datetime, timezone
 
-from flask import Blueprint, render_template, request, abort, jsonify
+from flask import Blueprint, render_template, request, abort, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 
 import random
@@ -222,6 +222,19 @@ def claim_victory(topic_slug):
     })
 
 
+def _discovered_subject_ids(user_id: int) -> set[int]:
+    return {
+        row[0]
+        for row in (
+            db.session.query(Topic.subject_id)
+            .join(Attempt, Attempt.topic_id == Topic.id)
+            .filter(Attempt.user_id == user_id)
+            .distinct()
+            .all()
+        )
+    }
+
+
 @mathematics_bp.route("/cronicas")
 @login_required
 def chronicles():
@@ -229,22 +242,30 @@ def chronicles():
     as the player has practiced anything in that subject at all (no
     mastery threshold; this is flavor, not a gate)."""
     subjects = Subject.query.filter_by(is_active=True).order_by(Subject.order).all()
-    discovered_subject_ids = {
-        row[0]
-        for row in (
-            db.session.query(Topic.subject_id)
-            .join(Attempt, Attempt.topic_id == Topic.id)
-            .filter(Attempt.user_id == current_user.id)
-            .distinct()
-            .all()
-        )
-    }
+    discovered_subject_ids = _discovered_subject_ids(current_user.id)
     chronicles_by_subject = [
         (subject, lore.for_subject(subject.slug), subject.id in discovered_subject_ids)
         for subject in subjects
         if lore.for_subject(subject.slug) is not None
     ]
     return render_template("mathematics/chronicles.html", chronicles=chronicles_by_subject)
+
+
+@mathematics_bp.route("/cronicas/<subject_slug>")
+@login_required
+def chronicle_detail(subject_slug):
+    """A single chronicle read as its own immersive, page-by-page story —
+    not the whole thing dumped as one wall of text on the index."""
+    subject = Subject.query.filter_by(slug=subject_slug, is_active=True).first_or_404()
+    chronicle = lore.for_subject(subject_slug)
+    if chronicle is None:
+        abort(404)
+    if subject.id not in _discovered_subject_ids(current_user.id):
+        flash(f"Pratique algo de {subject.name} para revelar esta crônica.", "warning")
+        return redirect(url_for("mathematics.chronicles"))
+    return render_template(
+        "mathematics/chronicle_detail.html", subject=subject, chronicle=chronicle,
+    )
 
 
 @mathematics_bp.route("/historico")

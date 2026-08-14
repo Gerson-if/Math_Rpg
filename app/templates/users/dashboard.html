@@ -144,7 +144,10 @@
 <div class="hall-card d5 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
   <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
     <h2 class="text-lg font-medieval text-stone-100"><i class="fa-solid fa-users-rays text-purple-400 mr-2"></i>Heróis e Crônicas do Reino</h2>
-    <a href="{{ url_for('mathematics.chronicles') }}" class="text-purple-300 hover:text-purple-200 text-xs font-sans underline">Ver todas as crônicas</a>
+    <a href="{{ url_for('mathematics.chronicles') }}"
+       class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-sans text-xs text-purple-200 border border-purple-500/50 bg-purple-950/30 hover:border-purple-400 hover:text-white hover:bg-purple-900/40 transition-colors">
+      <i class="fa-solid fa-scroll"></i> Ver todas as crônicas
+    </a>
   </div>
   <div class="flex flex-wrap gap-4">
     {% for subject, guardian, discovered in hero_gallery %}

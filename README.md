@@ -482,6 +482,15 @@ apresentação por cima dela:
   - Comprar nunca contorna o nível mínimo para *equipar* itens raros
     (`loot_service.MIN_LEVEL_BY_RARITY`) — só a mesma regra de sempre.
 
+### Leitor de crônicas dedicado
+
+- A página Crônicas do Reino mostrava todos os capítulos de todas as
+  matérias descobertas empilhados de uma vez, sem destaque. Agora é
+  uma grade de cartões clicáveis (um por matéria); cada crônica abre
+  em `/math/cronicas/<matéria>`, um leitor dedicado em tela cheia —
+  um capítulo por vez, com transição animada de página, poeira mágica
+  flutuante e navegação por setas/pontos.
+
 ## O que ainda não existe
 
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os

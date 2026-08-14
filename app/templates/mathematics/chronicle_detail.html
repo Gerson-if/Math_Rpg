@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}{{ chronicle.title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .reader-frame {
+    background-color: #1a130a;
+    background-image:
+      radial-gradient(circle at 30% 20%, rgba(212,175,55,0.08), transparent 60%),
+      url('https://www.transparenttextures.com/patterns/aged-paper.png');
+    border: 10px double #8b6b1f;
+    border-radius: 6px;
+    min-height: 62vh;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6), inset 0 0 60px rgba(0,0,0,0.55);
+  }
+
+  .reader-dust { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .reader-dust span {
+    position: absolute; bottom: -10px; width: 3px; height: 3px;
+    background: #d4af37; border-radius: 50%; opacity: 0.55;
+    animation: dustFloat 7s infinite linear; box-shadow: 0 0 6px #d4af37;
+  }
+  @keyframes dustFloat { 0% { transform: translateY(0); opacity: 0.6; } 100% { transform: translateY(-320px); opacity: 0; } }
+
+  .reader-page { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2.5rem 1.5rem; text-align: center; position: relative; z-index: 1; }
+  .reader-chapter-label { font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: #a1801f; margin-bottom: 0.75rem; }
+  .reader-title { font-family: 'MedievalSharp', cursive; color: #f4e8c1; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+  .reader-text { font-family: 'Cinzel', serif; font-size: 1rem; line-height: 1.85; color: #e7d5ab; max-width: 640px; }
+  @media (min-width: 640px) { .reader-text { font-size: 1.15rem; } }
+  .reader-text.page-enter { animation: pageIn 0.55s ease-out forwards; }
+  .reader-text.page-leave { animation: pageOut 0.3s ease-in forwards; }
+  @keyframes pageIn { 0% { opacity: 0; transform: translateX(22px); filter: blur(3px); } 100% { opacity: 1; transform: translateX(0); filter: blur(0); } }
+  @keyframes pageOut { 0% { opacity: 1; transform: translateX(0); filter: blur(0); } 100% { opacity: 0; transform: translateX(-22px); filter: blur(3px); } }
+
+  .reader-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-top: 1px solid rgba(139,107,31,0.4); position: relative; z-index: 1; }
+  .reader-nav-btn {
+    width: 2.5rem; height: 2.5rem; border-radius: 9999px; flex-shrink: 0;
+    background: rgba(10,8,4,0.7); border: 2px solid #d4af37; color: #d4af37;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 0 10px rgba(212,175,55,0.35);
+  }
+  .reader-nav-btn:hover:not(:disabled) { transform: scale(1.1); box-shadow: 0 0 18px rgba(212,175,55,0.7); }
+  .reader-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .reader-dots { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
+  .reader-dot { width: 0.55rem; height: 0.55rem; border-radius: 9999px; background: rgba(139,107,31,0.4); transition: background 0.2s ease, transform 0.2s ease; cursor: pointer; border: none; padding: 0; }
+  .reader-dot.active { background: #d4af37; transform: scale(1.35); box-shadow: 0 0 8px rgba(212,175,55,0.7); }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('mathematics.chronicles') }}" class="inline-flex items-center gap-2 text-sm font-sans text-stone-400 hover:text-gold transition-colors mb-4">
+  <i class="fa-solid fa-arrow-left"></i> Voltar às Crônicas
+</a>
+
+<div class="reader-frame">
+  <div class="reader-dust" id="reader-dust"></div>
+  <div class="reader-page">
+    <p class="reader-chapter-label" id="reader-chapter-label">Capítulo 1 de {{ chronicle.stages | length }}</p>
+    <h1 class="reader-title text-2xl sm:text-3xl mb-4">{{ chronicle.title }}</h1>
+    <p class="reader-text page-enter" id="reader-text">{{ chronicle.stages[0] }}</p>
+  </div>
+  <div class="reader-nav">
+    <button type="button" id="reader-prev" class="reader-nav-btn" aria-label="Capítulo anterior" disabled>
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <div class="reader-dots" id="reader-dots"></div>
+    <button type="button" id="reader-next" class="reader-nav-btn" aria-label="Próximo capítulo">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var stages = {{ chronicle.stages | tojson }};
+  var idx = 0;
+
+  var dustEl = document.getElementById("reader-dust");
+  for (var i = 0; i < 14; i++) {
+    var d = document.createElement("span");
+    d.style.left = Math.random() * 100 + "%";
+    d.style.animationDuration = (5 + Math.random() * 4) + "s";
+    d.style.animationDelay = (Math.random() * 6) + "s";
+    dustEl.appendChild(d);
+  }
+
+  var textEl = document.getElementById("reader-text");
+  var labelEl = document.getElementById("reader-chapter-label");
+  var dotsEl = document.getElementById("reader-dots");
+  var prevBtn = document.getElementById("reader-prev");
+  var nextBtn = document.getElementById("reader-next");
+
+  stages.forEach(function (_, i) {
+    var dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "reader-dot" + (i === 0 ? " active" : "");
+    dot.setAttribute("aria-label", "Ir ao capítulo " + (i + 1));
+    dot.addEventListener("click", function () { goTo(i); });
+    dotsEl.appendChild(dot);
+  });
+
+  function render() {
+    labelEl.textContent = "Capítulo " + (idx + 1) + " de " + stages.length;
+    Array.from(dotsEl.children).forEach(function (dot, i) {
+      dot.classList.toggle("active", i === idx);
+    });
+    prevBtn.disabled = idx === 0;
+    nextBtn.disabled = idx === stages.length - 1;
+  }
+
+  function goTo(newIdx) {
+    if (newIdx === idx || newIdx < 0 || newIdx >= stages.length) return;
+    textEl.classList.remove("page-enter");
+    textEl.classList.add("page-leave");
+    setTimeout(function () {
+      idx = newIdx;
+      textEl.textContent = stages[idx];
+      textEl.classList.remove("page-leave");
+      textEl.classList.add("page-enter");
+      render();
+    }, 280);
+  }
+
+  prevBtn.addEventListener("click", function () { goTo(idx - 1); });
+  nextBtn.addEventListener("click", function () { goTo(idx + 1); });
+  render();
+})();
+</script>
+{% endblock %}

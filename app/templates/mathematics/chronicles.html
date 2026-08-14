@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Crônicas do Reino{% endblock %}
+
+{% block extra_head %}
+<style>
+  .chronicle-card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+  .chronicle-card.is-open:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(212,175,55,0.15); }
+</style>
+{% endblock %}
+
 {% block content %}
 <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
   <i class="fa-solid fa-scroll"></i> Crônicas do Reino
@@ -8,31 +16,31 @@
   A história de Arith se revela conforme você pratica — pelo menos uma resposta em cada matéria destranca sua crônica.
 </p>
 
-<div class="space-y-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
   {% for subject, chronicle, discovered in chronicles %}
-    <div class="bg-stone-900/60 border rounded-lg p-5 sm:p-6 shadow-lg {{ 'border-gold' if discovered else 'border-stone-700' }}">
-      <div class="flex items-center gap-2 mb-2">
-        <i class="fa-solid {{ 'fa-book-open text-gold' if discovered else 'fa-lock text-stone-600' }}"></i>
-        <h2 class="font-medieval text-lg {{ 'text-gold' if discovered else 'text-stone-500' }}">
-          {{ chronicle.title if discovered else "???" }}
-        </h2>
-        <span class="text-stone-600 font-sans text-xs ml-auto">{{ subject.name }}</span>
-      </div>
-      {% if discovered %}
-        <div class="space-y-3">
-          {% for stage in chronicle.stages %}
-            <p class="text-stone-300 font-serif italic text-sm sm:text-base leading-relaxed">
-              <span class="text-gold not-italic font-sans text-xs font-bold mr-1">Capítulo {{ loop.index }}.</span>
-              {{ stage }}
-            </p>
-          {% endfor %}
+    {% if discovered %}
+      <a href="{{ url_for('mathematics.chronicle_detail', subject_slug=subject.slug) }}"
+         class="chronicle-card is-open bg-stone-900/60 border border-gold rounded-lg p-5 sm:p-6 shadow-lg flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full border-2 border-gold flex items-center justify-center text-xl text-gold bg-yellow-950/30 shrink-0">
+          <i class="fa-solid fa-book-open"></i>
         </div>
-      {% else %}
-        <p class="text-stone-600 font-serif italic text-sm">
-          Pratique algo de <strong>{{ subject.name }}</strong> para revelar esta crônica.
-        </p>
-      {% endif %}
-    </div>
+        <div class="flex-1 min-w-0">
+          <h2 class="font-medieval text-lg text-gold truncate">{{ chronicle.title }}</h2>
+          <p class="text-stone-500 font-sans text-xs">{{ subject.name }} · {{ chronicle.stages | length }} capítulos</p>
+        </div>
+        <i class="fa-solid fa-chevron-right text-stone-500 shrink-0"></i>
+      </a>
+    {% else %}
+      <div class="chronicle-card bg-stone-900/40 border border-stone-800 rounded-lg p-5 sm:p-6 shadow-lg flex items-center gap-4 opacity-70">
+        <div class="w-12 h-12 rounded-full border-2 border-stone-700 flex items-center justify-center text-xl text-stone-600 bg-black/30 shrink-0">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h2 class="font-medieval text-lg text-stone-500">???</h2>
+          <p class="text-stone-600 font-sans text-xs">Pratique algo de <strong>{{ subject.name }}</strong> para revelar.</p>
+        </div>
+      </div>
+    {% endif %}
   {% endfor %}
 </div>
 {% endblock %}
