@@ -1,9 +1,20 @@
 {% extends "base.html" %}
+{% import "_macros.html" as ui %}
 {% block title %}Espólios{% endblock %}
 {% block content %}
-<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
-  <i class="fa-solid fa-sack-dollar"></i> Espólios
-</h1>
+<div class="flex items-center justify-between flex-wrap gap-3 mb-6">
+  <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold">
+    <i class="fa-solid fa-sack-dollar"></i> Espólios
+  </h1>
+  <div class="flex items-center gap-3 font-sans text-sm">
+    <span class="inline-flex items-center gap-1.5 bg-stone-900/70 border border-stone-700 rounded-full px-3 py-1.5 text-purple-300">
+      <i class="fa-solid fa-shield-halved"></i> Nível {{ player_level }}
+    </span>
+    <span class="inline-flex items-center gap-1.5 bg-stone-900/70 border border-gold/50 rounded-full px-3 py-1.5 text-gold">
+      <i class="fa-solid fa-coins"></i> {{ gold }} Ouro
+    </span>
+  </div>
+</div>
 
 <div class="flex flex-wrap gap-2 mb-4">
   <a href="{{ url_for('character.espolios') }}"
@@ -24,19 +35,47 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
       {% for item in items %}
         {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
-        <div class="loot-grid-item border-2 rounded-lg p-3 text-center transition-all hover:brightness-125 hover:-translate-y-0.5"
+        {% set min_level = min_level_by_rarity.get(item.rarity, 1) %}
+        {% set locked = player_level < min_level %}
+        <div class="loot-grid-item relative border-2 rounded-lg p-3 text-center transition-all hover:brightness-125 hover:-translate-y-0.5"
              style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
-          <i class="fa-solid {{ item.icon_key }} text-3xl mb-2" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
+          {% if locked %}
+            <span class="absolute top-1.5 right-1.5 text-[0.55rem] bg-black/70 border border-stone-600 text-stone-400 rounded-full px-1.5 py-0.5">
+              <i class="fa-solid fa-lock"></i> Nv {{ min_level }}
+            </span>
+          {% endif %}
+          <i class="fa-solid {{ item.icon_key }} text-3xl mb-2 {{ 'grayscale opacity-50' if locked else '' }}" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
           <p class="font-sans font-bold text-white text-xs">{{ item.name }}</p>
           <p class="font-sans text-[0.65rem] mt-1" style="color: {{ rc }};">
-            {{ item.rarity | capitalize }} · {{ item.passive_type }} +{{ (item.passive_value * 100) | round(1) }}%
+            {{ item.rarity | capitalize }} · {{ ui.passive_label(item) }}
           </p>
-          <form method="POST" action="{{ url_for('character.equipar', item_id=item.id) }}" class="mt-2">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="text-purple-300 hover:text-purple-200 text-xs font-sans cursor-pointer">
-              <i class="fa-solid fa-hand-fist"></i> Equipar
-            </button>
-          </form>
+
+          {% if locked %}
+            <p class="text-stone-500 font-sans text-[0.6rem] mt-2">Requer nível {{ min_level }}</p>
+          {% else %}
+            <form method="POST" action="{{ url_for('character.equipar', item_id=item.id) }}" class="mt-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="text-purple-300 hover:text-purple-200 text-xs font-sans cursor-pointer">
+                <i class="fa-solid fa-hand-fist"></i> Equipar
+              </button>
+            </form>
+          {% endif %}
+
+          <div class="flex items-center justify-center gap-3 mt-1.5 pt-1.5 border-t border-white/10">
+            <form method="POST" action="{{ url_for('character.vender', item_id=item.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="text-gold hover:text-yellow-200 text-[0.65rem] font-sans cursor-pointer" title="Vender">
+                <i class="fa-solid fa-coins"></i> +{{ gold_by_rarity.get(item.rarity, 0) }}
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('character.descartar', item_id=item.id) }}"
+                  onsubmit="return confirm('Descartar {{ item.name }} para sempre?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="text-stone-500 hover:text-blood text-[0.65rem] font-sans cursor-pointer" title="Descartar">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </form>
+          </div>
         </div>
       {% endfor %}
     </div>

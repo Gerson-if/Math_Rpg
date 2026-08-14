@@ -1,9 +1,20 @@
 {% extends "base.html" %}
+{% import "_macros.html" as ui %}
 {% block title %}Equipamentos{% endblock %}
 {% block content %}
-<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
-  <i class="fa-solid fa-shield-halved"></i> Equipamentos
-</h1>
+<div class="flex items-center justify-between flex-wrap gap-3 mb-6">
+  <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold">
+    <i class="fa-solid fa-shield-halved"></i> Equipamentos
+  </h1>
+  <div class="flex items-center gap-3 font-sans text-sm">
+    <span class="inline-flex items-center gap-1.5 bg-stone-900/70 border border-stone-700 rounded-full px-3 py-1.5 text-purple-300">
+      <i class="fa-solid fa-shield-halved"></i> Nível {{ player_level }}
+    </span>
+    <span class="inline-flex items-center gap-1.5 bg-stone-900/70 border border-gold/50 rounded-full px-3 py-1.5 text-gold">
+      <i class="fa-solid fa-coins"></i> {{ gold }} Ouro
+    </span>
+  </div>
+</div>
 
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg mb-4">
   <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -17,7 +28,7 @@
           <i class="fa-solid {{ item.icon_key }} text-4xl mb-2" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
           <p class="font-sans font-bold text-white text-sm">{{ item.name }}</p>
           <p class="font-sans text-xs mt-1" style="color: {{ rc }};">
-            {{ item.rarity | capitalize }} · {{ item.passive_type }} +{{ (item.passive_value * 100) | round(1) }}%
+            {{ item.rarity | capitalize }} · {{ ui.passive_label(item) }}
           </p>
           <form method="POST" action="{{ url_for('character.desequipar', slot=slot) }}" class="mt-3">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -37,7 +48,7 @@
   </div>
 </div>
 
-<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg mb-4">
   <h2 class="text-xl font-medieval text-stone-100 mb-3">Bônus ativos</h2>
   <p class="text-stone-500 font-sans text-sm mb-3">
     Afetam só a apresentação da batalha (combo, crítico, fúria) — não alteram XP ou domínio real.
@@ -54,5 +65,17 @@
      class="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform">
     <i class="fa-solid fa-sack-dollar"></i> Ver espólios
   </a>
+</div>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-4 sm:p-5 shadow-lg">
+  <h2 class="text-sm font-medieval text-stone-300 mb-2"><i class="fa-solid fa-lock text-stone-500 mr-1"></i>Nível mínimo por raridade</h2>
+  <div class="flex flex-wrap gap-3 font-sans text-xs">
+    {% for r in [('comum', '#cbd5e1'), ('magico', '#60a5fa'), ('raro', '#c084fc'), ('lendario', '#fbbf24')] %}
+      <span class="inline-flex items-center gap-1.5 border rounded-full px-3 py-1" style="border-color: {{ r[1] }}44; color: {{ r[1] }};">
+        {{ r[0] | capitalize }} — nível {{ min_level_by_rarity.get(r[0], 1) }}
+      </span>
+    {% endfor %}
+  </div>
+  <p class="text-stone-600 font-sans text-[0.7rem] mt-2">Itens raros exigem nível mínimo para equipar — mantém o jogo justo, sem atalhos para quem ainda está aprendendo o básico.</p>
 </div>
 {% endblock %}

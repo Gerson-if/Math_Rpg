@@ -24,6 +24,18 @@
   <i class="fa-solid {{ profile.avatar_key if profile and profile.avatar_key in valid else 'fa-user-shield' }}"></i>
 {% endmacro %}
 
+{# Same convention as battle-loot.js's PASSIVE_LABEL — "dano"/"critico"/
+   "combo"/"vampirismo" are fractional (×100 reads as a %), but "furia" and
+   "vida" are already flat point values, so multiplying THEM by 100 would
+   print something like "+1440%" for an 8-point vida bonus. #}
+{% macro passive_label(item) %}
+  {% if item.passive_type in ('furia', 'vida') %}
+    +{{ item.passive_value | round(1) }} {{ 'Fúria/acerto' if item.passive_type == 'furia' else 'Vida Máx.' }}
+  {% else %}
+    +{{ (item.passive_value * 100) | round(1) }}% {{ {'dano': 'Dano', 'critico': 'Crítico', 'combo': 'Combo', 'vampirismo': 'Vampirismo'}.get(item.passive_type, item.passive_type) }}
+  {% endif %}
+{% endmacro %}
+
 {% macro achievement_badge(achievement, unlocked) %}
   <span class="inline-flex items-center justify-center w-11 h-11 rounded-full border-2 shrink-0 {{ 'border-gold bg-yellow-900/40 text-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' if unlocked else 'border-stone-700 bg-stone-900 text-stone-600' }} {{ 'p-2' if achievement.icon_key else '' }}"
         title="{{ achievement.name }}">

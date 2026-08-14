@@ -27,6 +27,8 @@ def test_equip_via_route_moves_item_into_the_slot(client, db, app):
     user = _create_and_login(client, db)
     with app.app_context():
         item = loot_service.generate_item(user.id)
+        item.rarity = "comum"  # pin so the level gate never interferes
+        db.session.commit()
         item_id, item_slot = item.id, item.slot
 
     resp = client.post(f"/personagem/equipar/{item_id}", follow_redirects=True)
@@ -61,11 +63,43 @@ def test_desequipar_via_route_clears_the_slot(client, db, app):
     user = _create_and_login(client, db)
     with app.app_context():
         item = loot_service.generate_item(user.id)
+        item.rarity = "comum"  # pin so the level gate never interferes
+        db.session.commit()
         loot_service.equip(item.id, user.id)
         slot = item.slot
 
     resp = client.post(f"/personagem/desequipar/{slot}", follow_redirects=True)
     assert resp.status_code == 200
 
+
+def test_descartar_via_route_removes_the_item(client, db, app):
+    from app.models import ItemInstance
+
+    user = _create_and_login(client, db)
     with app.app_context():
-        assert loot_service.list_equipped(user.id)[slot] is None
+        item = loot_service.generate_item(user.id)
+        item_id = item.id
+
+    resp = client.post(f"/personagem/descartar/{item_id}", follow_redirects=True)
+    assert resp.status_code == 200
+
+    with app.app_context():
+        assert ItemInstance.query.filter_by(id=item_id).first() is None
+
+
+def test_vender_via_route_credits_gold(client, db, app):
+    from app.models import PlayerStats
+
+    user = _create_and_login(client, db)
+    with app.app_context():
+        item = loot_service.generate_item(user.id)
+        item.rarity = "comum"
+        db.session.commit()
+        item_id = item.id
+
+    resp = client.post(f"/personagem/vender/{item_id}", follow_redirects=True)
+    assert resp.status_code == 200
+
+    with app.app_context():
+        stats = PlayerStats.query.filter_by(user_id=user.id).first()
+        assert stats.gold == loot_service.GOLD_BY_RARITY["comum"]

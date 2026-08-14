@@ -426,6 +426,28 @@ apresentação por cima dela:
   lados). É conteúdo avançado, recomendado só depois de Porcentagem
   (`scripts/seed.py`'s `entry_prereqs`), mas nunca bloqueado — como
   todo o resto do currículo, pode ser praticado a qualquer momento.
+- No Mapa de Aventura, a barra de rolagem nativa da trilha virou dois
+  botões "‹›" com rolagem suave, e cada marco só aparece (fade + leve
+  escala) quando entra na área visível, dando uma sensação de "revelar
+  o caminho" em vez de arrastar uma barra crua.
+
+### Loja de equipamentos: vender, descartar, nível mínimo por raridade
+
+- `loot_service.sell`/`discard`: um espólio não equipado agora pode
+  ser vendido (vira Ouro, novo campo em `PlayerStats`, escalado por
+  raridade) ou descartado para sempre — ambos exigem desequipar
+  primeiro, pra nunca perder um bônus ativo sem querer. Ainda não há
+  loja de compra — só o lado de venda existe por enquanto.
+- `MIN_LEVEL_BY_RARITY`: equipar agora exige um nível mínimo por
+  raridade (alinhado aos mesmos degraus de rank já exibidos no
+  ranking — Bronze/Prata/Ouro), validado no servidor em `equip()`, não
+  só escondido na interface. Um jogador de nível baixo não consegue
+  mais equipar um item lendário sem antes progredir de verdade.
+- Corrige um bug real de exibição: o bônus "vida" (e "fúria") é um
+  valor fixo (ex.: +8 de vida), não uma fração — mas o template
+  multiplicava por 100 e mostrava como porcentagem (`+1440%`).
+  `_macros.html`'s `passive_label()` agora usa a mesma convenção do
+  `battle-loot.js`, reutilizada nas duas telas de equipamento.
 
 ## O que ainda não existe
 

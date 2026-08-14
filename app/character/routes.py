@@ -11,6 +11,12 @@ from app.services import loot_service
 character_bp = Blueprint("character", __name__, url_prefix="/personagem")
 
 
+def _player_gold(user_id: int) -> int:
+    from app.models import PlayerStats
+    stats = PlayerStats.query.filter_by(user_id=user_id).first()
+    return stats.gold if stats else 0
+
+
 @character_bp.route("/equipamentos")
 @login_required
 def equipamentos():
@@ -18,6 +24,9 @@ def equipamentos():
         "character/equipamentos.html",
         equipped=loot_service.list_equipped(current_user.id),
         buffs=loot_service.compute_buffs(current_user.id),
+        gold=_player_gold(current_user.id),
+        player_level=loot_service.player_level(current_user.id),
+        min_level_by_rarity=loot_service.MIN_LEVEL_BY_RARITY,
     )
 
 
@@ -30,6 +39,10 @@ def espolios():
         items=loot_service.list_unequipped(current_user.id, rarity=rarity),
         rarities=loot_service.RARITIES,
         selected_rarity=rarity,
+        gold=_player_gold(current_user.id),
+        player_level=loot_service.player_level(current_user.id),
+        min_level_by_rarity=loot_service.MIN_LEVEL_BY_RARITY,
+        gold_by_rarity=loot_service.GOLD_BY_RARITY,
     )
 
 
@@ -49,3 +62,25 @@ def equipar(item_id):
 def desequipar(slot):
     loot_service.unequip(current_user.id, slot)
     return redirect(url_for("character.equipamentos"))
+
+
+@character_bp.route("/descartar/<int:item_id>", methods=["POST"])
+@login_required
+def descartar(item_id):
+    try:
+        loot_service.discard(item_id, current_user.id)
+        flash("Item descartado.", "info")
+    except ValueError as exc:
+        flash(str(exc), "error")
+    return redirect(request.referrer or url_for("character.espolios"))
+
+
+@character_bp.route("/vender/<int:item_id>", methods=["POST"])
+@login_required
+def vender(item_id):
+    try:
+        amount = loot_service.sell(item_id, current_user.id)
+        flash(f"Item vendido por {amount} de ouro.", "info")
+    except ValueError as exc:
+        flash(str(exc), "error")
+    return redirect(request.referrer or url_for("character.espolios"))

@@ -38,6 +38,9 @@ class PlayerStats(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False)
     xp = db.Column(db.Integer, default=0, nullable=False)
+    # Earned only by selling unwanted loot (see loot_service.sell) — no
+    # shop to spend it in yet, so it's purely a running total for now.
+    gold = db.Column(db.Integer, default=0, nullable=False)
     level_id = db.Column(db.Integer, db.ForeignKey("levels.id"), nullable=True)
     rank_id = db.Column(db.Integer, db.ForeignKey("ranks.id"), nullable=True)
     current_streak = db.Column(db.Integer, default=0, nullable=False)

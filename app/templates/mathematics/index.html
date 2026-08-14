@@ -18,19 +18,49 @@
   .map-title { font-family: 'MedievalSharp', cursive; color: #f4e8c1; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
   .map-subtitle { font-family: 'Cinzel', serif; color: #d4b483; }
 
+  .map-path-wrap { position: relative; }
+
   .map-path {
     display: flex; align-items: center; gap: 2.75rem;
     overflow-x: auto; padding: 3.25rem 2rem 1.5rem;
     position: relative; scroll-snap-type: x proximity;
+    scroll-behavior: smooth;
+    /* A native drag-scrollbar looked out of place on a hand-drawn map —
+       the prev/next buttons below are the intended way to move through
+       it (still touch/drag-scrollable, just without the ugly bar). */
+    scrollbar-width: none; -ms-overflow-style: none;
   }
+  .map-path::-webkit-scrollbar { display: none; }
   .map-path::before {
     content: ""; position: absolute; left: 1.5rem; right: 1.5rem; top: 50%;
     border-top: 3px dashed rgba(139,107,31,0.55);
   }
 
-  .map-waypoint { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; scroll-snap-align: center; }
-  .map-waypoint.up { transform: translateY(-24px); }
-  .map-waypoint.down { transform: translateY(24px); }
+  .map-nav-btn {
+    position: absolute; top: 54%; transform: translateY(-50%); z-index: 5;
+    width: 2.25rem; height: 2.25rem; border-radius: 9999px;
+    background: rgba(10,8,4,0.82); border: 2px solid #d4af37; color: #d4af37;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    cursor: pointer; box-shadow: 0 0 12px rgba(212,175,55,0.45);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  @media (min-width: 640px) { .map-nav-btn { width: 2.75rem; height: 2.75rem; font-size: 1.15rem; } }
+  .map-nav-btn:hover { transform: translateY(-50%) scale(1.12); box-shadow: 0 0 20px rgba(212,175,55,0.8); }
+  .map-nav-prev { left: 4px; }
+  .map-nav-next { right: 4px; }
+
+  /* Waypoints fade + scale in as the path scrolls them into view —
+     "revealing the trail ahead" instead of a static row. */
+  .map-waypoint {
+    --ty: 0px;
+    position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+    scroll-snap-align: center;
+    opacity: 0; transform: translateY(var(--ty)) scale(0.82);
+    transition: opacity 0.55s cubic-bezier(0.2,0.8,0.2,1), transform 0.55s cubic-bezier(0.2,0.8,0.2,1);
+  }
+  .map-waypoint.revealed { opacity: 1; transform: translateY(var(--ty)) scale(1); }
+  .map-waypoint.up { --ty: -24px; }
+  .map-waypoint.down { --ty: 24px; }
   .map-waypoint .stem { width: 2px; background: rgba(139,107,31,0.6); }
   .map-waypoint.up .stem { height: 24px; order: 3; }
   .map-waypoint.down .stem { height: 24px; order: -1; }
@@ -86,7 +116,14 @@
   <h2 class="map-title text-lg sm:text-2xl text-center mt-1">A Trilha das Masmorras Matemáticas</h2>
   <p class="map-subtitle text-center text-[0.65rem] sm:text-xs mb-1">— Uma Jornada de Aprendizado —</p>
 
-  <div class="map-path">
+  <div class="map-path-wrap">
+    <button type="button" id="map-nav-prev" class="map-nav-btn map-nav-prev" aria-label="Trecho anterior da trilha">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <button type="button" id="map-nav-next" class="map-nav-btn map-nav-next" aria-label="Próximo trecho da trilha">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    <div class="map-path" id="map-path">
     <div class="map-waypoint">
       <div class="map-landmark border-yellow-700 text-yellow-600"><i class="fa-solid fa-campground"></i></div>
       <span class="map-label">Início</span>
@@ -111,6 +148,7 @@
         </div>
       </div>
     {% endfor %}
+    </div>
   </div>
 
   <div class="map-legend border-t border-yellow-900/40 pt-3 pb-1">
@@ -119,6 +157,30 @@
     <span><i class="fa-solid fa-compass mr-1"></i> Recomendado praticar antes</span>
   </div>
 </div>
+
+<script>
+(function () {
+  var path = document.getElementById("map-path");
+  var prev = document.getElementById("map-nav-prev");
+  var next = document.getElementById("map-nav-next");
+  if (!path) return;
+
+  prev.addEventListener("click", function () { path.scrollBy({ left: -path.clientWidth * 0.6, behavior: "smooth" }); });
+  next.addEventListener("click", function () { path.scrollBy({ left: path.clientWidth * 0.6, behavior: "smooth" }); });
+
+  var waypoints = path.querySelectorAll(".map-waypoint");
+  if ("IntersectionObserver" in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) entry.target.classList.add("revealed");
+      });
+    }, { root: path, threshold: 0.35 });
+    waypoints.forEach(function (el) { observer.observe(el); });
+  } else {
+    waypoints.forEach(function (el) { el.classList.add("revealed"); });
+  }
+})();
+</script>
 
 {% for subject in subjects %}
   <div id="trilha-{{ subject.slug }}" class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-6 shadow-lg scroll-mt-20">
