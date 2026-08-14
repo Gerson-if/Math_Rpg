@@ -29,6 +29,11 @@ from app.services import (
 
 mathematics_bp = Blueprint("mathematics", __name__, url_prefix="/math")
 
+# Flags the "castelo final" region on the adventure map as freshly added,
+# progressive advanced content — purely a visual badge, never a gate (see
+# scripts/seed.py's entry_prereqs for the advisory recommendation instead).
+NEW_SUBJECT_SLUGS = {"algebra"}
+
 
 def _normalize(value: str) -> str:
     """Numeric-aware comparison: '007' == '7', '0,3' == '0.3' (pt-BR decimal
@@ -68,6 +73,7 @@ def index():
         subjects=subjects,
         recommend_first=recommend_first,
         guardians=subject_guardians,
+        new_subjects=NEW_SUBJECT_SLUGS,
     )
 
 

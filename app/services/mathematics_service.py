@@ -68,6 +68,8 @@ def generate_question(topic_slug: str, difficulty: int) -> Question:
         "operacoes-com-decimais": _gen_decimals_operations,
         "porcentagem-basica": _gen_percentage_basic,
         "calculo-de-porcentagem": _gen_percentage_reverse,
+        "equacoes-1-grau": _gen_linear_equation_basic,
+        "equacoes-1-grau-avancado": _gen_linear_equation_both_sides,
     }
     generator = generators.get(topic_slug)
     if generator is None:
@@ -375,4 +377,48 @@ def _gen_percentage_reverse(difficulty: int) -> Question:
         "prompt": f"{part} é quantos por cento de {whole}?",
         "answer": str(pct),
         "meta": {"family": "porcentagem", "kind": "calculo"},
+    }
+
+
+# ---------------------------------------------------------------------------
+# Álgebra — the newest, most advanced subject (see app/services/lore.py's
+# "O Grande Castelo das Incógnitas"). Recommended, never required, only
+# once a player is comfortable with the earlier curriculum — see
+# scripts/seed.py's entry_prereqs for how that recommendation is wired up.
+# ---------------------------------------------------------------------------
+
+# (coefficient range, solution range) per difficulty
+_LINEAR_EQ_RANGES = {
+    1: (2, 5, 1, 10),
+    2: (2, 6, 1, 15),
+    3: (2, 8, 1, 20),
+    4: (2, 10, 1, 30),
+    5: (2, 12, 1, 40),
+}
+
+
+def _gen_linear_equation_basic(difficulty: int) -> Question:
+    """ax + b = c → x = ?, always a positive integer solution."""
+    a_lo, a_hi, x_lo, x_hi = _LINEAR_EQ_RANGES[difficulty]
+    a = random.randint(a_lo, a_hi)
+    x = random.randint(x_lo, x_hi)
+    b = random.randint(0, x_hi)
+    c = a * x + b
+    prompt = f"{a}x + {b} = {c} → x = ?" if b else f"{a}x = {c} → x = ?"
+    return {"prompt": prompt, "answer": str(x), "meta": {"family": "algebra", "kind": "linear-basica"}}
+
+
+def _gen_linear_equation_both_sides(difficulty: int) -> Question:
+    """ax + b = cx + d → x = ?, with the unknown on both sides — a step up
+    from the basic form since it takes an extra rearranging move first."""
+    a_lo, a_hi, x_lo, x_hi = _LINEAR_EQ_RANGES[difficulty]
+    x = random.randint(x_lo, min(x_hi, 20))
+    a = random.randint(3, a_hi)
+    c = random.randint(1, a - 1)  # keep a > c so (a - c) stays positive
+    b = random.randint(0, 20)
+    d = (a - c) * x + b
+    return {
+        "prompt": f"{a}x + {b} = {c}x + {d} → x = ?",
+        "answer": str(x),
+        "meta": {"family": "algebra", "kind": "linear-dois-lados"},
     }

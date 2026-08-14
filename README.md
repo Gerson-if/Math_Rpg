@@ -387,16 +387,61 @@ apresentação por cima dela:
   de fúria (além do link "Consumíveis" no rodapé da arena), abrindo a
   mesma tela cheia de consumíveis.
 
+### Correções de legibilidade na batalha (balões, dano flutuante, loot)
+
+- `needs_review` no feedback passou a refletir só a **transição** para
+  "domínio caiu", não o estado bruto — antes continuava "notificando"
+  em toda resposta certa enquanto a maestria seguia abaixo do limiar.
+  Ganhou o contraponto "Domínio recuperado!" quando ela volta a cruzar
+  a linha.
+- Todos os balões de batalha (acerto/erro/conquista/domínio) seguem o
+  mesmo modelo em negrito/alto-contraste da conquista.
+- `loot-toast-container` (item ganho) e os balões de fala agora vivem
+  dentro da fileira do chefe, espelhados um de cada lado — antes o
+  loot-toast ficava preso ao topo da arena inteira, sobre a barra de
+  vida do chefe.
+- Números de dano flutuantes nascem deslocados do centro do alvo (não
+  mais exatamente sobre o sprite) e ganham contorno mais grosso — cor
+  de acerto podia coincidir com a cor do próprio guardião.
+- Vitória espera o jogador clicar em "Continuar" (com transição em
+  tela cheia igual à invocação inicial) antes de revelar a tela de
+  vitória, em vez de sumir sozinha em ~3s sem dar tempo de ler a
+  crônica revelada.
+
+### Salão do Herói reformulado, páginas públicas ativadas, Mapa ilustrado
+
+- Salão do Herói: remove atalhos duplicados da navbar, adiciona barra
+  de progresso até o próximo nível, fila de revisão, precisão, dica do
+  mentor rotativa e galeria de heróis/crônicas descobertas.
+- "O Códice" e "Salão dos Heróis" na tela de login agora são páginas
+  públicas de verdade (sem login): a primeira explica as mecânicas do
+  jogo, a segunda mostra os 10 melhores jogadores e qual guardião cada
+  um está enfrentando (se ativo nos últimos 30 min).
+- **Mapa de Aventura reformulado** como um mapa ilustrado de pergaminho
+  com uma trilha sinuosa única ligando todas as matérias (marco +
+  ícone do guardião por matéria, pontos de tópico, bússola, legenda) —
+  no lugar da lista de cartões empilhados anterior.
+- **Nova matéria: Álgebra** ("O Grande Castelo das Incógnitas") — dois
+  tópicos (equações do 1º grau simples e com a incógnita dos dois
+  lados). É conteúdo avançado, recomendado só depois de Porcentagem
+  (`scripts/seed.py`'s `entry_prereqs`), mas nunca bloqueado — como
+  todo o resto do currículo, pode ser praticado a qualquer momento.
+
 ## O que ainda não existe
 
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
   artefatos e o runbook estão prontos em [DEPLOY.md](DEPLOY.md), falta
   alguém com acesso a um provedor de nuvem executar os passos.
-- Os links decorativos "O Códice" e "Salão dos Heróis" na navbar da
-  tela de login apontam para `auth.login` como placeholder — não
-  existem rotas reais para esses conceitos ainda.
 - Masmorra em co-op é assíncrona por design (ver acima) — não há
   batalha ao vivo sincronizada entre dois jogadores.
+- PvP ranqueado com troféus — decidido como assíncrono por pontuação
+  (mesmo desafio para os dois jogadores, comparado depois), ainda não
+  implementado.
+- Sistema de amigos: doação de itens, presença online/offline,
+  incursão de masmorra em dupla de verdade — pedido, ainda não
+  implementado.
+- Troca de senha na conta e sistema de moderação de chat (palavras-
+  chave + sanções graduais) — pedidos, ainda não implementados.
 
 ## Instalação local
 

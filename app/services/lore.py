@@ -83,6 +83,15 @@ LORE: dict[str, Chronicle] = {
             "antigos comerciantes: por cada cem, uma fração de valor."
         ),
     },
+    "algebra": {
+        "title": "O Grande Castelo das Incógnitas",
+        "text": (
+            "No topo de Arith ergue-se um castelo cujos portões só se abrem para quem "
+            "encontra o que se esconde atrás da letra x. Dizem que o próprio fundador do "
+            "reino escondeu seu nome verdadeiro dentro de uma equação, e que só um "
+            "verdadeiro mestre da álgebra seria capaz de resolvê-la e descobrir quem ele foi."
+        ),
+    },
 }
 
 

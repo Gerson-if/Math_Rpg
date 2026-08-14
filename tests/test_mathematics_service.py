@@ -191,3 +191,31 @@ def test_percentage_reverse_answer_is_correct():
             part = int(q["prompt"].split(" é ")[0])
             whole = int(q["prompt"].split("de ")[1].rstrip("?"))
             assert part * 100 // whole == int(q["answer"])
+
+
+# --- Álgebra -----------------------------------------------------------
+
+def test_linear_equation_basic_answer_solves_the_equation():
+    import re
+
+    for _ in range(80):
+        for difficulty in range(1, 6):
+            q = generate_question("equacoes-1-grau", difficulty)
+            x = int(q["answer"])
+            m = re.match(r"(\d+)x(?: \+ (\d+))? = (\d+)", q["prompt"])
+            a, b, c = int(m.group(1)), int(m.group(2) or 0), int(m.group(3))
+            assert a * x + b == c
+            assert x > 0
+
+
+def test_linear_equation_both_sides_answer_solves_the_equation():
+    import re
+
+    for _ in range(80):
+        for difficulty in range(1, 6):
+            q = generate_question("equacoes-1-grau-avancado", difficulty)
+            x = int(q["answer"])
+            m = re.match(r"(\d+)x \+ (\d+) = (\d+)x \+ (\d+)", q["prompt"])
+            a, b, c, d = (int(m.group(i)) for i in range(1, 5))
+            assert a * x + b == c * x + d
+            assert x > 0

@@ -92,7 +92,7 @@ def test_every_curriculum_subject_has_a_distinct_guardian_and_lore_entry():
     to the generic one — that's the whole point of this feature."""
     seeded_subjects = [
         "fundamentos", "tabuada", "operacoes-fundamentais", "potenciacao",
-        "radiciacao", "fracoes", "numeros-decimais", "porcentagem",
+        "radiciacao", "fracoes", "numeros-decimais", "porcentagem", "algebra",
     ]
     seen_names = set()
     for slug in seeded_subjects:

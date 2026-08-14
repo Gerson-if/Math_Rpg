@@ -17,6 +17,11 @@ from app.models import Subject, Topic, Level, Rank, Achievement
 # Order matches section 1 of the spec. This is a starting point, not a
 # fixed structure — subjects/topics can be reorganized freely later.
 # icon_key points at static/images/icons/subjects/<slug>.png (Fase 5 art pack).
+#
+# Each entry is (slug, name, topic_slugs, icon_key) or, for a subject whose
+# very first topic should carry an *advisory* cross-subject recommendation
+# (never a hard lock — see progression_service.unmet_prerequisites),
+# (slug, name, topic_slugs, icon_key, entry_prereqs).
 CURRICULUM = [
     ("fundamentos", "Fundamentos", ["numeros-e-contagem", "comparacao-de-quantidades"],
      "images/icons/subjects/fundamentos.png"),
@@ -35,6 +40,12 @@ CURRICULUM = [
      "images/icons/subjects/numeros-decimais.png"),
     ("porcentagem", "Porcentagem", ["porcentagem-basica", "calculo-de-porcentagem"],
      "images/icons/subjects/porcentagem.png"),
+    # The "castelo final" — new, more advanced content, added at the end of
+    # the trail. Recommended only after Porcentagem (see entry_prereqs
+    # below), but exactly as jumpable-ahead as everything else; nothing
+    # about it is force-locked for lower-level players.
+    ("algebra", "Álgebra", ["equacoes-1-grau", "equacoes-1-grau-avancado"],
+     None, ["calculo-de-porcentagem"]),
 ]
 
 # icon_key points at static/images/ranks/<slug>.png (Fase 5 art pack).
@@ -103,7 +114,10 @@ ACHIEVEMENTS = [
 
 
 def seed_curriculum():
-    for order, (slug, name, topic_slugs, icon_key) in enumerate(CURRICULUM):
+    for order, entry in enumerate(CURRICULUM):
+        slug, name, topic_slugs, icon_key = entry[0], entry[1], entry[2], entry[3]
+        entry_prereqs = entry[4] if len(entry) > 4 else []
+
         subject = Subject.query.filter_by(slug=slug).first()
         if not subject:
             subject = Subject(slug=slug, name=name, order=order, icon_key=icon_key)
@@ -115,10 +129,16 @@ def seed_curriculum():
         for t_order, t_slug in enumerate(topic_slugs):
             # Each topic recommends the one right before it in the same
             # subject's list — a simple linear chain, not a hand-designed
-            # dependency graph. First topic of a subject has none. This is
-            # a *recommendation* (see mathematics/routes.py), never a hard
-            # lock — a player can still jump ahead.
-            prereqs = [topic_slugs[t_order - 1]] if t_order > 0 else []
+            # dependency graph. The first topic of a subject normally has
+            # none, except when entry_prereqs points it at an earlier
+            # subject's topic (e.g. Álgebra recommending Porcentagem
+            # first). This is always a *recommendation* (see
+            # progression_service.unmet_prerequisites), never a hard lock —
+            # a player can still jump ahead.
+            if t_order > 0:
+                prereqs = [topic_slugs[t_order - 1]]
+            else:
+                prereqs = list(entry_prereqs)
 
             topic = Topic.query.filter_by(slug=t_slug).first()
             if not topic:

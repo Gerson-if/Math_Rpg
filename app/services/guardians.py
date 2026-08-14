@@ -22,6 +22,7 @@ GUARDIANS: dict[str, Guardian] = {
     "fracoes": {"name": "Aracnídeo do Labirinto", "icon": "fa-spider", "color": "violet-400"},
     "numeros-decimais": {"name": "Serpente de Cristal", "icon": "fa-worm", "color": "blue-400"},
     "porcentagem": {"name": "Mercador das Sombras", "icon": "fa-mask", "color": "yellow-400"},
+    "algebra": {"name": "Guardião do Castelo Final", "icon": "fa-chess-rook", "color": "red-400"},
 }
 
 _FALLBACK: Guardian = {"name": "Guardião do Conhecimento", "icon": "fa-dragon", "color": "purple-400"}

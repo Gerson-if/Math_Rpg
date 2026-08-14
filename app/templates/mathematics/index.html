@@ -1,5 +1,72 @@
 {% extends "base.html" %}
 {% block title %}Mapa de Aventura{% endblock %}
+
+{% block extra_head %}
+<style>
+  .map-frame {
+    background-color: #2a2015;
+    background-image:
+      radial-gradient(circle at 25% 15%, rgba(212,175,55,0.08), transparent 55%),
+      url('https://www.transparenttextures.com/patterns/aged-paper.png');
+    border: 10px double #8b6b1f;
+    border-radius: 6px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6), inset 0 0 60px rgba(0,0,0,0.55);
+    position: relative;
+    overflow: hidden;
+  }
+  .map-compass { position: absolute; top: 12px; right: 16px; color: #8b6b1f; opacity: 0.65; font-size: 1.5rem; }
+  .map-title { font-family: 'MedievalSharp', cursive; color: #f4e8c1; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+  .map-subtitle { font-family: 'Cinzel', serif; color: #d4b483; }
+
+  .map-path {
+    display: flex; align-items: center; gap: 2.75rem;
+    overflow-x: auto; padding: 3.25rem 2rem 1.5rem;
+    position: relative; scroll-snap-type: x proximity;
+  }
+  .map-path::before {
+    content: ""; position: absolute; left: 1.5rem; right: 1.5rem; top: 50%;
+    border-top: 3px dashed rgba(139,107,31,0.55);
+  }
+
+  .map-waypoint { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; scroll-snap-align: center; }
+  .map-waypoint.up { transform: translateY(-24px); }
+  .map-waypoint.down { transform: translateY(24px); }
+  .map-waypoint .stem { width: 2px; background: rgba(139,107,31,0.6); }
+  .map-waypoint.up .stem { height: 24px; order: 3; }
+  .map-waypoint.down .stem { height: 24px; order: -1; }
+
+  .map-landmark {
+    width: 3.5rem; height: 3.5rem; border-radius: 9999px; border: 3px solid;
+    display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+    background: rgba(15,10,4,0.78); box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  @media (min-width: 640px) { .map-landmark { width: 4rem; height: 4rem; font-size: 1.6rem; } }
+  .map-waypoint:hover .map-landmark { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.7); }
+
+  .map-label {
+    font-family: 'MedievalSharp', cursive; font-size: 0.68rem; text-align: center;
+    color: #f4e8c1; text-shadow: 0 1px 3px #000; white-space: nowrap; margin-top: 0.35rem;
+  }
+  @media (min-width: 640px) { .map-label { font-size: 0.8rem; } }
+
+  .map-topics { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem; margin-top: 0.4rem; max-width: 7rem; }
+  .map-topic-dot {
+    width: 0.85rem; height: 0.85rem; border-radius: 9999px; border: 1.5px solid;
+    display: block; transition: transform 0.15s ease;
+  }
+  .map-topic-dot:hover { transform: scale(1.4); }
+
+  .new-badge {
+    position: absolute; top: -12px; right: -10px; background: #7f1d1d; color: #fde68a;
+    font-size: 0.55rem; padding: 1px 7px; border-radius: 9999px; border: 1px solid #fbbf24;
+    transform: rotate(8deg); font-family: 'Cinzel', serif; z-index: 2; white-space: nowrap;
+  }
+
+  .map-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; font-family: 'Cinzel', serif; font-size: 0.68rem; color: #e0c99a; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
   <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold">
@@ -14,8 +81,47 @@
   Cada trilha termina num guardião. Siga o caminho — ou pule à frente, se se sentir corajoso.
 </p>
 
+<div class="map-frame p-2 sm:p-4 mb-8">
+  <i class="fa-solid fa-compass map-compass"></i>
+  <h2 class="map-title text-lg sm:text-2xl text-center mt-1">A Trilha das Masmorras Matemáticas</h2>
+  <p class="map-subtitle text-center text-[0.65rem] sm:text-xs mb-1">— Uma Jornada de Aprendizado —</p>
+
+  <div class="map-path">
+    <div class="map-waypoint">
+      <div class="map-landmark border-yellow-700 text-yellow-600"><i class="fa-solid fa-campground"></i></div>
+      <span class="map-label">Início</span>
+    </div>
+
+    {% for subject in subjects %}
+      {% set g = guardians[subject.slug] %}
+      <div class="map-waypoint {{ 'up' if loop.index0 % 2 == 0 else 'down' }}">
+        <div class="stem"></div>
+        <a href="#trilha-{{ subject.slug }}" class="relative" title="{{ subject.name }} — guardado por {{ g.name }}">
+          {% if subject.slug in new_subjects %}<span class="new-badge">Novo!</span>{% endif %}
+          <div class="map-landmark border-{{ g.color }} text-{{ g.color }}"><i class="fa-solid {{ g.icon }}"></i></div>
+        </a>
+        <span class="map-label text-{{ g.color }}">{{ subject.name }}</span>
+        <div class="map-topics">
+          {% for topic in subject.topics %}
+            {% set unmet = recommend_first.get(topic.id, []) %}
+            <a href="{{ url_for('mathematics.practice', topic_slug=topic.slug) }}"
+               class="map-topic-dot {{ 'border-dashed border-stone-600 bg-black/40' if unmet else ('border-' ~ g.color ~ ' bg-black/50') }}"
+               title="{{ topic.name }}{% if unmet %} — recomendado praticar antes: {{ unmet | map(attribute='name') | join(', ') }}{% endif %}"></a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="map-legend border-t border-yellow-900/40 pt-3 pb-1">
+    <span><i class="fa-solid fa-circle text-[0.5rem] mr-1"></i> Tópico</span>
+    <span><i class="fa-solid fa-dragon mr-1"></i> Guardião da trilha</span>
+    <span><i class="fa-solid fa-compass mr-1"></i> Recomendado praticar antes</span>
+  </div>
+</div>
+
 {% for subject in subjects %}
-  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-6 shadow-lg">
+  <div id="trilha-{{ subject.slug }}" class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-6 shadow-lg scroll-mt-20">
     <div class="flex items-center justify-between flex-wrap gap-2 mb-5">
       <h2 class="flex items-center gap-3 text-xl font-medieval text-stone-100">
         {% if subject.icon_key %}
@@ -27,6 +133,9 @@
           <i class="fa-solid fa-book-open text-purple-400"></i>
         {% endif %}
         {{ subject.name }}
+        {% if subject.slug in new_subjects %}
+          <span class="text-[0.6rem] font-sans bg-red-950/50 border border-red-500 text-red-300 rounded-full px-2 py-0.5">Novo</span>
+        {% endif %}
       </h2>
       {% set subject_guardian = guardians[subject.slug] %}
       <span class="inline-flex items-center gap-2 text-xs font-sans text-stone-500">
