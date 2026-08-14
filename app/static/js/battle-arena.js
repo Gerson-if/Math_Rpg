@@ -29,6 +29,7 @@ const MathBattle = (() => {
   let combo = 0, fury = 0, lastPhase = 1;
   let potions = CONFIG.potionsStart, furyScrolls = CONFIG.furyScrollsStart;
   let claimingVictory = false;
+  let victoryTriggered = false;
   let furyWasReady = false, comboAlertedTier = 0;
 
   function $(id) { return document.getElementById(id); }
@@ -107,7 +108,10 @@ const MathBattle = (() => {
     return { title: chronicle.title, snippet, isComplete };
   }
 
-  function showVictoryReveal() {
+  /* Doesn't auto-dismiss — there's a chronicle sliver to actually read —
+     it waits for the player to tap "Continuar", then fades out and hands
+     control back via onContinue (which reveals the victory-screen box). */
+  function showVictoryReveal(onContinue) {
     const lore = nextLoreSnippet();
     const overlay = document.createElement("div");
     overlay.className = "victory-overlay";
@@ -121,9 +125,17 @@ const MathBattle = (() => {
     if (lore) {
       html += `<div class="victory-snippet"><strong>${escapeHtml(lore.title)}</strong><br>${escapeHtml(lore.snippet)}${lore.isComplete ? " <em>(crônica completa — reveja em Crônicas do Reino)</em>" : ""}</div>`;
     }
+    html += '<button type="button" class="victory-continue-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Continuar</button>';
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
-    setTimeout(() => overlay.remove(), 3200);
+
+    overlay.querySelector(".victory-continue-btn").addEventListener("click", () => {
+      overlay.classList.add("closing");
+      setTimeout(() => {
+        overlay.remove();
+        if (onContinue) onContinue();
+      }, 700);
+    });
   }
 
   /* ---------------- screen flow (story -> arena -> victory/defeat) ---------------- */
@@ -148,6 +160,7 @@ const MathBattle = (() => {
     playerHP = maxHP; bossHP = bossMaxHP;
     combo = 0; fury = 0; lastPhase = 1;
     furyWasReady = false; comboAlertedTier = 0;
+    victoryTriggered = false;
     potions = CONFIG.potionsStart; furyScrolls = CONFIG.furyScrollsStart;
     $("arena-content").classList.remove("player-dead");
     $("boss-sprite").classList.remove("boss-dead");
@@ -451,10 +464,19 @@ const MathBattle = (() => {
   /* ---------------- victory / defeat / revive / next-challenge ---------------- */
 
   function victory() {
+    // A hit that lands just as the boss reaches 0 HP can overlap with
+    // another already-in-flight hit (combo tail, ultimate) that also
+    // clamps to 0 and re-triggers this — without a guard, each call built
+    // its own non-auto-dismissing overlay, stacking blocking screens.
+    if (victoryTriggered) return;
+    victoryTriggered = true;
+
     BattleAudio.sfx.victory();
-    const portal = $("portal-effect");
-    portal.className = "gate-rift gate-rift--mystic";
-    showVictoryReveal();
+    // The chapter-reveal overlay below IS the victory transition now — no
+    // need for the small in-arena gate-rift portal underneath it too.
+    // The victory-screen box (with loot) only appears once the player has
+    // dismissed the chapter-reveal overlay themselves — no fixed timer.
+    showVictoryReveal(() => $("victory-screen").classList.remove("hidden"));
 
     if (claimingVictory) return;
     claimingVictory = true;
@@ -472,10 +494,6 @@ const MathBattle = (() => {
         }
       })
       .catch(() => { claimingVictory = false; });
-
-    // Held back until the full-viewport chapter-reveal overlay (~3.2s)
-    // has faded, so the victory screen doesn't pop up underneath it.
-    setTimeout(() => $("victory-screen").classList.remove("hidden"), 3000);
   }
 
   function defeat() {

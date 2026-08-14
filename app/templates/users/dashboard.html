@@ -1,16 +1,59 @@
 {% extends "base.html" %}
 {% import "_macros.html" as ui %}
 {% block title %}Salão do Herói{% endblock %}
+
+{% block extra_head %}
+<style>
+  @keyframes hallRise { 0% { opacity: 0; transform: translateY(14px); } 100% { opacity: 1; transform: translateY(0); } }
+  .hall-card { animation: hallRise 0.5s ease-out forwards; opacity: 0; }
+  .hall-card.d1 { animation-delay: 0.05s; }
+  .hall-card.d2 { animation-delay: 0.12s; }
+  .hall-card.d3 { animation-delay: 0.19s; }
+  .hall-card.d4 { animation-delay: 0.26s; }
+  .hall-card.d5 { animation-delay: 0.33s; }
+
+  .xp-track { width: 100%; height: 10px; background: #1c1917; border: 1px solid #57534e; border-radius: 9999px; overflow: hidden; }
+  .xp-fill {
+    height: 100%; width: 0%; border-radius: 9999px;
+    background: linear-gradient(90deg, #a855f7, #d4af37, #a855f7);
+    background-size: 200% 100%; animation: xpShift 3s linear infinite;
+    transition: width 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes xpShift { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
+
+  .hero-node { transition: transform 0.2s ease, filter 0.2s ease; }
+  .hero-node:hover { transform: translateY(-3px); filter: brightness(1.2); }
+
+  .mentor-owl { display: inline-block; animation: owlBob 3.2s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(212,175,55,0.4)); }
+  @keyframes owlBob {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50% { transform: translateY(-5px) rotate(3deg); }
+  }
+  .tip-text { display: inline-block; }
+  .tip-text.tip-out { animation: tipFadeOut 0.4s ease-in forwards; }
+  .tip-text.tip-in { animation: tipFadeIn 0.6s ease-out forwards; }
+  @keyframes tipFadeOut {
+    0% { opacity: 1; filter: blur(0) brightness(1); transform: translateY(0); }
+    100% { opacity: 0; filter: blur(4px) brightness(1.7); transform: translateY(-6px); }
+  }
+  @keyframes tipFadeIn {
+    0% { opacity: 0; filter: blur(4px) brightness(1.7); transform: translateY(6px); }
+    60% { opacity: 1; filter: blur(0) brightness(1.3); }
+    100% { opacity: 1; filter: blur(0) brightness(1); transform: translateY(0); }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 
-<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+<div class="hall-card d1 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
   <div class="flex gap-4 sm:gap-6 items-center flex-wrap">
     <a href="{{ url_for('users.profile') }}" title="Ver perfil"
        class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold flex items-center justify-center text-3xl sm:text-4xl bg-blue-950 text-gold shadow-inner shrink-0 hover:brightness-125 transition-[filter]">
       {{ ui.avatar_icon(user.profile) }}
     </a>
     {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
-    <div>
+    <div class="flex-1 min-w-[200px]">
       <h1 class="text-2xl sm:text-3xl font-medieval text-gold">Olá, {{ user.profile.display_name if user.profile else user.username }}</h1>
       <p class="text-stone-300 font-sans mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:text-base">
         <span><i class="fa-solid fa-shield-halved text-purple-400 mr-1"></i>Nível {{ user.stats.level.number if user.stats and user.stats.level else 1 }}</span>
@@ -18,12 +61,18 @@
         <span><i class="fa-solid fa-coins text-gold mr-1"></i>{{ user.stats.xp if user.stats else 0 }} XP</span>
         <span><i class="fa-solid fa-fire text-orange-500 mr-1"></i>Sequência: {{ user.stats.current_streak if user.stats else 0 }}</span>
       </p>
+      <div class="mt-3 max-w-sm">
+        <div class="xp-track"><div class="xp-fill" style="width:{{ level_progress_pct }}%"></div></div>
+        <p class="text-stone-500 font-sans text-[0.7rem] mt-1">
+          {% if next_level %}{{ level_progress_pct }}% até o nível {{ next_level.number }}{% else %}Nível máximo alcançado{% endif %}
+        </p>
+      </div>
     </div>
   </div>
 </div>
 
 {% if can_choose_class %}
-  <div class="bg-yellow-950/30 border-2 border-gold rounded-lg p-4 sm:p-5 mt-4 shadow-lg flex items-center gap-3 flex-wrap">
+  <div class="hall-card d2 bg-yellow-950/30 border-2 border-gold rounded-lg p-4 sm:p-5 mt-4 shadow-lg flex items-center gap-3 flex-wrap">
     <i class="fa-solid fa-shield-halved text-gold text-xl"></i>
     <p class="font-sans text-yellow-100 flex-1 min-w-[200px]">
       {{ "Uma nova habilidade de classe está disponível!" if user.profile and user.profile.character_class else "Escolha sua classe para reforçar sua batalha." }}
@@ -35,30 +84,80 @@
   </div>
 {% endif %}
 
-<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+<div class="hall-card d2 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
   <h2 class="text-xl font-medieval text-stone-100 mb-2">Continuar a aventura</h2>
   <p class="font-sans text-stone-400 mb-4">Escolha uma trilha no mapa e comece a praticar.</p>
-  <a href="{{ url_for('mathematics.index') }}"
-     class="inline-flex items-center gap-2 px-6 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform">
-    <i class="fa-solid fa-map-location-dot"></i> Ver Mapa de Aventura
-  </a>
+  <div class="flex flex-wrap gap-3 items-center">
+    <a href="{{ url_for('mathematics.index') }}"
+       class="inline-flex items-center gap-2 px-6 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform">
+      <i class="fa-solid fa-map-location-dot"></i> Ver Mapa de Aventura
+    </a>
+    {% if review_count %}
+      <a href="{{ url_for('progression.review_queue') }}"
+         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-sans text-sm text-stone-300 border border-stone-600 hover:border-gold hover:text-gold transition-colors">
+        <i class="fa-solid fa-book-bookmark text-gold"></i> {{ review_count }} tópico{{ 's' if review_count != 1 else '' }} pedindo revisão
+      </a>
+    {% endif %}
+  </div>
 </div>
 
-<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg flex flex-wrap gap-3">
-  <a href="{{ url_for('progression.review_queue') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-    <i class="fa-solid fa-book-bookmark"></i> Revisão
-  </a>
-  <a href="{{ url_for('ranking.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-    <i class="fa-solid fa-ranking-star"></i> Ranking
-  </a>
-  <a href="{{ url_for('achievements.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-    <i class="fa-solid fa-trophy"></i> Conquistas
-  </a>
-  <a href="{{ url_for('chat.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-    <i class="fa-solid fa-comments"></i> Chat
-  </a>
-  <a href="{{ url_for('friends.index') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-    <i class="fa-solid fa-people-group"></i> Amigos
-  </a>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+  <div class="hall-card d3 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+    <h2 class="text-lg font-medieval text-stone-100 mb-3"><i class="fa-solid fa-chart-line text-emerald-400 mr-2"></i>Sua jornada</h2>
+    <ul class="font-sans text-stone-300 space-y-1.5 text-sm">
+      <li><i class="fa-solid fa-check text-green-400 mr-2 w-4"></i>Acertos: {{ user.stats.total_correct if user.stats else 0 }}</li>
+      <li><i class="fa-solid fa-xmark text-red-400 mr-2 w-4"></i>Erros: {{ user.stats.total_wrong if user.stats else 0 }}</li>
+      <li><i class="fa-solid fa-fire text-orange-500 mr-2 w-4"></i>Melhor sequência: {{ user.stats.best_streak if user.stats else 0 }}</li>
+      {% set total = (user.stats.total_correct + user.stats.total_wrong) if user.stats else 0 %}
+      <li><i class="fa-solid fa-bullseye text-purple-300 mr-2 w-4"></i>Precisão: {{ ((user.stats.total_correct / total * 100) | round(0) | int) if total else 0 }}%</li>
+    </ul>
+  </div>
+
+  <div class="hall-card d4 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+    <h2 class="text-lg font-medieval text-stone-100 mb-3"><i class="fa-solid fa-feather-pointed text-gold mr-2"></i>Dica do Mentor</h2>
+    <div class="flex items-start gap-3">
+      <span class="mentor-owl text-2xl shrink-0" aria-hidden="true">🦉</span>
+      <p class="text-stone-300 text-sm font-sans"><span id="mentor-tip-text" class="tip-text">{{ mentor_tip.text }}</span></p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var tips = {{ mentor_tips_cycle | tojson }};
+  if (!tips || tips.length < 2) return;
+  var idx = 0;
+  var el = document.getElementById("mentor-tip-text");
+  setInterval(function () {
+    el.classList.remove("tip-in");
+    el.classList.add("tip-out");
+    setTimeout(function () {
+      idx = (idx + 1) % tips.length;
+      el.textContent = tips[idx].text;
+      el.classList.remove("tip-out");
+      el.classList.add("tip-in");
+    }, 380);
+  }, 14000);
+})();
+</script>
+
+<div class="hall-card d5 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+    <h2 class="text-lg font-medieval text-stone-100"><i class="fa-solid fa-users-rays text-purple-400 mr-2"></i>Heróis e Crônicas do Reino</h2>
+    <a href="{{ url_for('mathematics.chronicles') }}" class="text-purple-300 hover:text-purple-200 text-xs font-sans underline">Ver todas as crônicas</a>
+  </div>
+  <div class="flex flex-wrap gap-4">
+    {% for subject, guardian, discovered in hero_gallery %}
+      <a href="{{ url_for('mathematics.chronicles') }}" class="hero-node flex flex-col items-center gap-1 w-16 text-center" title="{{ subject.name }}">
+        <div class="w-12 h-12 rounded-full border-2 flex items-center justify-center text-lg
+                    {{ 'border-' + guardian.color + ' text-' + guardian.color if discovered else 'border-stone-700 text-stone-600' }}">
+          <i class="fa-solid {{ guardian.icon if discovered else 'fa-lock' }}"></i>
+        </div>
+        <span class="text-[0.6rem] font-sans {{ 'text-stone-300' if discovered else 'text-stone-600' }} leading-tight">
+          {{ subject.name if discovered else '???' }}
+        </span>
+      </a>
+    {% endfor %}
+  </div>
 </div>
 {% endblock %}

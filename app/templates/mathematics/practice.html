@@ -124,40 +124,67 @@
     100% { opacity: 0; transform: translateY(-10px); }
   }
 
-  /* Victory / chapter-reveal: same full-viewport ring+icon+fade language as
-     the invocation overlay above, gold-toned, with a second line for a
-     sliver of that subject's chronicle — the story unfolds one sentence
-     per boss defeated (progress tracked client-side, purely narrative
-     flavor, no bearing on real progression). */
+  /* Victory / chapter-reveal: same full-viewport ring+icon language as the
+     invocation overlay above, gold-toned, with a second line for a sliver
+     of that subject's chronicle — the story unfolds one sentence per boss
+     defeated (progress tracked client-side, purely narrative flavor, no
+     bearing on real progression). Unlike the intro/rebirth overlays this
+     one does NOT auto-dismiss — there's reading to do — it fades in and
+     holds until the player taps "Continuar"; the rings still complete
+     their own timed animation and settle, everything else just waits. */
   .victory-overlay {
     position: fixed; inset: 0; z-index: 99999;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none;
+    opacity: 0; pointer-events: auto;
     background: radial-gradient(circle, rgba(42,28,4,0.98) 0%, rgba(0,0,0,1) 78%);
-    animation: introOverlayFade 3.2s ease-in-out forwards;
+    animation: victoryOverlayIn 1s ease-in forwards;
   }
+  .victory-overlay.closing { animation: victoryOverlayOut 0.7s ease-in forwards; }
+  @keyframes victoryOverlayIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes victoryOverlayOut { 0% { opacity: 1; } 100% { opacity: 0; } }
   .victory-icon {
     font-size: 3rem; line-height: 1; color: transparent;
     background: linear-gradient(to top, #78350f 0%, #f59e0b 45%, #fef08a 80%, #fff 100%);
     -webkit-background-clip: text; background-clip: text;
     filter: drop-shadow(0 0 18px #f59e0b) drop-shadow(0 0 40px #b45309);
     transform: scale(0.4); opacity: 0;
-    animation: introIconAwaken 3.2s ease-out forwards;
+    animation: victoryIconIn 1.1s ease-out forwards;
+  }
+  @keyframes victoryIconIn {
+    0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+    55% { transform: scale(1.12) rotate(2deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
   }
   @media (min-width: 640px) { .victory-icon { font-size: 5rem; } }
+  @keyframes victoryTextIn { 0% { opacity: 0; transform: translateY(15px); } 100% { opacity: 1; transform: translateY(0); } }
   .victory-title {
     margin-top: 1.5rem; font-family: 'MedievalSharp', cursive; text-align: center; padding: 0 1rem;
     font-size: 1.4rem; opacity: 0; color: #fef3c7;
     text-shadow: 0 0 15px #f59e0b, 0 0 25px #b45309, 0 0 35px #78350f;
-    animation: introTextIn 3.2s ease-in-out forwards;
+    animation: victoryTextIn 1s ease-out 0.3s forwards;
   }
   @media (min-width: 640px) { .victory-title { font-size: 2.1rem; } }
   .victory-snippet {
     margin-top: 0.75rem; font-family: 'Cinzel', serif; text-align: center; padding: 0 1.5rem;
     max-width: 620px; font-size: 0.8rem; line-height: 1.55; opacity: 0; color: #fde68a;
-    animation: introTextIn 3.2s ease-in-out forwards;
+    animation: victoryTextIn 1s ease-out 0.6s forwards;
   }
   @media (min-width: 640px) { .victory-snippet { font-size: 0.98rem; } }
+  .victory-continue-btn {
+    margin-top: 1.75rem; opacity: 0; pointer-events: auto; cursor: pointer;
+    padding: 0.65rem 1.75rem; border-radius: 9999px;
+    background: rgba(0,0,0,0.4); border: 2px solid #f59e0b;
+    color: #fef3c7; font-family: 'MedievalSharp', cursive; font-size: 1rem;
+    box-shadow: 0 0 16px rgba(245,158,11,0.5);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: victoryTextIn 1s ease-out 1.3s forwards, victoryBtnPulse 1.8s ease-in-out 2.3s infinite;
+  }
+  .victory-continue-btn:hover { transform: scale(1.06); box-shadow: 0 0 26px rgba(245,158,11,0.85); }
+  @keyframes victoryBtnPulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(245,158,11,0.5); }
+    50% { box-shadow: 0 0 26px rgba(245,158,11,0.85); }
+  }
+  @media (min-width: 640px) { .victory-continue-btn { font-size: 1.15rem; padding: 0.75rem 2.25rem; } }
 
   /* Solo Leveling-style gate: a slim glowing rift instead of a screen-filling
      ring — opens in place, stays subtle, never covers the UI beneath it. */
@@ -410,13 +437,16 @@
      the top of the *screen* landed in empty space above the card on any
      viewport where the card doesn't start near y=0 (e.g. a short, wide
      desktop window with the card vertically centered), making earned loot
-     nearly invisible. Same fix as the speech-bubble/battle-alert
-     containers: live inside #battle-arena so it's always over the card. */
+     nearly invisible. Lives inside the boss row now (mirrored on the
+     right, speech bubbles on the left) — the same empty stretch used to
+     fix the speech-bubble/battle-alert containers — instead of the top of
+     the whole arena, which put it right over the boss's own HP bar/name. */
   .loot-toast-container {
-    position: absolute; top: 8px; right: 8px; z-index: 80;
-    display: flex; flex-direction: column; gap: 8px;
-    pointer-events: none; max-width: min(70vw, 300px);
+    position: absolute; top: 2px; right: 4px; z-index: 80;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+    pointer-events: none; max-width: 60%;
   }
+  @media (min-width: 640px) { .loot-toast-container { right: 10px; max-width: 52%; } }
   .loot-toast {
     background: rgba(10,8,14,0.97); border: 2px solid var(--rc, #cbd5e1);
     border-radius: 8px; padding: 8px 12px;
@@ -610,7 +640,6 @@
     <div id="revive-wipe" class="revive-wipe"></div>
     <div id="next-portal-ring" class="portal-ring"></div>
     <div id="battle-alert-container" class="battle-alert-container"></div>
-    <div id="loot-toast-container" class="loot-toast-container"></div>
 
     <div id="arena-content">
     <div class="relative z-10 p-3 sm:p-4 flex justify-between items-start gap-3 bg-gradient-to-b from-black/80 to-transparent">
@@ -669,6 +698,7 @@
 
     <div class="relative z-10 flex items-center justify-center py-2 sm:py-3">
       <div id="speech-bubble-container" class="speech-bubble-container"></div>
+      <div id="loot-toast-container" class="loot-toast-container"></div>
       <div id="boss-sprite" class="floating-boss text-[3rem] sm:text-[4.5rem] text-{{ guardian.color }} relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
         <div id="boss-aura" class="boss-aura"></div>
         <i class="fa-solid {{ guardian.icon }}"></i>

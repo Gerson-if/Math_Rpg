@@ -54,3 +54,10 @@ TIPS: list[Tip] = [
 
 def random_tip() -> Tip:
     return random.choice(TIPS)
+
+
+def random_tips(count: int = 6) -> list[Tip]:
+    """A handful of distinct tips, e.g. for a client-side rotating widget —
+    random_tip() only ever hands back one, which isn't enough to cycle
+    through without repeats until the whole batch is exhausted."""
+    return random.sample(TIPS, min(count, len(TIPS)))
