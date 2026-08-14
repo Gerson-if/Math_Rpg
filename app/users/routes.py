@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import Attempt, Level, Mastery, Subject, Topic
+from app.models import Attempt, Level, Mastery, Subject, Topic, User, UserAchievement
 from app.services import classes as classes_service, guardians, mentor_tips
 from app.users.forms import ProfileForm, ClassForm
 
@@ -84,6 +84,36 @@ def profile():
         "users/profile.html", user=current_user,
         class_info=class_info, ability=ability, can_choose_class=can_choose,
         class_lore_line=class_lore_line,
+    )
+
+
+@users_bp.route("/jogador/<username>")
+@login_required
+def public_profile(username):
+    """Read-only view of any player's profile — reachable from chat, the
+    Salão dos Heróis leaderboard, etc. Your own /profile stays the
+    editable version; this is what everyone else sees of you."""
+    user = User.query.filter_by(username=username).first_or_404()
+    if user.id == current_user.id:
+        return redirect(url_for("users.profile"))
+
+    profile = user.profile
+    class_key = profile.character_class if profile else None
+    class_info = classes_service.CLASSES.get(class_key) if class_key else None
+    ability = None
+    if class_info and profile.class_tier_claimed >= 0:
+        ability = classes_service.ability_for(class_key, profile.class_tier_claimed)
+    class_lore_line = classes_service.CLASS_LORE.get(class_key) if class_key else None
+
+    featured = (
+        UserAchievement.query.filter_by(user_id=user.id, is_featured=True)
+        .order_by(UserAchievement.unlocked_at.asc())
+        .all()
+    )
+    return render_template(
+        "users/public_profile.html", user=user,
+        class_info=class_info, ability=ability, class_lore_line=class_lore_line,
+        featured_achievements=[ua.achievement for ua in featured],
     )
 
 

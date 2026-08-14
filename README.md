@@ -513,6 +513,40 @@ apresentação por cima dela:
   autorrecupera buscando uma pergunta nova em vez de deixar o jogador
   preso numa pergunta morta.
 
+### Guardião com 4 estágios: minion → elite → guardião → versão suprema
+
+- `guardians.for_topic` ganhou uma escala real: os tópicos iniciais de
+  cada matéria enfrentam um minion (mesmo ícone/cor do guardião, nome e
+  HP menores), os do meio um minion de elite, e só o último tópico
+  enfrenta o guardião de verdade — chegar nele agora é uma escalada, não
+  uma repetição do primeiro combate. Depois da primeira vitória sobre o
+  guardião real, `Attempt` já registrada faz o mesmo tópico voltar como
+  sua "versão suprema" (nome próprio por matéria) nas próximas vezes —
+  o chefe não fica estático depois de derrotado uma vez.
+
+### Insígnias em destaque, perfil público, e denúncia no chat
+
+- Até 3 conquistas desbloqueadas podem ser marcadas "em destaque"
+  (`UserAchievement.is_featured`, alternado em `/achievements/destacar/
+  <id>`) para aparecer no perfil público.
+- Novo perfil público somente-leitura (`/jogador/<username>`) — sem
+  e-mail, sem botão de editar, com classe/estatísticas/insígnias em
+  destaque. `/profile` continua sendo a versão editável, só sua.
+- No chat global, o nome de cada jogador agora é um link para o perfil
+  público dele, e toda mensagem que não é sua ganha um botão de
+  denúncia (reaproveita o campo `is_flagged` que a heurística
+  automática de spam já usava — sem sistema de moderação/sanção ainda,
+  só o registro do sinalizador).
+
+### Painel de detalhes ao clicar num item (Espólios e Mercado)
+
+- Clicar num item não abre mais o texto encaixado no próprio cartão
+  pequeno — agora é uma grade compacta de miniaturas ao lado de um
+  painel de detalhes dedicado, que mostra o item bem maior (ícone,
+  raridade, bônus completo, ações) — vinculado por fragmento de URL
+  (`#item-N`, `#offer-N`, `#listing-N`), CSS puro (`:target`), sem
+  JavaScript e sem modal.
+
 ## O que ainda não existe
 
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
@@ -526,8 +560,10 @@ apresentação por cima dela:
 - Sistema de amigos: doação de itens, presença online/offline,
   incursão de masmorra em dupla de verdade — pedido, ainda não
   implementado.
-- Troca de senha na conta e sistema de moderação de chat (palavras-
-  chave + sanções graduais) — pedidos, ainda não implementados.
+- Troca de senha na conta — pedido, ainda não implementado.
+- Moderação de chat automática (palavras-chave + sanções graduais) —
+  denunciar mensagem já existe (marca `is_flagged`), mas ainda não há
+  detecção automática de palavras-chave nem fila de revisão/sanção.
 
 ## Instalação local
 

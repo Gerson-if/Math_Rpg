@@ -35,3 +35,16 @@ def send():
 
     messages = chat_service.get_recent_messages()
     return render_template("chat/_messages.html", messages=messages, error=error)
+
+
+@chat_bp.route("/denunciar/<int:message_id>", methods=["POST"])
+@login_required
+def report(message_id):
+    error = None
+    try:
+        chat_service.report_message(message_id, current_user.id)
+    except chat_service.ChatError as exc:
+        error = str(exc)
+
+    messages = chat_service.get_recent_messages()
+    return render_template("chat/_messages.html", messages=messages, error=error)

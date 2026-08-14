@@ -5,16 +5,24 @@
 <ul class="flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1" id="chat-log">
   {% for m in messages %}
     <li class="flex flex-wrap items-baseline gap-2 rounded px-2 py-1.5 font-sans {{ 'bg-red-950/30 outline outline-1 outline-dashed outline-blood' if m.is_flagged else '' }}">
-      <span class="inline-flex items-center gap-1.5 shrink-0">
+      <a href="{{ url_for('users.public_profile', username=m.user.username) }}" class="inline-flex items-center gap-1.5 shrink-0 hover:brightness-125 transition-[filter]">
         {% if m.user.stats and m.user.stats.rank %}
           {{ ui.rank_badge(m.user.stats.rank, size='sm') }}
         {% else %}
           <span class="text-stone-500">{{ ui.avatar_icon(m.user.profile) }}</span>
         {% endif %}
         <span class="font-bold text-gold">{{ m.user.profile.display_name if m.user.profile else m.user.username }}</span>
-      </span>
+      </a>
       <span class="flex-1 min-w-0 break-words text-stone-200">{{ m.content }}</span>
       <span class="text-xs text-stone-500 shrink-0">{{ m.created_at.strftime('%H:%M') }}</span>
+      {% if m.user_id != current_user.id %}
+        <form hx-post="{{ url_for('chat.report', message_id=m.id) }}" hx-target="#chat-messages" hx-swap="innerHTML" class="shrink-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" title="Denunciar mensagem" class="text-stone-600 hover:text-blood text-xs cursor-pointer">
+            <i class="fa-solid fa-flag"></i>
+          </button>
+        </form>
+      {% endif %}
     </li>
   {% else %}
     <li class="text-stone-400 font-sans py-2"><i class="fa-solid fa-comment-slash mr-1"></i> Nenhuma mensagem ainda — seja o primeiro a puxar assunto!</li>

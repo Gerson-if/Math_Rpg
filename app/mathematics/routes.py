@@ -96,12 +96,20 @@ def list_topics():
 @login_required
 def practice(topic_slug):
     topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
-    display_guardian, is_final_boss = guardians.for_topic(topic)
+    display_guardian, boss_tier = guardians.for_topic(topic)
+    if boss_tier == "boss":
+        already_defeated = (
+            Attempt.query.filter_by(user_id=current_user.id, topic_id=topic.id, is_correct=True).first()
+            is not None
+        )
+        if already_defeated:
+            display_guardian = dict(display_guardian, name=guardians.supreme_name_for(topic.subject.slug))
+            boss_tier = "supreme"
     return render_template(
         "mathematics/practice.html",
         topic=topic,
         guardian=display_guardian,
-        is_final_boss=is_final_boss,
+        boss_tier=boss_tier,
         recommend_first=progression_service.unmet_prerequisites(current_user.id, topic),
         mentor_tip=mentor_tips.random_tip(),
         ally=dungeon_service.active_ally(current_user.id, topic.id),

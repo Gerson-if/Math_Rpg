@@ -29,6 +29,10 @@ class UserAchievement(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     achievement_id = db.Column(db.Integer, db.ForeignKey("achievements.id"), nullable=False)
     unlocked_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    # Up to 3 unlocked achievements a player picks to showcase on their
+    # public profile — see app/achievements/routes.py's toggle_featured
+    # for where the 3-max is enforced.
+    is_featured = db.Column(db.Boolean, default=False, nullable=False)
 
     user = db.relationship("User", back_populates="achievements")
     achievement = db.relationship("Achievement")

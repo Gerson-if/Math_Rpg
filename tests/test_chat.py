@@ -86,3 +86,40 @@ def test_send_message_via_route_rate_limited_shows_error(client, db):
     resp = client.post("/chat/enviar", data={"content": "segunda"})
     assert resp.status_code == 200
     assert "Aguarde" in resp.data.decode()
+
+
+def test_report_message_flags_it(app, db):
+    author = _create_user(db, email="autor@example.com", username="autor")
+    reporter = _create_user(db, email="rep@example.com", username="rep")
+    message = chat_service.send_message(author.id, "mensagem duvidosa")
+
+    chat_service.report_message(message.id, reporter.id)
+
+    assert message.is_flagged is True
+
+
+def test_report_message_rejects_reporting_your_own_message(app, db):
+    author = _create_user(db, email="autor2@example.com", username="autor2")
+    message = chat_service.send_message(author.id, "minha mensagem")
+
+    with pytest.raises(chat_service.ChatError):
+        chat_service.report_message(message.id, author.id)
+
+
+def test_report_message_via_route_marks_it_flagged_in_the_rendered_list(client, db):
+    author = _create_user(db, email="autor3@example.com", username="autor3")
+    message = chat_service.send_message(author.id, "outra mensagem duvidosa")
+    _create_and_login(client, db, email="rep2@example.com", username="rep2")
+
+    resp = client.post(f"/chat/denunciar/{message.id}")
+    assert resp.status_code == 200
+    assert "outline-blood" in resp.data.decode()
+
+
+def test_chat_message_username_links_to_public_profile(client, db):
+    author = _create_user(db, email="autor4@example.com", username="autor4")
+    chat_service.send_message(author.id, "ola")
+    _create_and_login(client, db, email="viewer@example.com", username="viewer")
+
+    resp = client.get("/chat/")
+    assert "/jogador/autor4" in resp.data.decode()

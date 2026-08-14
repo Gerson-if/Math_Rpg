@@ -2,19 +2,33 @@
 {% import "_macros.html" as ui %}
 {% block title %}Conquistas{% endblock %}
 {% block content %}
-<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
   <i class="fa-solid fa-trophy"></i> Conquistas
 </h1>
+<p class="text-stone-400 font-sans text-sm mb-6">
+  Destaque até {{ max_featured }} conquistas ({{ featured_count }}/{{ max_featured }}) para exibir no seu perfil público.
+</p>
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
   <ul class="divide-y divide-stone-800">
     {% for a in achievements %}
       {% set unlocked = a.id in unlocked_ids %}
+      {% set featured = a.id in featured_ids %}
       <li class="flex items-center gap-4 py-3 {{ '' if unlocked else 'opacity-50' }}">
         {{ ui.achievement_badge(a, unlocked) }}
-        <div>
+        <div class="flex-1 min-w-0">
           <strong class="font-sans text-stone-100">{{ a.name }}</strong>
           <div class="text-stone-400 font-sans text-sm">{{ a.description }}</div>
         </div>
+        {% if unlocked %}
+          <form method="POST" action="{{ url_for('achievements.toggle_featured', achievement_id=a.id) }}" class="shrink-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans border transition-colors
+                           {{ 'border-gold text-gold bg-yellow-950/30' if featured else 'border-stone-700 text-stone-400 hover:border-stone-500' }}">
+              <i class="fa-solid fa-star"></i> {{ "Em destaque" if featured else "Destacar" }}
+            </button>
+          </form>
+        {% endif %}
       </li>
     {% else %}
       <li class="py-3 font-sans text-stone-400">Nenhuma conquista cadastrada ainda.</li>

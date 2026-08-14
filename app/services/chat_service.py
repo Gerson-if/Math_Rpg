@@ -55,6 +55,21 @@ def send_message(user_id: int, content: str, room: str = DEFAULT_ROOM) -> ChatMe
     return message
 
 
+def report_message(message_id: int, reporter_id: int) -> None:
+    """Marks a message flagged for moderation review — same is_flagged
+    field the automatic spam heuristic already sets, since both mean the
+    same thing downstream ("needs a human look"). No moderation review
+    UI exists yet, so this only ever records the flag; it never hides or
+    deletes anything on its own."""
+    message = ChatMessage.query.filter_by(id=message_id).first()
+    if message is None:
+        raise ChatError("Mensagem não encontrada.")
+    if message.user_id == reporter_id:
+        raise ChatError("Você não pode denunciar sua própria mensagem.")
+    message.is_flagged = True
+    db.session.commit()
+
+
 def _looks_like_spam(content: str) -> bool:
     """Soft heuristic — flags for moderation review, never blocks sending."""
     if len(content) >= 8 and content.isupper():

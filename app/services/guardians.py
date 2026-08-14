@@ -25,12 +25,14 @@ GUARDIANS: dict[str, Guardian] = {
     "algebra": {"name": "Guardião do Castelo Final", "icon": "fa-chess-rook", "color": "red-400"},
 }
 
-# Every topic in a subject used to fight the exact same named guardian,
-# regardless of whether it was the subject's easiest or hardest topic —
-# reaching "the boss" never felt earned since it was already the first
-# fight too. Earlier topics now fight a lesser minion (same icon/color,
-# lesser name) and only the subject's LAST topic — its real final exam —
-# faces the actual guardian. See for_topic().
+# Every topic in a subject used to fight the exact same named guardian at
+# the exact same strength, regardless of whether it was the subject's
+# easiest or hardest topic — reaching "the boss" never felt earned since
+# it was already the first fight too, and beating it once made every
+# later replay of that same topic feel identical. for_topic() now walks
+# three tiers on the way up (minion -> elite minion -> the real guardian)
+# and, once the guardian itself has already been beaten at least once,
+# a fourth: it comes back stronger.
 MINION_NAMES: dict[str, str] = {
     "fundamentos": "Fragmento de Pedra",
     "tabuada": "Cria da Hidra",
@@ -44,6 +46,36 @@ MINION_NAMES: dict[str, str] = {
 }
 _MINION_FALLBACK = "Servo do Guardião"
 
+ELITE_MINION_NAMES: dict[str, str] = {
+    "fundamentos": "Guardião de Pedra",
+    "tabuada": "Serpente da Hidra",
+    "operacoes-fundamentais": "Mestre-Forjador",
+    "potenciacao": "Chama da Fênix",
+    "radiciacao": "Reflexo Sombrio",
+    "fracoes": "Tecelão do Labirinto",
+    "numeros-decimais": "Lâmina de Cristal",
+    "porcentagem": "Emissário das Sombras",
+    "algebra": "Guarda-Costas do Castelo",
+}
+_ELITE_FALLBACK = "Servo Veterano"
+
+# Shown instead of the plain guardian name once the player has already
+# beaten that guardian at least once before — see practice() in
+# app/mathematics/routes.py, which is the one place with DB access to
+# check that (this module stays DB-free, same as mathematics_service).
+SUPREME_NAMES: dict[str, str] = {
+    "fundamentos": "Golem Ancestral Desperto",
+    "tabuada": "Hidra das Tábuas Ressuscitada",
+    "operacoes-fundamentais": "Quimera Aritmética Renascida",
+    "potenciacao": "Fênix Exponencial Imortal",
+    "radiciacao": "Espectro Glacial Eterno",
+    "fracoes": "Aracnídeo do Labirinto Ressurgido",
+    "numeros-decimais": "Serpente de Cristal Renascida",
+    "porcentagem": "Mercador das Sombras Ressuscitado",
+    "algebra": "Guardião do Castelo Final Imortal",
+}
+_SUPREME_FALLBACK = "Guardião Ressuscitado"
+
 _FALLBACK: Guardian = {"name": "Guardião do Conhecimento", "icon": "fa-dragon", "color": "purple-400"}
 
 
@@ -51,20 +83,31 @@ def for_subject(subject_slug: str) -> Guardian:
     return GUARDIANS.get(subject_slug, _FALLBACK)
 
 
-def for_topic(topic) -> tuple[Guardian, bool]:
+def supreme_name_for(subject_slug: str) -> str:
+    return SUPREME_NAMES.get(subject_slug, _SUPREME_FALLBACK)
+
+
+def for_topic(topic) -> tuple[Guardian, str]:
     """The enemy shown for one specific topic's battle. Returns
-    (display_guardian, is_final_boss) — is_final_boss is True only for
-    the subject's last topic (by Topic.order), which fights the real
-    named guardian; every earlier topic fights a same-icon/color minion
-    instead, so the guardian fight reads as an escalation, not a repeat."""
+    (display_guardian, tier), tier one of "minion" / "elite" / "boss".
+    Only the subject's LAST topic (by Topic.order) is tier "boss" and
+    shows the real named guardian — every topic before it is a minion
+    (first half) or an elite minion (second half), same icon/color as
+    the guardian but a lesser name, so reaching the guardian reads as an
+    escalation instead of a repeat of the very first fight."""
     base = for_subject(topic.subject.slug)
-    topic_orders = [t.order for t in topic.subject.topics]
-    is_final = bool(topic_orders) and topic.order == max(topic_orders)
-    if is_final:
-        return base, True
-    minion: Guardian = {
-        "name": MINION_NAMES.get(topic.subject.slug, _MINION_FALLBACK),
-        "icon": base["icon"],
-        "color": base["color"],
-    }
-    return minion, False
+    topics_sorted = sorted(topic.subject.topics, key=lambda t: t.order)
+    n = len(topics_sorted)
+    idx = next((i for i, t in enumerate(topics_sorted) if t.id == topic.id), n - 1)
+
+    if idx >= n - 1:
+        return base, "boss"
+
+    half = max(1, -(-n // 2))  # ceil(n / 2): early topics are minions, later ones elite
+    if idx < half:
+        name = MINION_NAMES.get(topic.subject.slug, _MINION_FALLBACK)
+        tier = "minion"
+    else:
+        name = ELITE_MINION_NAMES.get(topic.subject.slug, _ELITE_FALLBACK)
+        tier = "elite"
+    return {"name": name, "icon": base["icon"], "color": base["color"]}, tier

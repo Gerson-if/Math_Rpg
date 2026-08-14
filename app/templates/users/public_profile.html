@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}{{ user.profile.display_name if user.profile else user.username }}{% endblock %}
+{% block content %}
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg flex gap-4 sm:gap-6 items-center flex-wrap">
+  <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold flex items-center justify-center text-3xl sm:text-4xl bg-blue-950 text-gold shadow-inner shrink-0">
+    {{ ui.avatar_icon(user.profile) }}
+  </div>
+  {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
+  <div class="flex-1">
+    <h1 class="text-2xl sm:text-3xl font-medieval text-gold">{{ user.profile.display_name if user.profile else user.username }}</h1>
+    {% if user.stats and user.stats.rank %}
+      <p class="text-stone-400 font-sans mt-1"><i class="fa-solid fa-shield-halved text-purple-400 mr-1"></i>Nível {{ user.stats.level.number if user.stats.level else 1 }} · {{ user.stats.rank.name }}</p>
+    {% endif %}
+    {% if user.profile and user.profile.title %}
+      <p class="text-gold font-sans mt-1">{{ user.profile.title }}</p>
+    {% endif %}
+    {% if user.profile and user.profile.bio %}
+      <p class="text-stone-300 font-sans mt-2 text-sm italic">"{{ user.profile.bio }}"</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if featured_achievements %}
+<div class="bg-stone-900/60 border border-gold/40 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-3"><i class="fa-solid fa-star text-gold mr-2"></i>Conquistas em destaque</h2>
+  <div class="flex flex-wrap gap-4">
+    {% for a in featured_achievements %}
+      <div class="flex flex-col items-center gap-1.5 w-20 text-center">
+        {{ ui.achievement_badge(a, true) }}
+        <span class="text-[0.65rem] font-sans text-stone-300 leading-tight">{{ a.name }}</span>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-3">Classe</h2>
+  {% if class_info %}
+    <div class="flex items-center gap-4 flex-wrap font-sans">
+      <div class="w-12 h-12 rounded-full border-2 border-{{ class_info.color }} flex items-center justify-center text-xl text-{{ class_info.color }} bg-black/40 shrink-0">
+        <i class="fa-solid {{ class_info.icon }}"></i>
+      </div>
+      <div>
+        <p class="text-white font-medieval text-lg">{{ class_info.name }}</p>
+        {% if ability %}<p class="text-stone-400 text-sm">Habilidade: <span class="text-gold">{{ ability }}</span></p>{% endif %}
+        {% if class_lore_line %}<p class="text-purple-300 font-serif italic text-xs mt-1">{{ class_lore_line }}</p>{% endif %}
+      </div>
+    </div>
+  {% else %}
+    <p class="text-stone-400 font-sans">Ainda não escolheu uma classe.</p>
+  {% endif %}
+</div>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-3">Estatísticas</h2>
+  <ul class="font-sans text-stone-300 space-y-1">
+    <li><i class="fa-solid fa-coins text-gold mr-2"></i>XP total: {{ user.stats.xp if user.stats else 0 }}</li>
+    <li><i class="fa-solid fa-check text-green-400 mr-2"></i>Acertos: {{ user.stats.total_correct if user.stats else 0 }}</li>
+    <li><i class="fa-solid fa-xmark text-red-400 mr-2"></i>Erros: {{ user.stats.total_wrong if user.stats else 0 }}</li>
+    <li><i class="fa-solid fa-fire text-orange-500 mr-2"></i>Melhor sequência: {{ user.stats.best_streak if user.stats else 0 }}</li>
+  </ul>
+</div>
+{% endblock %}

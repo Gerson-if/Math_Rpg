@@ -21,12 +21,15 @@ const MathBattle = (() => {
     potionsStart: 3, furyScrollsStart: 2,
   };
   const BASE_MAX_HP = 100;
-  const BOSS_MAX_HP = 150;
-  const MINION_MAX_HP = 90; // every topic but a subject's last used to fight the exact same boss at the exact same HP — minions now die faster, so reaching the real guardian reads as an escalation
+  // Every topic in a subject used to fight the exact same boss at the
+  // exact same HP — now it's a real escalation: lesser minion, then an
+  // elite minion, then the guardian itself, then (once already beaten
+  // once) its resurrected supreme form.
+  const BOSS_HP_BY_TIER = { minion: 90, elite: 120, boss: 150, supreme: 190 };
 
   let cfg = { topicSlug: "", indexUrl: "/math/", buffs: {} };
   let maxHP = BASE_MAX_HP, playerHP = maxHP;
-  let bossMaxHP = BOSS_MAX_HP, bossHP = bossMaxHP;
+  let bossMaxHP = BOSS_HP_BY_TIER.boss, bossHP = bossMaxHP;
   let combo = 0, fury = 0, lastPhase = 1;
   let potions = CONFIG.potionsStart, furyScrolls = CONFIG.furyScrollsStart;
   let claimingVictory = false;
@@ -158,7 +161,7 @@ const MathBattle = (() => {
   }
 
   function resetCombatState() {
-    bossMaxHP = cfg.isFinalBoss ? BOSS_MAX_HP : MINION_MAX_HP;
+    bossMaxHP = BOSS_HP_BY_TIER[cfg.bossTier] || BOSS_HP_BY_TIER.boss;
     playerHP = maxHP; bossHP = bossMaxHP;
     combo = 0; fury = 0; lastPhase = 1;
     furyWasReady = false; comboAlertedTier = 0;

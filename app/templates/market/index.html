@@ -20,11 +20,18 @@
   .theme-reino .panel-header { border-color: rgba(251,191,36,0.4); background: radial-gradient(circle at top left, rgba(251,191,36,0.08), transparent 60%); }
   .theme-jogadores .panel-header { border-color: rgba(192,132,252,0.4); background: radial-gradient(circle at top left, rgba(192,132,252,0.08), transparent 60%); }
 
-  .market-item summary { cursor: pointer; list-style: none; }
-  .market-item summary::-webkit-details-marker { display: none; }
-  .market-item[open] summary .expand-hint { transform: rotate(180deg); }
-  .market-item-detail { border-top: 1px dashed rgba(255,255,255,0.15); margin-top: 0.5rem; padding-top: 0.5rem; }
-  .reason-text { color: #fca5a5; font-size: 0.62rem; }
+  /* Thumbnail grid + a dedicated detail panel, linked by URL fragment —
+     clicking a thumbnail shows that item large in the panel instead of
+     cramming more text into the small grid card. Pure CSS (:target), no
+     JS, no modal. */
+  .market-thumb { cursor: pointer; text-decoration: none; display: block; }
+  .item-detail-panel { position: sticky; top: 1rem; }
+  .item-detail-content { display: none; }
+  .item-detail-content:target { display: block; animation: detailIn 0.35s ease-out; }
+  @keyframes detailIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+  .item-detail-content:target ~ .item-detail-placeholder,
+  .item-detail-panel:has(.item-detail-content:target) .item-detail-placeholder { display: none; }
+  .reason-text { color: #fca5a5; font-size: 0.7rem; }
 </style>
 {% endblock %}
 
@@ -60,45 +67,53 @@
   <div class="panel-header bg-stone-900/60 border rounded-t-lg p-4 sm:p-5">
     <p class="text-stone-400 font-sans text-sm">O estoque do próprio reino — se renova a cada 24h. Compre com Ouro, sem depender de sorte de drop.</p>
   </div>
-  <div class="bg-stone-900/60 border border-t-0 border-stone-700 rounded-b-lg p-4 sm:p-5 shadow-lg">
-    {% if shop_stock %}
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+  {% if shop_stock %}
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 items-start bg-stone-900/60 border border-t-0 border-stone-700 rounded-b-lg p-4 sm:p-5 shadow-lg">
+      <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        {% for offer in shop_stock %}
+          {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(offer.rarity, '#57534e') %}
+          <a href="#offer-{{ offer.id }}" class="market-thumb border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
+             style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
+            <i class="fa-solid {{ offer.icon_key }} text-2xl mb-1" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
+            <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ offer.name }}</p>
+            <p class="text-gold font-sans text-[0.6rem]"><i class="fa-solid fa-coins"></i> {{ offer.price }}</p>
+          </a>
+        {% endfor %}
+      </div>
+      <div class="item-detail-panel bg-black/30 border border-stone-700 rounded-lg p-5 min-h-[220px]">
+        <p class="item-detail-placeholder text-stone-500 font-sans text-sm text-center py-8">
+          <i class="fa-solid fa-hand-pointer text-2xl block mb-2"></i>
+          Clique num item para ver os detalhes.
+        </p>
         {% for offer in shop_stock %}
           {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(offer.rarity, '#57534e') %}
           {% set min_level = min_level_by_rarity.get(offer.rarity, 1) %}
           {% set affordable = gold >= offer.price %}
-          <details class="market-item border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
-                    style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
-            <summary class="flex flex-col items-center">
-              <i class="fa-solid {{ offer.icon_key }} text-3xl mb-2" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
-              <p class="font-sans font-bold text-white text-xs">{{ offer.name }}</p>
-              <p class="font-sans text-[0.65rem]" style="color: {{ rc }};">{{ offer.rarity | capitalize }}</p>
-              <p class="text-gold font-sans text-xs mt-1"><i class="fa-solid fa-coins"></i> {{ offer.price }}</p>
-              <i class="fa-solid fa-chevron-down expand-hint text-stone-500 text-[0.6rem] mt-1 transition-transform"></i>
-            </summary>
-            <div class="market-item-detail">
-              <p class="font-sans text-[0.65rem] text-stone-300">{{ ui.passive_label(offer) }}</p>
-              {% if player_level < min_level %}
-                <p class="text-stone-500 font-sans text-[0.6rem] mt-1"><i class="fa-solid fa-lock"></i> Equipar exige nível {{ min_level }}</p>
-              {% endif %}
-              <form method="POST" action="{{ url_for('market.comprar_da_loja', offer_id=offer.id) }}" class="mt-2">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" {{ 'disabled' if not affordable else '' }}
-                        class="text-gold hover:text-yellow-200 text-xs font-sans cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-                  <i class="fa-solid fa-coins"></i> Comprar por {{ offer.price }}
-                </button>
-              </form>
-              {% if not affordable %}
-                <p class="reason-text font-sans mt-1">Faltam {{ offer.price - gold }} de Ouro para comprar.</p>
-              {% endif %}
-            </div>
-          </details>
+          <div id="offer-{{ offer.id }}" class="item-detail-content text-center">
+            <i class="fa-solid {{ offer.icon_key }} text-6xl mb-3" style="color: {{ rc }}; filter: drop-shadow(0 0 12px {{ rc }});"></i>
+            <p class="font-medieval text-white text-lg">{{ offer.name }}</p>
+            <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ offer.rarity | capitalize }}</p>
+            <p class="font-sans text-stone-300 text-sm">{{ ui.passive_label(offer) }}</p>
+            {% if player_level < min_level %}
+              <p class="text-stone-500 font-sans text-xs mt-2"><i class="fa-solid fa-lock"></i> Equipar exige nível {{ min_level }}</p>
+            {% endif %}
+            <form method="POST" action="{{ url_for('market.comprar_da_loja', offer_id=offer.id) }}" class="mt-3">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" {{ 'disabled' if not affordable else '' }}
+                      class="px-4 py-2 rounded font-medieval text-sm bg-mystic border-2 border-purple-400 text-white hover:scale-105 transition-transform cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+                <i class="fa-solid fa-coins mr-1"></i> Comprar por {{ offer.price }}
+              </button>
+            </form>
+            {% if not affordable %}
+              <p class="reason-text font-sans mt-2">Faltam {{ offer.price - gold }} de Ouro para comprar.</p>
+            {% endif %}
+          </div>
         {% endfor %}
       </div>
-    {% else %}
-      <p class="text-stone-400 font-sans text-sm">A loja está vazia no momento.</p>
-    {% endif %}
-  </div>
+    </div>
+  {% else %}
+    <p class="text-stone-400 font-sans text-sm bg-stone-900/60 border border-t-0 border-stone-700 rounded-b-lg p-4 sm:p-5 shadow-lg">A loja está vazia no momento.</p>
+  {% endif %}
 </div>
 
 <!-- LOJA DOS JOGADORES: player marketplace -->
@@ -106,44 +121,52 @@
   <div class="panel-header bg-stone-900/60 border rounded-t-lg p-4 sm:p-5">
     <p class="text-stone-400 font-sans text-sm">Espólios anunciados por outros aventureiros — anúncios expiram em {{ listing_duration_days }} dias se não vendidos.</p>
   </div>
-  <div class="bg-stone-900/60 border border-t-0 border-stone-700 rounded-b-lg p-4 sm:p-5 shadow-lg">
-    {% if listings %}
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+  {% if listings %}
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 items-start bg-stone-900/60 border border-t-0 border-stone-700 rounded-b-lg p-4 sm:p-5 shadow-lg">
+      <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        {% for item in listings %}
+          {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
+          <a href="#listing-{{ item.id }}" class="market-thumb border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
+             style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
+            <i class="fa-solid {{ item.icon_key }} text-2xl mb-1" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
+            <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ item.name }}</p>
+            <p class="text-gold font-sans text-[0.6rem]"><i class="fa-solid fa-coins"></i> {{ item.list_price }}</p>
+          </a>
+        {% endfor %}
+      </div>
+      <div class="item-detail-panel bg-black/30 border border-stone-700 rounded-lg p-5 min-h-[220px]">
+        <p class="item-detail-placeholder text-stone-500 font-sans text-sm text-center py-8">
+          <i class="fa-solid fa-hand-pointer text-2xl block mb-2"></i>
+          Clique num item para ver os detalhes.
+        </p>
         {% for item in listings %}
           {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
           {% set affordable = gold >= item.list_price %}
-          <details class="market-item border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
-                    style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
-            <summary class="flex flex-col items-center">
-              <i class="fa-solid {{ item.icon_key }} text-3xl mb-2" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
-              <p class="font-sans font-bold text-white text-xs">{{ item.name }}</p>
-              <p class="font-sans text-[0.65rem]" style="color: {{ rc }};">{{ item.rarity | capitalize }}</p>
-              <p class="text-gold font-sans text-xs mt-1"><i class="fa-solid fa-coins"></i> {{ item.list_price }}</p>
-              <i class="fa-solid fa-chevron-down expand-hint text-stone-500 text-[0.6rem] mt-1 transition-transform"></i>
-            </summary>
-            <div class="market-item-detail">
-              <p class="font-sans text-[0.65rem] text-stone-300">{{ ui.passive_label(item) }}</p>
-              <p class="text-stone-500 font-sans text-[0.6rem] mt-1">
-                Vendido por {{ item.user.profile.display_name if item.user.profile else item.user.username }} · expira em {{ days_left.get(item.id, 0) }}d
-              </p>
-              <form method="POST" action="{{ url_for('market.comprar', item_id=item.id) }}" class="mt-2">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" {{ 'disabled' if not affordable else '' }}
-                        class="text-gold hover:text-yellow-200 text-xs font-sans cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-                  <i class="fa-solid fa-coins"></i> Comprar por {{ item.list_price }}
-                </button>
-              </form>
-              {% if not affordable %}
-                <p class="reason-text font-sans mt-1">Faltam {{ item.list_price - gold }} de Ouro para comprar.</p>
-              {% endif %}
-            </div>
-          </details>
+          <div id="listing-{{ item.id }}" class="item-detail-content text-center">
+            <i class="fa-solid {{ item.icon_key }} text-6xl mb-3" style="color: {{ rc }}; filter: drop-shadow(0 0 12px {{ rc }});"></i>
+            <p class="font-medieval text-white text-lg">{{ item.name }}</p>
+            <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ item.rarity | capitalize }}</p>
+            <p class="font-sans text-stone-300 text-sm">{{ ui.passive_label(item) }}</p>
+            <p class="text-stone-500 font-sans text-xs mt-2">
+              Vendido por {{ item.user.profile.display_name if item.user.profile else item.user.username }} · expira em {{ days_left.get(item.id, 0) }}d
+            </p>
+            <form method="POST" action="{{ url_for('market.comprar', item_id=item.id) }}" class="mt-3">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" {{ 'disabled' if not affordable else '' }}
+                      class="px-4 py-2 rounded font-medieval text-sm bg-mystic border-2 border-purple-400 text-white hover:scale-105 transition-transform cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+                <i class="fa-solid fa-coins mr-1"></i> Comprar por {{ item.list_price }}
+              </button>
+            </form>
+            {% if not affordable %}
+              <p class="reason-text font-sans mt-2">Faltam {{ item.list_price - gold }} de Ouro para comprar.</p>
+            {% endif %}
+          </div>
         {% endfor %}
       </div>
-    {% else %}
-      <p class="text-stone-400 font-sans text-sm">Nenhum item anunciado por outros jogadores no momento.</p>
-    {% endif %}
-  </div>
+    </div>
+  {% else %}
+    <p class="text-stone-400 font-sans text-sm bg-stone-900/60 border border-t-0 border-stone-700 rounded-b-lg p-4 sm:p-5 shadow-lg">Nenhum item anunciado por outros jogadores no momento.</p>
+  {% endif %}
 </div>
 
 <!-- MEUS ANÚNCIOS -->
