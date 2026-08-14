@@ -28,6 +28,29 @@
 </div>
 
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-3">Classe</h2>
+  {% if class_info %}
+    <div class="flex items-center gap-4 flex-wrap font-sans">
+      <div class="w-12 h-12 rounded-full border-2 border-{{ class_info.color }} flex items-center justify-center text-xl text-{{ class_info.color }} bg-black/40 shrink-0">
+        <i class="fa-solid {{ class_info.icon }}"></i>
+      </div>
+      <div>
+        <p class="text-white font-medieval text-lg">{{ class_info.name }}</p>
+        {% if ability %}<p class="text-stone-400 text-sm">Habilidade: <span class="text-gold">{{ ability }}</span></p>{% endif %}
+      </div>
+    </div>
+  {% else %}
+    <p class="text-stone-400 font-sans">Você ainda não escolheu uma classe.</p>
+  {% endif %}
+  {% if can_choose_class %}
+    <a href="{{ url_for('users.choose_class') }}"
+       class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded font-medieval text-sm text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+      <i class="fa-solid fa-shield-halved"></i> {{ "Trocar de classe" if class_info else "Escolher classe" }}
+    </a>
+  {% endif %}
+</div>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
   <h2 class="text-xl font-medieval text-stone-100 mb-3">Estatísticas</h2>
   <ul class="font-sans text-stone-300 space-y-1">
     <li><i class="fa-solid fa-coins text-gold mr-2"></i>XP total: {{ user.stats.xp if user.stats else 0 }}</li>

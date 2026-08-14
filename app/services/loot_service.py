@@ -128,6 +128,12 @@ def list_equipped(user_id: int) -> dict[str, ItemInstance | None]:
 
 
 def compute_buffs(user_id: int) -> Buffs:
+    """All buffs (equipment + class) affecting this user's cosmetic combat
+    presentation. Merges app.services.classes.class_buff in alongside
+    equipment so both stack the same way through one dict."""
+    from app.models import Profile
+    from app.services import classes as classes_service
+
     buffs: Buffs = {
         "danoPct": 0.0, "critBonus": 0.0, "furiaBonus": 0.0,
         "comboBonus": 0.0, "vidaBonus": 0.0, "vampirismoPct": 0.0,
@@ -140,6 +146,12 @@ def compute_buffs(user_id: int) -> Buffs:
         if item is None:
             continue
         buffs[key_by_passive[item.passive_type]] += item.passive_value
+
+    profile = Profile.query.filter_by(user_id=user_id).first()
+    if profile is not None:
+        class_bonus = classes_service.class_buff(profile.character_class, profile.class_tier_claimed)
+        for key, value in class_bonus.items():
+            buffs[key] += value
     return buffs
 
 

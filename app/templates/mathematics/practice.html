@@ -384,6 +384,41 @@
   .loot-toast .loot-name { font-weight: 700; font-size: 0.75rem; color: #fff; font-family: 'Cinzel', serif; }
   .loot-toast .loot-rarity { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--rc); font-family: sans-serif; }
 
+  /* ---- battle alerts: small floating banners for combo/fury/crit
+     milestones — layered above the arena, pointer-events:none, never
+     shift or resize anything underneath them. ---- */
+  .battle-alert-container {
+    position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+    z-index: 70; width: 100%; max-width: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    pointer-events: none; padding: 0 8px;
+  }
+  .battle-alert {
+    background: rgba(10,8,14,0.92); border: 1px solid #d4af37; border-radius: 9999px;
+    padding: 3px 12px; font-family: 'Cinzel', serif; font-size: 0.62rem;
+    color: #fde68a; box-shadow: 0 0 12px rgba(212,175,55,0.5);
+    white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
+    animation: battleAlertIn 2.2s ease-in-out forwards;
+  }
+  @media (min-width: 640px) { .battle-alert { font-size: 0.75rem; padding: 4px 16px; } }
+  .battle-alert.alert-crit { border-color: #fbbf24; color: #fff7cc; box-shadow: 0 0 16px rgba(251,191,36,0.7); }
+  .battle-alert.alert-danger { border-color: #ef4444; color: #fecaca; box-shadow: 0 0 12px rgba(239,68,68,0.5); }
+  @keyframes battleAlertIn {
+    0% { opacity: 0; transform: translateY(-10px) scale(0.9); }
+    12% { opacity: 1; transform: translateY(0) scale(1); }
+    82% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-6px) scale(0.95); }
+  }
+
+  /* ---- quick inventory shortcut, right under the fury bar ---- */
+  .fury-inventory-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 3px; font-size: 0.55rem; color: #d4af37;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(212,175,55,0.4); border-radius: 9999px;
+    padding: 1px 8px; cursor: pointer; font-family: sans-serif;
+  }
+  .fury-inventory-btn:hover { border-color: #d4af37; color: #fde68a; }
+
   /* ---- consumables: dedicated full-bleed screen, not a modal ---- */
   /* :not(.hidden) (not a bare #id rule) so Tailwind's .hidden utility
      always wins on specificity regardless of stylesheet injection order —
@@ -470,6 +505,7 @@
     <div id="portal-effect" class="gate-rift"></div>
     <div id="revive-wipe" class="revive-wipe"></div>
     <div id="next-portal-ring" class="portal-ring"></div>
+    <div id="battle-alert-container" class="battle-alert-container"></div>
 
     <div id="arena-content">
     <div class="relative z-10 p-3 sm:p-4 flex justify-between items-start gap-3 bg-gradient-to-b from-black/80 to-transparent">
@@ -499,6 +535,9 @@
             </div>
             <p class="text-[9px] sm:text-[10px] text-pink-300 font-sans mt-1 flex items-center gap-1"><i class="fa-solid fa-fire-flame-simple"></i> Fúria</p>
             <div class="fury-track"><div id="fury-fill" class="fury-fill" style="width:0%"></div></div>
+            <button type="button" onclick="MathBattle.abrirConsumiveis()" class="fury-inventory-btn">
+              <i class="fa-solid fa-flask"></i> Inventário
+            </button>
           </div>
         </div>
       </div>

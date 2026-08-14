@@ -56,4 +56,11 @@ class Profile(db.Model, TimestampMixin):
     title = db.Column(db.String(60), nullable=True)  # earned via achievements
     bio = db.Column(db.String(280), nullable=True)
 
+    # Character class (see app/services/classes.py) — chosen freely the
+    # first time, then re-chosen only when a new ability tier unlocks
+    # (level 10, level 25). class_tier_claimed tracks the highest tier
+    # already "cashed in", so the game knows whether a reclass is owed.
+    character_class = db.Column(db.String(20), nullable=True)
+    class_tier_claimed = db.Column(db.Integer, default=-1, nullable=False)
+
     user = db.relationship("User", back_populates="profile")

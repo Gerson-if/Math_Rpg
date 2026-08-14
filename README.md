@@ -355,6 +355,38 @@ apresentação por cima dela:
   palavra "Correto!" do feedback (substituída por "Golpe Crítico!"),
   quebrando a confirmação de acerto — corrigido.
 
+### Sistema de classes de personagem
+
+- `app/services/classes.py`: 5 classes (Guerreiro/Mago/Arqueiro/
+  Clérigo/Ladino), cada uma associada a uma categoria de bônus cosmético
+  (dano/crítico/fúria/combo/vida/vampirismo — as mesmas do
+  `loot_service`). O jogador escolhe livremente na primeira vez; depois
+  só pode trocar (mesma classe ou outra) quando um novo nível de
+  habilidade desbloqueia (nível 10 "Adepto", nível 25 "Mestre" — mesmos
+  marcos das conquistas "Aventureiro Experiente"/"Herói do Reino"),
+  ganhando uma habilidade nova nomeada por classe+tier a cada troca.
+  `Profile.character_class`/`class_tier_claimed` persistem a escolha.
+- `loot_service.compute_buffs` agora soma o bônus da classe ao bônus do
+  equipamento num único dict — mesma filosofia cosmética de sempre:
+  afeta a apresentação da batalha (chance de crítico real incluída,
+  calculada no servidor) e nunca XP/maestria reais.
+- `GET/POST /profile/classe`: tela dedicada de escolha, com elegibilidade
+  validada no servidor (`classes.can_choose_class`) mesmo que a UI tente
+  contornar. O perfil (`/profile`) mostra a classe/habilidade atuais; o
+  painel do Salão do Herói mostra um aviso quando há escolha ou troca
+  disponível.
+
+### Ajustes na tela de batalha (alertas flutuantes + atalho de inventário)
+
+- Pequenos banners flutuantes ("⚡ Fúria pronta!", "🔥 Combo x5!",
+  "💥 Golpe Crítico!", "☄️ Fúria Arcana Suprema!", uso de poção/
+  pergaminho) aparecem sobre a arena e somem sozinhos — `position:
+  absolute` com `pointer-events: none`, nunca deslocam ou redimensionam
+  o layout ao redor.
+- Um atalho compacto "Inventário" voltou a aparecer logo abaixo da barra
+  de fúria (além do link "Consumíveis" no rodapé da arena), abrindo a
+  mesma tela cheia de consumíveis.
+
 ## O que ainda não existe
 
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
@@ -365,8 +397,6 @@ apresentação por cima dela:
   existem rotas reais para esses conceitos ainda.
 - Masmorra em co-op é assíncrona por design (ver acima) — não há
   batalha ao vivo sincronizada entre dois jogadores.
-- Sistema de classes de personagem (escolher classe, trocar ao subir de
-  nível, ganhar habilidade nova) — pedido, ainda não implementado.
 
 ## Instalação local
 

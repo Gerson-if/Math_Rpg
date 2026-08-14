@@ -22,6 +22,19 @@
   </div>
 </div>
 
+{% if can_choose_class %}
+  <div class="bg-yellow-950/30 border-2 border-gold rounded-lg p-4 sm:p-5 mt-4 shadow-lg flex items-center gap-3 flex-wrap">
+    <i class="fa-solid fa-shield-halved text-gold text-xl"></i>
+    <p class="font-sans text-yellow-100 flex-1 min-w-[200px]">
+      {{ "Uma nova habilidade de classe está disponível!" if user.profile and user.profile.character_class else "Escolha sua classe para reforçar sua batalha." }}
+    </p>
+    <a href="{{ url_for('users.choose_class') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-mystic border-2 border-purple-400 text-white rounded font-medieval text-sm hover:scale-105 transition-transform">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> {{ "Trocar classe" if user.profile and user.profile.character_class else "Escolher classe" }}
+    </a>
+  </div>
+{% endif %}
+
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
   <h2 class="text-xl font-medieval text-stone-100 mb-2">Continuar a aventura</h2>
   <p class="font-sans text-stone-400 mb-4">Escolha uma trilha no mapa e comece a praticar.</p>

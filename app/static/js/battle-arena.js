@@ -29,6 +29,7 @@ const MathBattle = (() => {
   let combo = 0, fury = 0, lastPhase = 1;
   let potions = CONFIG.potionsStart, furyScrolls = CONFIG.furyScrollsStart;
   let claimingVictory = false;
+  let furyWasReady = false, comboAlertedTier = 0;
 
   function $(id) { return document.getElementById(id); }
   function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -90,6 +91,7 @@ const MathBattle = (() => {
   function resetCombatState() {
     playerHP = maxHP; bossHP = bossMaxHP;
     combo = 0; fury = 0; lastPhase = 1;
+    furyWasReady = false; comboAlertedTier = 0;
     potions = CONFIG.potionsStart; furyScrolls = CONFIG.furyScrollsStart;
     $("arena-content").classList.remove("player-dead");
     $("boss-sprite").classList.remove("boss-dead");
@@ -172,6 +174,7 @@ const MathBattle = (() => {
       const arena = $("battle-arena");
       arena.classList.remove("crit-shake"); void arena.offsetWidth; arena.classList.add("crit-shake");
       setTimeout(() => arena.classList.remove("crit-shake"), 450);
+      showBattleAlert("💥 Golpe Crítico!", "crit");
     }
     BattleAudio.sfx.hit(isCrit);
 
@@ -232,6 +235,7 @@ const MathBattle = (() => {
     updateFuryUi();
     BattleAudio.sfx.ultimate();
     BattleFx.triggerCritFlash("crit-flash", true);
+    showBattleAlert("☄️ Fúria Arcana Suprema!", "crit");
     BattleFx.launchProjectile($("hero-avatar"), $("boss-sprite"), "#f472b6", () => applyBossDamage(CONFIG.ultimateDamage, true, null), true);
   }
 
@@ -243,6 +247,7 @@ const MathBattle = (() => {
     $("potion-count").innerText = potions;
     BattleFx.spawnBurst($("hero-avatar"), "#60a5fa", 14);
     BattleAudio.sfx.heal();
+    showBattleAlert("🧪 Poção usada! +" + CONFIG.potionHeal + " HP");
   }
 
   function usarPergaminhoFuria() {
@@ -253,6 +258,7 @@ const MathBattle = (() => {
     $("scroll-count").innerText = furyScrolls;
     BattleFx.spawnBurst($("hero-avatar"), "#f472b6", 14);
     BattleAudio.sfx.heal();
+    showBattleAlert("📜 Pergaminho usado! +" + CONFIG.furyScrollAmount + " Fúria");
   }
 
   /* ---------------- UI helpers ---------------- */
@@ -274,6 +280,8 @@ const MathBattle = (() => {
     const ready = fury >= 100;
     btn.disabled = !ready;
     btn.classList.toggle("ready", ready);
+    if (ready && !furyWasReady) showBattleAlert("⚡ Fúria pronta! Use a Ultimate!", "crit");
+    furyWasReady = ready;
   }
 
   function updateComboUi() {
@@ -286,6 +294,15 @@ const MathBattle = (() => {
     } else {
       badge.classList.add("hidden");
       badge.classList.remove("tier-2", "tier-3");
+    }
+    if (combo === 0) {
+      comboAlertedTier = 0;
+    } else if (combo >= 8 && comboAlertedTier < 3) {
+      comboAlertedTier = 3;
+      showBattleAlert("⚔️ Combo Máximo!");
+    } else if (combo >= 5 && comboAlertedTier < 2) {
+      comboAlertedTier = 2;
+      showBattleAlert("🔥 Combo x5!");
     }
   }
 
@@ -317,6 +334,19 @@ const MathBattle = (() => {
     banner.innerText = textos[phase];
     document.body.appendChild(banner);
     setTimeout(() => banner.remove(), 2600);
+  }
+
+  /* ---------------- small floating battle alerts (combo/fury/crit) ----------------
+     Purely cosmetic, never shift layout — absolutely positioned inside the
+     arena, auto-dismissing, several can stack briefly. */
+  function showBattleAlert(text, variant) {
+    const container = $("battle-alert-container");
+    if (!container) return;
+    const el = document.createElement("div");
+    el.className = "battle-alert" + (variant ? " alert-" + variant : "");
+    el.innerText = text;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 2200);
   }
 
   /* ---------------- consumables screen (in-arena, no server round trip) ---------------- */

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Escolher classe{% endblock %}
+{% block content %}
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
+  <i class="fa-solid fa-shield-halved"></i> {{ "Trocar de classe" if is_reclass else "Escolha sua classe" }}
+</h1>
+<p class="text-stone-400 font-sans mb-6">
+  {% if is_reclass %}
+    Você alcançou o nível de <strong class="text-gold">{{ tier_label }}</strong> — escolha (ou confirme) sua classe para desbloquear uma nova habilidade.
+  {% else %}
+    Sua classe define uma habilidade passiva que reforça sua apresentação em batalha. Poderá trocar novamente ao alcançar o próximo nível de habilidade.
+  {% endif %}
+</p>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg max-w-3xl">
+  <form method="POST" class="space-y-6 font-sans">
+    {{ form.hidden_tag() }}
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {% for value, label in form.character_class.choices %}
+        {% set cls = classes[value] %}
+        <label class="cursor-pointer">
+          <input type="radio" name="character_class" value="{{ value }}" class="peer sr-only"
+                 {{ 'checked' if form.character_class.data == value else '' }}>
+          <span class="flex items-start gap-3 p-4 rounded-lg border-2 border-stone-700 bg-stone-800/60 text-stone-300 peer-checked:border-gold peer-checked:bg-yellow-950/30 hover:border-stone-500 transition-colors">
+            <i class="fa-solid {{ cls.icon }} text-2xl text-{{ cls.color }} shrink-0 mt-1"></i>
+            <span>
+              <span class="block font-medieval text-lg text-white">{{ cls.name }}</span>
+              <span class="block text-xs text-stone-400 mt-1">Habilidade em {{ tier_label }}: <strong class="text-gold">{{ abilities[value][target_tier] }}</strong></span>
+            </span>
+          </span>
+        </label>
+      {% endfor %}
+    </div>
+
+    <div class="flex gap-3">
+      {{ form.submit(class_="px-6 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform cursor-pointer") }}
+      <a href="{{ url_for('users.profile') }}"
+         class="px-6 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+        Cancelar
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

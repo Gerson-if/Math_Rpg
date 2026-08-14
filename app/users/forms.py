@@ -2,6 +2,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, SubmitField
 from wtforms.validators import DataRequired, Length, Optional
 
+from app.services.classes import CLASSES
+
 # Curated FontAwesome icon avatars — deliberately NOT a free-form image
 # upload. No storage/moderation pipeline needed and no way for a player
 # to put an image that violates the terms of service into someone else's
@@ -29,3 +31,11 @@ class ProfileForm(FlaskForm):
     avatar_key = SelectField("Avatar", choices=AVATAR_CHOICES, validators=[DataRequired()])
     bio = TextAreaField("Bio", validators=[Optional(), Length(max=280)])
     submit = SubmitField("Salvar")
+
+
+CLASS_CHOICES = [(key, cls["name"]) for key, cls in CLASSES.items()]
+
+
+class ClassForm(FlaskForm):
+    character_class = SelectField("Classe", choices=CLASS_CHOICES, validators=[DataRequired()])
+    submit = SubmitField("Confirmar")
