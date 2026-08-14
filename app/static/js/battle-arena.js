@@ -1,0 +1,409 @@
+/* Battle arena orchestrator. Combat feel (combo/crit-flourish/fury/boss
+   phases) is a cosmetic layer over the REAL question/answer loop — the
+   question comes from the server via HTMX, correctness and crit are
+   decided server-side (see _question.html's data-correct/data-crit), and
+   this module only reacts to what already happened. It never invents a
+   correct/wrong/crit outcome on its own.
+
+   Depends on BattleAudio (battle-audio.js), BattleFx (battle-fx.js) and
+   BattleLoot (battle-loot.js) being loaded first. Reads its per-page
+   config (topic slug, CSRF token, starting buffs) from window.BATTLE_CONFIG,
+   set by an inline <script> in practice.html. */
+const MathBattle = (() => {
+  const CONFIG = {
+    playerDmgMin: 16, playerDmgMax: 24,
+    critMult: 1.8,
+    comboStep: 0.075, comboCap: 8,
+    furyPerHit: 14, furyPerCrit: 26,
+    ultimateDamage: 55,
+    bossDmgByPhase: [{ min: 10, max: 16 }, { min: 14, max: 20 }, { min: 18, max: 26 }],
+    potionHeal: 40, furyScrollAmount: 40,
+    potionsStart: 3, furyScrollsStart: 2,
+  };
+  const BASE_MAX_HP = 100;
+  const BOSS_MAX_HP = 150;
+
+  let cfg = { topicSlug: "", indexUrl: "/math/", buffs: {} };
+  let maxHP = BASE_MAX_HP, playerHP = maxHP;
+  let bossMaxHP = BOSS_MAX_HP, bossHP = bossMaxHP;
+  let combo = 0, fury = 0, lastPhase = 1;
+  let potions = CONFIG.potionsStart, furyScrolls = CONFIG.furyScrollsStart;
+  let claimingVictory = false;
+
+  function $(id) { return document.getElementById(id); }
+  function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function getPhase() { const pct = (bossHP / bossMaxHP) * 100; return pct > 66 ? 1 : pct > 33 ? 2 : 3; }
+
+  function init(config) {
+    cfg = Object.assign(cfg, config);
+  }
+
+  /* ---------------- full-viewport invocation / rebirth overlays ---------------- */
+
+  const INTRO_PHRASES = ["A Provação Começa", "As Ruínas Despertam", "O Destino Convoca o Aprendiz"];
+  const REBIRTH_PHRASES = ["A Chama Ascende Novamente", "Das Cinzas, a Vontade Retorna", "Um Novo Fôlego Desafia o Destino"];
+
+  function showInvocation() {
+    const phrase = INTRO_PHRASES[rand(0, INTRO_PHRASES.length - 1)];
+    const overlay = document.createElement("div");
+    overlay.className = "intro-overlay";
+    overlay.innerHTML =
+      '<div class="intro-sigil-wrap">' +
+      '<div class="intro-ring"></div>' +
+      '<div class="intro-ring reverse"></div>' +
+      '<div class="intro-icon"><i class="fa-solid fa-dragon"></i></div>' +
+      "</div>" +
+      `<div class="intro-text">${phrase}</div>`;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 2800);
+  }
+
+  function showRebirth() {
+    const phrase = REBIRTH_PHRASES[rand(0, REBIRTH_PHRASES.length - 1)];
+    const overlay = document.createElement("div");
+    overlay.className = "rebirth-overlay";
+    overlay.innerHTML =
+      '<div class="rebirth-flame"><i class="fa-solid fa-fire-flame-curved"></i></div>' +
+      `<div class="rebirth-text">${phrase}</div>`;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 3400);
+  }
+
+  /* ---------------- screen flow (story -> arena -> victory/defeat) ---------------- */
+
+  function start() {
+    BattleAudio.unlock();
+    showInvocation();
+
+    setTimeout(() => {
+      $("story-screen").classList.add("hidden");
+      const arena = $("battle-arena");
+      arena.classList.remove("hidden");
+      arena.classList.add("epic-enter");
+      spawnDust();
+      resetCombatState();
+      arena.scrollIntoView({ behavior: "smooth", block: "start" });
+      focusAnswer();
+    }, 1200);
+  }
+
+  function resetCombatState() {
+    playerHP = maxHP; bossHP = bossMaxHP;
+    combo = 0; fury = 0; lastPhase = 1;
+    potions = CONFIG.potionsStart; furyScrolls = CONFIG.furyScrollsStart;
+    $("arena-content").classList.remove("player-dead");
+    $("boss-sprite").classList.remove("boss-dead");
+    updateHpBar("player-hp", playerHP, maxHP);
+    updateHpBar("boss-hp", bossHP, bossMaxHP);
+    updateFuryUi();
+    updateComboUi();
+    updateBossPhaseUi(1);
+    $("potion-count") && ($("potion-count").innerText = potions);
+    $("scroll-count") && ($("scroll-count").innerText = furyScrolls);
+  }
+
+  function spawnDust() {
+    const c = $("dust-container");
+    c.innerHTML = "";
+    for (let i = 0; i < 10; i++) {
+      const d = document.createElement("div");
+      d.className = "magic-dust";
+      d.style.left = Math.random() * 100 + "%";
+      const size = Math.random() * 4 + 2;
+      d.style.width = size + "px";
+      d.style.height = size + "px";
+      d.style.animationDuration = Math.random() * 3 + 3 + "s";
+      d.style.animationDelay = Math.random() * 3 + "s";
+      c.appendChild(d);
+    }
+  }
+
+  function focusAnswer() {
+    const input = document.querySelector("#question-slot input[name='answer']");
+    if (input && window.innerWidth > 768) input.focus();
+  }
+
+  /* ---------------- reacting to the real question loop ---------------- */
+
+  document.body.addEventListener("htmx:afterSwap", (evt) => {
+    if (evt.target.id !== "question-slot") return;
+    const d = evt.target.dataset;
+    if (d.correct === "true") {
+      onHit(d.crit === "true", {
+        name: d.lootName, icon_key: d.lootIcon, rarity: d.lootRarity,
+        passive_type: d.lootPassive, passive_value: parseFloat(d.lootValue || "0"),
+      });
+    } else if (d.correct === "false") {
+      onMiss();
+    }
+    focusAnswer();
+  });
+
+  function onHit(isCrit, lootItem) {
+    combo++;
+    fury = Math.min(100, fury + (isCrit ? CONFIG.furyPerCrit : CONFIG.furyPerHit) + (cfg.buffs.furiaBonus || 0));
+    updateFuryUi();
+    updateComboUi();
+    BattleAudio.sfx.cast();
+
+    const comboMult = 1 + Math.min(combo, CONFIG.comboCap) * (CONFIG.comboStep + (cfg.buffs.comboBonus || 0));
+    let dmg = rand(CONFIG.playerDmgMin, CONFIG.playerDmgMax) * comboMult * (1 + (cfg.buffs.danoPct || 0));
+    if (isCrit) dmg *= CONFIG.critMult;
+    dmg = Math.round(dmg);
+
+    const hero = $("hero-avatar"), boss = $("boss-sprite");
+    hero.classList.remove("hero-attack-anim"); void hero.offsetWidth; hero.classList.add("hero-attack-anim");
+
+    BattleFx.launchProjectile(hero, boss, isCrit ? "#fbbf24" : "#a855f7", () => applyBossDamage(dmg, isCrit, lootItem), isCrit);
+  }
+
+  function applyBossDamage(dmg, isCrit, lootItem) {
+    bossHP = Math.max(0, bossHP - dmg);
+    const boss = $("boss-sprite");
+
+    BattleFx.showFloatingDamage("boss-sprite", "-" + dmg, isCrit ? "#fbbf24" : "#22c55e", isCrit);
+    updateHpBar("boss-hp", bossHP, bossMaxHP);
+
+    boss.classList.remove("spell-hit"); void boss.offsetWidth; boss.classList.add("spell-hit");
+    BattleFx.spawnBurst(boss, isCrit ? "#fbbf24" : "#c084fc", isCrit ? 34 : 18);
+    if (isCrit) {
+      BattleFx.triggerCritFlash("crit-flash", false);
+      BattleFx.spawnShockwave(boss, "#fbbf24");
+      const arena = $("battle-arena");
+      arena.classList.remove("crit-shake"); void arena.offsetWidth; arena.classList.add("crit-shake");
+      setTimeout(() => arena.classList.remove("crit-shake"), 450);
+    }
+    BattleAudio.sfx.hit(isCrit);
+
+    const vamp = cfg.buffs.vampirismoPct || 0;
+    if (vamp > 0 && playerHP > 0) {
+      const heal = Math.round(dmg * vamp);
+      if (heal > 0) {
+        playerHP = Math.min(maxHP, playerHP + heal);
+        updateHpBar("player-hp", playerHP, maxHP);
+        BattleFx.showFloatingDamage("hero-avatar", "+" + heal, "#4ade80", false);
+      }
+    }
+
+    if (lootItem && lootItem.name) BattleLoot.toast("loot-toast-container", lootItem);
+
+    checkPhaseTransition();
+    if (bossHP <= 0) {
+      boss.classList.add("boss-dead");
+      setTimeout(victory, 800);
+    }
+  }
+
+  function onMiss() {
+    combo = 0;
+    updateComboUi();
+
+    const range = CONFIG.bossDmgByPhase[getPhase() - 1];
+    const dmg = rand(range.min, range.max);
+
+    const boss = $("boss-sprite"), hero = $("hero-avatar");
+    BattleFx.launchProjectile(boss, hero, "#ef4444", () => applyPlayerDamage(dmg));
+
+    const arena = $("battle-arena");
+    arena.classList.remove("hit-flash"); void arena.offsetWidth; arena.classList.add("hit-flash");
+    hero.classList.remove("hero-hurt-anim"); void hero.offsetWidth; hero.classList.add("hero-hurt-anim");
+    const fx = $("hero-fx");
+    fx.innerHTML = '<i class="fa-solid fa-bolt-lightning miss-spark"></i>';
+    setTimeout(() => { fx.innerHTML = ""; }, 500);
+  }
+
+  function applyPlayerDamage(dmg) {
+    playerHP = Math.max(0, playerHP - dmg);
+    BattleFx.showFloatingDamage("hero-avatar", "-" + dmg, "#ef4444", false);
+    updateHpBar("player-hp", playerHP, maxHP);
+    BattleFx.spawnBurst($("hero-avatar"), "#ef4444", 14);
+    BattleAudio.sfx.hit(false);
+    if (playerHP <= 0) {
+      $("arena-content").classList.add("player-dead");
+      setTimeout(defeat, 800);
+    }
+  }
+
+  /* ---------------- ultimate / consumables (cosmetic, client-only) ---------------- */
+
+  function useUltimate() {
+    if (fury < 100 || bossHP <= 0 || playerHP <= 0) return;
+    fury = 0;
+    updateFuryUi();
+    BattleAudio.sfx.ultimate();
+    BattleFx.triggerCritFlash("crit-flash", true);
+    BattleFx.launchProjectile($("hero-avatar"), $("boss-sprite"), "#f472b6", () => applyBossDamage(CONFIG.ultimateDamage, true, null), true);
+  }
+
+  function usarPocao() {
+    if (potions <= 0 || playerHP >= maxHP) return;
+    potions--;
+    playerHP = Math.min(maxHP, playerHP + CONFIG.potionHeal);
+    updateHpBar("player-hp", playerHP, maxHP);
+    $("potion-count").innerText = potions;
+    BattleFx.spawnBurst($("hero-avatar"), "#60a5fa", 14);
+    BattleAudio.sfx.heal();
+  }
+
+  function usarPergaminhoFuria() {
+    if (furyScrolls <= 0 || fury >= 100) return;
+    furyScrolls--;
+    fury = Math.min(100, fury + CONFIG.furyScrollAmount);
+    updateFuryUi();
+    $("scroll-count").innerText = furyScrolls;
+    BattleFx.spawnBurst($("hero-avatar"), "#f472b6", 14);
+    BattleAudio.sfx.heal();
+  }
+
+  /* ---------------- UI helpers ---------------- */
+
+  function updateHpBar(id, value, max) {
+    const pct = Math.max(0, (value / max) * 100);
+    $(id).style.width = pct + "%";
+    // Ghost bar trails behind on a slower transition so damage reads as
+    // an afterimage — same trick the reference template uses.
+    const ghost = document.getElementById(id + "-ghost");
+    if (ghost) setTimeout(() => { ghost.style.width = pct + "%"; }, 220);
+    const text = document.getElementById(id + "-text");
+    if (text) text.innerText = `${Math.max(0, Math.round(value))}/${max}`;
+  }
+
+  function updateFuryUi() {
+    $("fury-fill").style.width = fury + "%";
+    const btn = $("ultimate-btn");
+    const ready = fury >= 100;
+    btn.disabled = !ready;
+    btn.classList.toggle("ready", ready);
+  }
+
+  function updateComboUi() {
+    const badge = $("combo-badge");
+    if (combo >= 2) {
+      badge.classList.remove("hidden");
+      $("combo-value").innerText = combo;
+      badge.classList.toggle("tier-2", combo >= 5 && combo < 8);
+      badge.classList.toggle("tier-3", combo >= 8);
+    } else {
+      badge.classList.add("hidden");
+      badge.classList.remove("tier-2", "tier-3");
+    }
+  }
+
+  function updateBossPhaseUi(phase) {
+    const boss = $("boss-sprite");
+    boss.classList.remove("boss-phase-2", "boss-phase-3");
+    if (phase === 2) boss.classList.add("boss-phase-2");
+    if (phase === 3) boss.classList.add("boss-phase-3");
+    const aura = $("boss-aura");
+    aura.classList.toggle("aura-active", phase >= 2);
+    aura.classList.toggle("aura-intense", phase === 3);
+    $("boss-phase-tag").innerText = "Fase " + phase;
+  }
+
+  function checkPhaseTransition() {
+    const p = getPhase();
+    if (p !== lastPhase) {
+      lastPhase = p;
+      updateBossPhaseUi(p);
+      showPhaseBanner(p);
+    }
+  }
+
+  function showPhaseBanner(phase) {
+    const textos = { 2: "⚡ Fase 2: O Guardião Desperta ⚡", 3: "🔥 Fase Final: Fúria Ancestral 🔥" };
+    if (!textos[phase]) return;
+    const banner = document.createElement("div");
+    banner.className = "phase-banner";
+    banner.innerText = textos[phase];
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 2600);
+  }
+
+  /* ---------------- consumables screen (in-arena, no server round trip) ---------------- */
+
+  function abrirConsumiveis() { $("screen-consumables").classList.remove("hidden"); }
+  function fecharConsumiveis() { $("screen-consumables").classList.add("hidden"); }
+
+  /* ---------------- victory / defeat / revive / next-challenge ---------------- */
+
+  function victory() {
+    BattleAudio.sfx.victory();
+    const portal = $("portal-effect");
+    portal.className = "gate-rift gate-rift--mystic";
+
+    if (claimingVictory) return;
+    claimingVictory = true;
+    fetch(cfg.victoryUrl, {
+      method: "POST",
+      headers: { "X-CSRFToken": cfg.csrfToken },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((item) => {
+        claimingVictory = false;
+        if (item) {
+          BattleLoot.toast("loot-toast-container", item);
+          const label = { comum: "Comum", magico: "Mágico", raro: "Raro", lendario: "Lendário" }[item.rarity] || item.rarity;
+          $("victory-loot").innerHTML = `<i class="fa-solid ${item.icon_key} mr-1"></i> Espólio: ${item.name} (${label})`;
+        }
+      })
+      .catch(() => { claimingVictory = false; });
+
+    setTimeout(() => $("victory-screen").classList.remove("hidden"), 700);
+  }
+
+  function defeat() {
+    BattleAudio.sfx.defeat();
+    $("defeat-screen").classList.remove("hidden");
+  }
+
+  function resetBars() {
+    resetCombatState();
+    $("portal-effect").className = "gate-rift";
+  }
+
+  function revive() {
+    showRebirth();
+
+    const portal = $("portal-effect");
+    portal.className = "gate-rift gate-rift--fire";
+
+    const wipe = $("revive-wipe");
+    wipe.className = "revive-wipe revive-wipe--in";
+
+    setTimeout(() => {
+      resetBars();
+      $("defeat-screen").classList.add("hidden");
+      wipe.className = "revive-wipe revive-wipe--out";
+      focusAnswer();
+    }, 550);
+
+    setTimeout(() => { wipe.className = "revive-wipe"; }, 1050);
+  }
+
+  function nextChallenge() {
+    const ring = $("next-portal-ring");
+    const content = $("arena-content");
+
+    ring.className = "portal-ring portal-ring--open";
+
+    setTimeout(() => {
+      resetBars();
+      $("victory-screen").classList.add("hidden");
+      $("victory-loot").innerHTML = "";
+      content.classList.remove("arena-portal-reveal"); void content.offsetWidth;
+      content.classList.add("arena-portal-reveal");
+      spawnDust();
+      focusAnswer();
+    }, 380);
+
+    setTimeout(() => { ring.className = "portal-ring"; }, 950);
+  }
+
+  function flee() { window.location.href = cfg.indexUrl; }
+
+  return {
+    init, start, revive, nextChallenge, flee,
+    useUltimate, usarPocao, usarPergaminhoFuria,
+    abrirConsumiveis, fecharConsumiveis,
+  };
+})();

@@ -4,12 +4,20 @@
      data-xp="{{ feedback.xp_awarded if feedback else '' }}"
      data-levelup="{{ 'true' if feedback and feedback.leveled_up else 'false' }}"
      data-level="{{ feedback.level_number if feedback else '' }}"
+     data-crit="{{ 'true' if feedback and feedback.is_crit else 'false' }}"
+     data-loot-name="{{ feedback.crit_item.name if feedback and feedback.crit_item else '' }}"
+     data-loot-icon="{{ feedback.crit_item.icon_key if feedback and feedback.crit_item else '' }}"
+     data-loot-rarity="{{ feedback.crit_item.rarity if feedback and feedback.crit_item else '' }}"
+     data-loot-passive="{{ feedback.crit_item.passive_type if feedback and feedback.crit_item else '' }}"
+     data-loot-value="{{ feedback.crit_item.passive_value if feedback and feedback.crit_item else '' }}"
      class="max-w-xl mx-auto space-y-3">
 
   {% if feedback %}
     <div class="battle-toast font-sans text-sm font-semibold rounded p-3 border text-center {{ 'bg-green-950/60 border-green-500 text-green-200' if feedback.is_correct else 'bg-red-950/60 border-blood text-red-200' }}">
       {% if feedback.is_correct %}
-        <i class="fa-solid fa-check"></i> Correto! +{{ feedback.xp_awarded }} XP
+        <i class="fa-solid fa-check"></i>
+        {% if feedback.is_crit %}<span class="text-yellow-300">Golpe Crítico!</span>{% else %}Correto!{% endif %}
+        +{{ feedback.xp_awarded }} XP
         {% if feedback.bonus_xp %}<span class="text-purple-300">(+{{ feedback.bonus_xp }} bônus de dupla com {{ feedback.ally_name }})</span>{% endif %}
         {% if feedback.leveled_up %}· <i class="fa-solid fa-star"></i> Subiu para o nível {{ feedback.level_number }}!{% endif %}
       {% else %}

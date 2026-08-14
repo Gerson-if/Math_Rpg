@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from flask import Blueprint, render_template, request, abort, jsonify
 from flask_login import login_required, current_user
 
+import random
+
 from app.extensions import db, limiter
 from app.models import Subject, Topic, Attempt
 from app.services import (
@@ -20,6 +22,7 @@ from app.services import (
     progression_service,
     mentor_tips,
     dungeon_service,
+    loot_service,
 )
 
 mathematics_bp = Blueprint("mathematics", __name__, url_prefix="/math")
@@ -76,6 +79,8 @@ def practice(topic_slug):
         topic=topic,
         mentor_tip=mentor_tips.random_tip(),
         ally=dungeon_service.active_ally(current_user.id, topic.id),
+        equipped=loot_service.list_equipped(current_user.id),
+        buffs=loot_service.compute_buffs(current_user.id),
     )
 
 
@@ -131,6 +136,14 @@ def answer_question(topic_slug):
     bonus_xp = dungeon_service.COOP_BONUS_XP if ally else 0
     progress = progression_service.process_attempt(attempt, bonus_xp=bonus_xp)
 
+    # Crit (and whatever it drops) is rolled here, server-side, using the
+    # player's real equipped buffs — the client only ever animates what
+    # already happened, never decides it. See loot_service module docstring.
+    is_crit = is_correct and loot_service.roll_crit(current_user.id)
+    crit_item = None
+    if is_crit and random.random() < loot_service.LOOT_CHANCE_ON_CRIT:
+        crit_item = loot_service.generate_item(current_user.id)
+
     # Keep the loop going: hand back feedback + the next question in one
     # response so practicing doesn't require a full page reload per item.
     # Difficulty is recomputed *after* process_attempt() above, so it
@@ -155,8 +168,32 @@ def answer_question(topic_slug):
             "mastery_score": progress["mastery_score"],
             "needs_review": progress["needs_review"],
             "new_achievements": progress["new_achievements"],
+            "is_crit": is_crit,
+            "crit_item": crit_item,
         },
     )
+
+
+@mathematics_bp.route("/praticar/<topic_slug>/vitoria", methods=["POST"])
+@login_required
+@limiter.limit("10 per hour")
+def claim_victory(topic_slug):
+    """Guaranteed loot drop for cosmetically defeating the boss in the
+    battle arena — see loot_service.claim_boss_kill_loot for the (modest,
+    proportional) integrity check behind this."""
+    topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
+    try:
+        item = loot_service.claim_boss_kill_loot(current_user.id, topic.id)
+    except ValueError as exc:
+        abort(400, description=str(exc))
+
+    return jsonify({
+        "name": item.name,
+        "icon_key": item.icon_key,
+        "passive_type": item.passive_type,
+        "passive_value": item.passive_value,
+        "rarity": item.rarity,
+    })
 
 
 @mathematics_bp.route("/historico")

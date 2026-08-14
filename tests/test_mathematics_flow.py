@@ -206,6 +206,55 @@ def test_tabuada_mista_topic_is_reachable_through_the_real_flow(client, db, app)
     assert "Correto" in resp2.data.decode()
 
 
+# --- Battle arena combat feel: crit roll + boss-kill loot claim --------
+
+def test_answer_fragment_always_carries_a_data_crit_attribute(client, db, app):
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="adicao")
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    token = _extract_token(resp.data.decode())
+    with app.app_context():
+        payload = question_token.read_token(token)
+
+    resp2 = client.post(
+        f"/math/praticar/{topic.slug}/responder",
+        data={"token": token, "answer": payload["answer"]},
+    )
+    assert 'data-crit="true"' in resp2.data.decode() or 'data-crit="false"' in resp2.data.decode()
+
+
+def test_claim_victory_grants_an_item_after_a_recent_correct_answer(client, db, app):
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="adicao")
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    token = _extract_token(resp.data.decode())
+    with app.app_context():
+        payload = question_token.read_token(token)
+    client.post(
+        f"/math/praticar/{topic.slug}/responder",
+        data={"token": token, "answer": payload["answer"]},
+    )
+
+    resp2 = client.post(f"/math/praticar/{topic.slug}/vitoria")
+    assert resp2.status_code == 200
+    body = resp2.get_json()
+    assert body["rarity"] in {"comum", "magico", "raro", "lendario"}
+
+    from app.models import ItemInstance
+    with app.app_context():
+        assert ItemInstance.query.count() >= 1
+
+
+def test_claim_victory_without_a_recent_correct_answer_is_rejected(client, db, app):
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="adicao")
+
+    resp = client.post(f"/math/praticar/{topic.slug}/vitoria")
+    assert resp.status_code == 400
+
+
 @pytest.mark.parametrize("slug", ["numeros-e-contagem", "comparacao-de-quantidades"])
 def test_fundamentos_topic_is_reachable_through_the_real_flow(client, db, app, slug):
     """Regression: these two topics are seeded in the curriculum

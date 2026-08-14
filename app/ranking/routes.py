@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import PlayerStats, User
+from app.models import PlayerStats, User, Rank
 
 ranking_bp = Blueprint("ranking", __name__, url_prefix="/ranking")
 
@@ -21,4 +21,16 @@ def index():
         .limit(20)
         .all()
     )
-    return render_template("ranking/index.html", top_players=top_players)
+
+    # The full ladder, low to high, so players can see the ceiling — not
+    # just their current badge in isolation. See app/services/loot_service
+    # docstring philosophy: progression should always be legible.
+    all_ranks = Rank.query.order_by(Rank.order.asc()).all()
+    my_stats = PlayerStats.query.filter_by(user_id=current_user.id).first()
+
+    return render_template(
+        "ranking/index.html",
+        top_players=top_players,
+        all_ranks=all_ranks,
+        my_stats=my_stats,
+    )

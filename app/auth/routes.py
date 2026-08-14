@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 
 from app.extensions import db, limiter
-from app.models import User, Profile, PlayerStats
+from app.models import User, Profile, PlayerStats, Level, Rank
 from app.auth.forms import RegisterForm, LoginForm
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -30,8 +30,19 @@ def register():
         db.session.add(user)
         db.session.flush()  # get user.id before creating dependents
 
+        # Every player starts already placed on the rank ladder (level 1,
+        # lowest rank) instead of showing blank "-" in the ranking until
+        # their first answer — that blank state read as confusing/broken.
+        starting_level = Level.query.filter_by(number=1).first()
+        starting_rank = Rank.query.order_by(Rank.order.asc()).first()
+
         db.session.add(Profile(user_id=user.id, display_name=form.username.data))
-        db.session.add(PlayerStats(user_id=user.id, last_active_at=datetime.utcnow()))
+        db.session.add(PlayerStats(
+            user_id=user.id,
+            last_active_at=datetime.utcnow(),
+            level_id=starting_level.id if starting_level else None,
+            rank_id=starting_rank.id if starting_rank else None,
+        ))
         db.session.commit()
 
         login_user(user)

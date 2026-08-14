@@ -9,6 +9,46 @@
 {% set podium = top_players[:3] %}
 {% set rest = top_players[3:] %}
 
+{% if all_ranks %}
+  <!-- RANK LADDER: the whole ceiling, not just your current badge, so
+     progression has a visible "how far can I go" reference. -->
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg mb-6">
+    <h2 class="text-lg font-medieval text-stone-100 mb-1">Sua trilha de progressão</h2>
+    {% set my_rank = my_stats.rank if my_stats else none %}
+    {% set my_level_number = my_stats.level.number if my_stats and my_stats.level else 1 %}
+    {% set next_rank = all_ranks | selectattr('min_level', 'gt', my_level_number) | list | first %}
+    <p class="text-stone-400 font-sans text-sm mb-4">
+      {% if next_rank %}
+        Faltam <strong class="text-gold">{{ next_rank.min_level - my_level_number }}</strong> nível(is) para alcançar
+        <strong class="text-gold">{{ next_rank.name }}</strong>.
+      {% else %}
+        Você alcançou o topo da trilha — <strong class="text-gold">{{ my_rank.name if my_rank else "Mestre" }}</strong>!
+      {% endif %}
+    </p>
+    <div class="flex items-center overflow-x-auto pb-2">
+      {% for rank in all_ranks %}
+        {% set achieved = my_rank and rank.order <= my_rank.order %}
+        {% set is_current = my_rank and rank.id == my_rank.id %}
+        <div class="flex flex-col items-center gap-1 shrink-0 px-3 {{ 'opacity-40' if not achieved else '' }}">
+          <span class="inline-flex items-center justify-center w-11 h-11 rounded-full border-2 font-medieval font-bold text-sm
+                       {{ 'border-gold text-gold shadow-[0_0_12px_rgba(212,175,55,0.5)]' if is_current else ('border-stone-500 text-stone-300' if achieved else 'border-stone-700 text-stone-600') }}">
+            {% if rank.icon_key %}
+              <img src="{{ url_for('static', filename=rank.icon_key) }}" alt="{{ rank.name }}" class="w-full h-full object-contain rounded-full" style="image-rendering: pixelated;">
+            {% else %}
+              {{ rank.name[:2] | upper }}
+            {% endif %}
+          </span>
+          <span class="font-sans text-[0.65rem] text-center {{ 'text-gold font-bold' if is_current else 'text-stone-400' }}">{{ rank.name }}</span>
+          <span class="font-sans text-[0.6rem] text-stone-600">Nv. {{ rank.min_level }}</span>
+        </div>
+        {% if not loop.last %}
+          <div class="h-0.5 w-6 sm:w-10 shrink-0 {{ 'bg-gold' if achieved else 'bg-stone-700' }}"></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
 {% if podium %}
   <!-- PODIUM (Clash of Clans-style top 3) -->
   <div class="flex items-end justify-center gap-3 sm:gap-6 mb-6 px-2">

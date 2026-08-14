@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Equipamentos{% endblock %}
+{% block content %}
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+  <i class="fa-solid fa-shield-halved"></i> Equipamentos
+</h1>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg mb-4">
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+    {% for slot, label, icon in [('arma', 'Arma', 'fa-khanda'), ('anel', 'Anel', 'fa-ring'), ('amuleto', 'Amuleto', 'fa-gem'), ('armadura', 'Armadura', 'fa-shield'), ('capacete', 'Capacete', 'fa-hat-wizard'), ('botas', 'Botas', 'fa-shoe-prints')] %}
+      {% set item = equipped[slot] %}
+      {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity if item else '', '#57534e') %}
+      <div class="item-slot border-2 rounded-lg p-4 text-center transition-all hover:brightness-125" style="border-color: {{ rc }};">
+        <p class="text-stone-400 font-medieval text-xs uppercase tracking-widest mb-2">{{ label }}</p>
+        {% if item %}
+          <i class="fa-solid {{ item.icon_key }} text-3xl mb-2" style="color: {{ rc }};"></i>
+          <p class="font-sans font-bold text-white text-sm">{{ item.name }}</p>
+          <p class="font-sans text-xs mt-1" style="color: {{ rc }};">
+            {{ item.rarity | capitalize }} · {{ item.passive_type }} +{{ (item.passive_value * 100) | round(1) }}%
+          </p>
+          <form method="POST" action="{{ url_for('character.desequipar', slot=slot) }}" class="mt-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="text-stone-400 hover:text-blood text-xs font-sans cursor-pointer">
+              <i class="fa-solid fa-hand"></i> Desequipar
+            </button>
+          </form>
+        {% else %}
+          <i class="fa-solid {{ icon }} text-3xl text-stone-700 mb-2"></i>
+          <p class="font-sans text-stone-500 text-sm">Vazio</p>
+          <a href="{{ url_for('character.espolios') }}" class="text-purple-300 hover:text-purple-200 text-xs font-sans mt-3 inline-block">
+            Ver espólios
+          </a>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+  <h2 class="text-xl font-medieval text-stone-100 mb-3">Bônus ativos</h2>
+  <p class="text-stone-500 font-sans text-sm mb-3">
+    Afetam só a apresentação da batalha (combo, crítico, fúria) — não alteram XP ou domínio real.
+  </p>
+  <ul class="font-sans text-stone-300 space-y-1 text-sm">
+    <li><i class="fa-solid fa-khanda text-red-400 mr-2"></i>Dano: +{{ (buffs.danoPct * 100) | round(1) }}%</li>
+    <li><i class="fa-solid fa-bolt text-yellow-400 mr-2"></i>Crítico: +{{ (buffs.critBonus * 100) | round(1) }}%</li>
+    <li><i class="fa-solid fa-fire-flame-simple text-pink-400 mr-2"></i>Fúria por acerto: +{{ buffs.furiaBonus | round(1) }}</li>
+    <li><i class="fa-solid fa-ring text-purple-300 mr-2"></i>Combo: +{{ (buffs.comboBonus * 100) | round(1) }}% por estaca</li>
+    <li><i class="fa-solid fa-heart text-red-300 mr-2"></i>Vida máxima: +{{ buffs.vidaBonus | round(1) }}</li>
+    <li><i class="fa-solid fa-droplet text-fuchsia-400 mr-2"></i>Vampirismo: +{{ (buffs.vampirismoPct * 100) | round(1) }}%</li>
+  </ul>
+  <a href="{{ url_for('character.espolios') }}"
+     class="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform">
+    <i class="fa-solid fa-sack-dollar"></i> Ver espólios
+  </a>
+</div>
+{% endblock %}

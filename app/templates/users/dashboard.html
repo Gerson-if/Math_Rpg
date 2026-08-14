@@ -5,9 +5,10 @@
 
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
   <div class="flex gap-4 sm:gap-6 items-center flex-wrap">
-    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold flex items-center justify-center text-3xl sm:text-4xl bg-blue-950 text-gold shadow-inner shrink-0">
+    <a href="{{ url_for('users.profile') }}" title="Ver perfil"
+       class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold flex items-center justify-center text-3xl sm:text-4xl bg-blue-950 text-gold shadow-inner shrink-0 hover:brightness-125 transition-[filter]">
       {{ ui.avatar_icon(user.profile) }}
-    </div>
+    </a>
     {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
     <div>
       <h1 class="text-2xl sm:text-3xl font-medieval text-gold">Olá, {{ user.profile.display_name if user.profile else user.username }}</h1>

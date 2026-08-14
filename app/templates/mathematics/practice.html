@@ -23,6 +23,107 @@
   @keyframes epicZoom { 0% { transform: scale(1.05); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   .epic-enter { animation: epicZoom 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 
+  /* ---- invocation (battle start) and rebirth (revive) full-viewport
+     overlays, ported from the reference template — these cover
+     literally everything (navbar included) for a couple of seconds,
+     on top of whatever else is happening in the arena underneath. ---- */
+  .intro-overlay, .rebirth-overlay {
+    position: fixed; inset: 0; z-index: 99999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+  }
+  .intro-overlay {
+    background: radial-gradient(circle, rgba(20,8,40,0.98) 0%, rgba(0,0,0,1) 78%);
+    animation: introOverlayFade 2.8s ease-in-out forwards;
+  }
+  @keyframes introOverlayFade { 0% { opacity: 0; } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+  .intro-sigil-wrap { position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; }
+  @media (min-width: 640px) { .intro-sigil-wrap { width: 220px; height: 220px; } }
+  .intro-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: rgba(212, 175, 55, 0.85);
+    border-bottom-color: rgba(168, 85, 247, 0.85);
+    opacity: 0;
+    animation: introRingSpin 2.8s ease-out forwards;
+  }
+  .intro-ring.reverse {
+    inset: -18%; border-width: 1px;
+    border-top-color: rgba(168, 85, 247, 0.7);
+    border-bottom-color: transparent;
+    animation: introRingSpin 2.8s ease-out reverse forwards;
+  }
+  @keyframes introRingSpin {
+    0% { transform: rotate(0deg) scale(0.6); opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: rotate(320deg) scale(1.15); opacity: 0; }
+  }
+  .intro-icon {
+    font-size: 3rem; line-height: 1;
+    color: transparent;
+    background: linear-gradient(to top, #4c1d95 0%, #a855f7 45%, #e9d5ff 80%, #fff 100%);
+    -webkit-background-clip: text; background-clip: text;
+    filter: drop-shadow(0 0 18px #a855f7) drop-shadow(0 0 40px #7e22ce);
+    transform: scale(0.4); opacity: 0;
+    animation: introIconAwaken 2.8s ease-out forwards;
+  }
+  @media (min-width: 640px) { .intro-icon { font-size: 5rem; } }
+  @keyframes introIconAwaken {
+    0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+    25% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+    40% { transform: scale(1) rotate(-2deg); }
+    60% { transform: scale(1.05) rotate(1deg); }
+    80% { transform: scale(1) rotate(0deg); opacity: 1; }
+    100% { transform: scale(1.2); opacity: 0; }
+  }
+  .intro-text, .rebirth-text {
+    margin-top: 1.5rem;
+    font-family: 'MedievalSharp', cursive;
+    text-align: center; padding: 0 1rem;
+    font-size: 1.4rem; opacity: 0;
+  }
+  .intro-text { color: #ede9fe; text-shadow: 0 0 15px #a855f7, 0 0 25px #7e22ce, 0 0 35px #4c1d95; animation: introTextIn 2.8s ease-in-out forwards; }
+  @media (min-width: 640px) { .intro-text, .rebirth-text { font-size: 2.1rem; } }
+  @keyframes introTextIn {
+    0%, 15% { opacity: 0; transform: translateY(15px); }
+    28% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-10px); }
+  }
+
+  .rebirth-overlay {
+    background: radial-gradient(circle, rgba(30,8,0,0.98) 0%, rgba(0,0,0,1) 75%);
+    animation: rebirthOverlayFade 3.4s ease-in-out forwards;
+  }
+  @keyframes rebirthOverlayFade { 0% { opacity: 0; } 10% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
+  .rebirth-flame {
+    font-size: 4.5rem; line-height: 1;
+    color: transparent;
+    background: linear-gradient(to top, #7f1d1d 0%, #ef4444 30%, #f97316 55%, #fde047 80%, #fff8e1 100%);
+    -webkit-background-clip: text; background-clip: text;
+    filter: drop-shadow(0 0 20px #f97316) drop-shadow(0 0 45px #ef4444);
+    transform: translateY(50px) scale(0.25); opacity: 0;
+    animation: flameRise 3.4s ease-out forwards;
+  }
+  @media (min-width: 640px) { .rebirth-flame { font-size: 7rem; } }
+  @keyframes flameRise {
+    0% { transform: translateY(60px) scale(0.2); opacity: 0; }
+    22% { transform: translateY(0) scale(1.15); opacity: 1; }
+    34% { transform: translateY(-5px) scale(1) rotate(-2deg); }
+    46% { transform: translateY(2px) scale(1.08) rotate(2deg); }
+    58% { transform: translateY(-3px) scale(0.97) rotate(-1deg); }
+    78% { transform: translateY(0) scale(1.05) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(-35px) scale(1.3); opacity: 0; }
+  }
+  .rebirth-text { color: #ffedd5; text-shadow: 0 0 15px #ef4444, 0 0 25px #f97316, 0 0 35px #f59e0b, 0 0 50px #eab308; animation: rebirthTextIn 3.4s ease-in-out forwards; }
+  @keyframes rebirthTextIn {
+    0%, 18% { opacity: 0; transform: translateY(15px); }
+    32% { opacity: 1; transform: translateY(0); }
+    82% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-10px); }
+  }
+
   /* Solo Leveling-style gate: a slim glowing rift instead of a screen-filling
      ring — opens in place, stays subtle, never covers the UI beneath it. */
   .gate-rift {
@@ -117,13 +218,6 @@
   }
   .hero-attack-anim { animation: heroAttack 0.3s ease-out; }
 
-  @keyframes slashImpact {
-    0% { transform: scale(0) rotate(45deg); opacity: 0; }
-    50% { transform: scale(1.6) rotate(45deg); opacity: 1; }
-    100% { transform: scale(2.4) rotate(45deg); opacity: 0; }
-  }
-  .slash-effect { position: absolute; color: #d4af37; font-size: 2.5rem; z-index: 20; animation: slashImpact 0.4s ease-out forwards; pointer-events: none; }
-
   @keyframes spellHit {
     0% { transform: scale(1); filter: drop-shadow(0 0 0px gold); }
     50% { transform: scale(1.08); filter: drop-shadow(0 0 25px gold) brightness(1.4); }
@@ -158,7 +252,7 @@
   .miss-spark { position: absolute; color: #ef4444; font-size: 1rem; animation: missSpark 0.5s ease-out forwards; pointer-events: none; }
 
   @keyframes floatBoss { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-  .floating-boss { animation: floatBoss 3s ease-in-out infinite; }
+  .floating-boss { animation: floatBoss 3s ease-in-out infinite; transition: filter 0.8s ease; }
 
   .battle-overlay {
     position: absolute; inset: 0; z-index: 50;
@@ -166,11 +260,154 @@
     background: rgba(5, 5, 5, 0.92);
     border-radius: 0.5rem;
   }
+
+  /* ---- HP bars: real bar on top, a slower "ghost" bar trailing behind
+     it so damage reads as an afterimage, plus the numeric value overlaid
+     — all straight from the reference template. ---- */
+  .hp-bar-wrap { position: relative; }
+  .hp-text {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 0.55rem; font-weight: 700; color: #fff; text-shadow: 1px 1px 2px #000;
+    pointer-events: none; font-family: 'Cinzel', serif; z-index: 2;
+  }
+  @media (min-width: 640px) { .hp-text { font-size: 0.65rem; } }
+
+  /* ---- death transitions ---- */
+  @keyframes disintegrate {
+    0% { filter: brightness(1) blur(0); transform: scale(1); opacity: 1; }
+    100% { filter: brightness(3) blur(10px); transform: scale(1.2) translateY(-30px); opacity: 0; }
+  }
+  .boss-dead { animation: disintegrate 1.5s forwards !important; }
+
+  @keyframes playerDeathFilter {
+    0% { filter: grayscale(0) brightness(1) contrast(1); }
+    100% { filter: grayscale(1) brightness(0.3) contrast(1.5); }
+  }
+  .player-dead { animation: playerDeathFilter 1.5s forwards; }
+
+  /* ---- combo / fury / ultimate ---- */
+  .combo-badge { display: inline-flex; align-items: center; gap: 4px; }
+  .combo-badge.tier-2 { color: #f472b6; text-shadow: 0 0 8px #f472b6; }
+  .combo-badge.tier-3 { color: #fbbf24; text-shadow: 0 0 10px #fbbf24; }
+
+  .fury-track { width: 100%; height: 6px; background: #1c1917; border: 1px solid #57534e; border-radius: 9999px; overflow: hidden; }
+  .fury-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #f472b6, #a855f7, #f472b6); background-size: 200% 100%; transition: width 0.4s ease; animation: furyShift 3s linear infinite; }
+  @keyframes furyShift { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
+
+  .ultimate-btn { opacity: 0.35; filter: grayscale(1); transition: all 0.3s ease; }
+  .ultimate-btn.ready { opacity: 1; filter: grayscale(0); animation: ultimatePulse 1.2s infinite; cursor: pointer; }
+  @keyframes ultimatePulse {
+    0%, 100% { box-shadow: 0 0 10px 2px rgba(244,114,182,0.6); }
+    50% { box-shadow: 0 0 25px 8px rgba(244,114,182,0.95); }
+  }
+
+  /* ---- boss phases ---- */
+  #boss-sprite.boss-phase-2 { filter: hue-rotate(280deg) saturate(1.3) brightness(1.1); }
+  #boss-sprite.boss-phase-3 { filter: hue-rotate(340deg) saturate(1.7) brightness(1.2); }
+
+  .boss-aura {
+    position: absolute; width: 150%; height: 150%; left: -25%; top: -25%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168,85,247,0.35), transparent 70%);
+    opacity: 0; transition: opacity 0.6s ease; pointer-events: none; z-index: -1;
+  }
+  .aura-active { opacity: 1; animation: auraPulse 2.4s ease-in-out infinite; }
+  .aura-intense { background: radial-gradient(circle, rgba(239,68,68,0.5), transparent 70%); animation-duration: 1.3s; }
+  @keyframes auraPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+
+  .phase-tag { font-size: 0.55rem; background: rgba(139,92,246,0.25); border: 1px solid rgba(168,85,247,0.6); padding: 1px 6px; border-radius: 9999px; margin-left: 4px; white-space: nowrap; }
+
+  @keyframes phaseBannerAnim {
+    0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+    15% { opacity: 1; transform: scale(1) translateY(0); }
+    85% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.05) translateY(-10px); }
+  }
+  .phase-banner {
+    position: fixed; inset: 0; z-index: 9998;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1.6rem; color: #fca5a5;
+    text-shadow: 0 0 15px #ef4444, 0 0 30px #7f1d1d;
+    animation: phaseBannerAnim 2.6s ease-in-out forwards;
+    text-align: center; padding: 0 1rem;
+  }
+
+  /* ---- canvas fx / crit flash / floating damage ---- */
+  #fx-canvas { position: absolute; inset: 0; z-index: 15; pointer-events: none; }
+  #crit-flash { position: absolute; inset: 0; z-index: 60; opacity: 0; pointer-events: none; }
+  @keyframes flashPop { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+  .flash-anim { animation: flashPop 0.35s ease-out forwards; background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(251,191,36,0.4) 40%, transparent 70%); }
+  .flash-anim-big { animation: flashPop 0.6s ease-out forwards; background: radial-gradient(circle, rgba(255,255,255,1), rgba(244,114,182,0.65) 40%, transparent 75%); }
+
+  @keyframes floatDamage { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.4); opacity: 0; } }
+  .damage-text {
+    position: fixed;
+    font-family: 'Cinzel', serif; font-weight: 900; font-size: 1.4rem;
+    animation: floatDamage 1s ease-out forwards;
+    pointer-events: none; z-index: 9996;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  }
+  .crit-text { font-size: 2rem !important; color: #fbbf24 !important; text-shadow: 0 0 12px #f97316, 2px 2px 0 #000, -1px -1px 0 #000 !important; }
+
+  @keyframes critShake {
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+    20% { transform: translate3d(-10px, -3px, 0) rotate(-1deg); }
+    40% { transform: translate3d(8px, 3px, 0) rotate(1deg); }
+    60% { transform: translate3d(-6px, 2px, 0) rotate(-0.6deg); }
+    80% { transform: translate3d(5px, -2px, 0) rotate(0.6deg); }
+  }
+  .crit-shake { animation: critShake 0.4s ease-in-out; }
+
+  /* ---- loot toasts ---- */
+  .loot-toast-container {
+    position: fixed; top: 70px; right: 10px; z-index: 9997;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none; max-width: min(90vw, 320px);
+  }
+  .loot-toast {
+    background: rgba(10,8,14,0.94); border: 2px solid var(--rc, #cbd5e1);
+    border-radius: 8px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 0 16px var(--rc, #cbd5e1);
+    animation: lootToastIn 3.2s ease-in-out forwards;
+  }
+  @keyframes lootToastIn {
+    0% { opacity: 0; transform: translateX(30px); }
+    10% { opacity: 1; transform: translateX(0); }
+    85% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(30px); }
+  }
+  .loot-toast .loot-icon { font-size: 1.3rem; color: var(--rc); filter: drop-shadow(0 0 6px var(--rc)); flex-shrink: 0; }
+  .loot-toast .loot-info { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+  .loot-toast .loot-name { font-weight: 700; font-size: 0.75rem; color: #fff; font-family: 'Cinzel', serif; }
+  .loot-toast .loot-rarity { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--rc); font-family: sans-serif; }
+
+  /* ---- consumables: dedicated full-bleed screen, not a modal ---- */
+  /* :not(.hidden) (not a bare #id rule) so Tailwind's .hidden utility
+     always wins on specificity regardless of stylesheet injection order —
+     an #id selector would otherwise beat a lone .hidden class rule even
+     when .hidden is applied, since ID specificity trumps class specificity
+     no matter which rule comes later in the cascade. */
+  #screen-consumables { position: absolute; inset: 0; z-index: 65; }
+  #screen-consumables:not(.hidden) {
+    background: radial-gradient(circle at center, #1a1025 0%, #050505 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.25rem; padding: 1.5rem; text-align: center;
+  }
+  .consumable-slot { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
+<div id="loot-toast-container" class="loot-toast-container"></div>
+
+<!-- Battle mode is a dedicated, exclusive screen — fixed over the whole
+     viewport (navbar included), matching the reference template's own
+     fullscreen app feel, not a section embedded in the normal page. -->
+<div id="battle-fullscreen" class="fixed inset-0 z-[200] bg-black overflow-y-auto">
+<div class="max-w-3xl mx-auto p-3 sm:p-6 min-h-full flex flex-col justify-center">
 
   <!-- STORY SCREEN -->
   <div id="story-screen" class="epic-enter bg-black/70 border-2 border-purple-900 rounded-lg p-6 sm:p-10 text-center space-y-5">
@@ -185,6 +422,17 @@
         Lutando ao lado de <strong class="text-white">{{ ally.username }}</strong> — respostas certas rendem bônus de dupla
       </div>
     {% endif %}
+
+    <div class="inline-flex items-center gap-3 bg-stone-900/70 border border-stone-700 rounded-lg px-4 py-2 text-sm font-sans text-stone-300">
+      <i class="fa-solid fa-khanda text-purple-300"></i>
+      {% set eq_count = (equipped.values() | select | list) | length %}
+      {% if eq_count %}
+        {{ eq_count }} equipamento(s) ativo(s)
+      {% else %}
+        Nenhum equipamento ativo
+      {% endif %}
+      <a href="{{ url_for('character.equipamentos') }}" class="text-purple-300 hover:text-purple-200 underline">preparar</a>
+    </div>
 
     <div class="mentor-tip inline-flex items-start gap-3 bg-stone-900/70 border border-stone-700 rounded-lg p-4 text-left max-w-lg mx-auto">
       <span class="text-2xl shrink-0" aria-hidden="true">🦉</span>
@@ -209,6 +457,8 @@
   <!-- BATTLE ARENA -->
   <div id="battle-arena" class="hidden relative bg-dungeon rounded-lg border-2 border-stone-800 overflow-hidden mt-4">
     <div id="dust-container" class="absolute inset-0 pointer-events-none overflow-hidden z-0"></div>
+    <canvas id="fx-canvas"></canvas>
+    <div id="crit-flash"></div>
     <div id="portal-effect" class="gate-rift"></div>
     <div id="revive-wipe" class="revive-wipe"></div>
     <div id="next-portal-ring" class="portal-ring"></div>
@@ -228,10 +478,19 @@
             {% endif %}
           </div>
           <div class="flex-1 min-w-0">
-            <h2 class="font-medieval text-gold text-xs sm:text-lg truncate">Aprendiz</h2>
-            <div class="w-full bg-stone-900 rounded-full h-2.5 sm:h-3 border border-stone-600 mt-1">
-              <div id="player-hp" class="bg-blue-600 h-full rounded-full transition-all duration-300" style="width:100%"></div>
+            <div class="flex items-center gap-1 flex-wrap">
+              <h2 class="font-medieval text-gold text-xs sm:text-lg truncate">Aprendiz</h2>
+              <div id="combo-badge" class="hidden combo-badge text-[10px] sm:text-xs font-bold text-orange-300 font-sans">
+                <i class="fa-solid fa-fire"></i> Combo x<span id="combo-value">0</span>
+              </div>
             </div>
+            <div id="player-hp-bar-wrap" class="w-full bg-stone-900 rounded-full h-3 sm:h-4 border border-stone-600 mt-1 relative overflow-hidden hp-bar-wrap">
+              <div id="player-hp-ghost" class="bg-blue-900 h-full rounded-full absolute inset-y-0 left-0 transition-all duration-700" style="width:100%"></div>
+              <div id="player-hp" class="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full absolute inset-y-0 left-0 transition-all duration-200" style="width:100%"></div>
+              <span id="player-hp-text" class="hp-text">100/100</span>
+            </div>
+            <p class="text-[9px] sm:text-[10px] text-pink-300 font-sans mt-1 flex items-center gap-1"><i class="fa-solid fa-fire-flame-simple"></i> Fúria</p>
+            <div class="fury-track"><div id="fury-fill" class="fury-fill" style="width:0%"></div></div>
           </div>
         </div>
       </div>
@@ -242,9 +501,14 @@
             <i class="fa-solid fa-dragon text-purple-400"></i>
           </div>
           <div class="flex-1 min-w-0 text-right">
-            <h2 class="font-medieval text-purple-400 text-xs sm:text-lg truncate">Guardião</h2>
-            <div class="w-full bg-stone-900 rounded-full h-2.5 sm:h-3 border border-stone-600 mt-1 flex justify-end">
-              <div id="boss-hp" class="bg-purple-700 h-full rounded-full transition-all duration-300" style="width:100%"></div>
+            <div class="flex items-center gap-1 flex-wrap justify-end">
+              <h2 class="font-medieval text-purple-400 text-xs sm:text-lg truncate">Guardião</h2>
+              <span id="boss-phase-tag" class="phase-tag text-purple-200">Fase 1</span>
+            </div>
+            <div id="boss-hp-bar-wrap" class="w-full bg-stone-900 rounded-full h-3 sm:h-4 border border-stone-600 mt-1 relative overflow-hidden hp-bar-wrap">
+              <div id="boss-hp-ghost" class="bg-purple-950 h-full rounded-full absolute inset-y-0 right-0 transition-all duration-700" style="width:100%"></div>
+              <div id="boss-hp" class="bg-gradient-to-r from-purple-700 to-fuchsia-500 h-full rounded-full absolute inset-y-0 right-0 transition-all duration-200" style="width:100%"></div>
+              <span id="boss-hp-text" class="hp-text">150/150</span>
             </div>
           </div>
         </div>
@@ -253,6 +517,7 @@
 
     <div class="relative z-10 flex items-center justify-center py-2 sm:py-3">
       <div id="boss-sprite" class="floating-boss text-[3rem] sm:text-[4.5rem] text-purple-300 relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+        <div id="boss-aura" class="boss-aura"></div>
         <i class="fa-solid fa-dragon"></i>
         <div id="impact-fx" class="absolute inset-0 flex items-center justify-center"></div>
       </div>
@@ -266,13 +531,48 @@
            class="max-w-xl mx-auto space-y-3">
         <p class="text-center text-stone-400 font-sans">Carregando desafio...</p>
       </div>
-      <div class="flex justify-center mt-3">
+      <div class="flex justify-center items-center gap-4 mt-3">
         <button type="button" onclick="MathBattle.flee()" class="text-stone-400 hover:text-white text-sm font-sans cursor-pointer">
-          <i class="fa-solid fa-person-running mr-1"></i> Fugir da batalha
+          <i class="fa-solid fa-person-running mr-1"></i> Fugir
+        </button>
+        <button type="button" onclick="MathBattle.abrirConsumiveis()" class="text-stone-400 hover:text-white text-sm font-sans cursor-pointer">
+          <i class="fa-solid fa-flask mr-1"></i> Consumíveis
+        </button>
+        <button type="button" id="ultimate-btn" onclick="MathBattle.useUltimate()" disabled title="Fúria Arcana Suprema"
+                class="ultimate-btn bg-fuchsia-900 text-white border-2 border-fuchsia-400 font-bold px-3 py-1.5 rounded-lg text-lg">
+          <i class="fa-solid fa-meteor"></i>
         </button>
       </div>
     </div>
     </div><!-- /#arena-content -->
+
+    <!-- CONSUMÍVEIS: tela cheia dedicada, não um modal -->
+    <div id="screen-consumables" class="hidden">
+      <h2 class="text-2xl sm:text-3xl font-medieval text-gold"><i class="fa-solid fa-flask mr-2"></i>Consumíveis</h2>
+      <p class="text-stone-400 font-sans text-sm max-w-sm">Itens de uso único para esta batalha — não ficam guardados depois que ela termina.</p>
+      <div class="flex gap-6 sm:gap-10">
+        <div class="consumable-slot">
+          <button type="button" onclick="MathBattle.usarPocao()"
+                  class="w-16 h-16 sm:w-20 sm:h-20 bg-black/60 border-2 border-stone-600 rounded-lg flex items-center justify-center text-3xl text-red-500 cursor-pointer hover:border-gold relative">
+            <i class="fa-solid fa-flask"></i>
+            <span id="potion-count" class="absolute -bottom-2 -right-2 text-xs text-white font-bold bg-black rounded-full px-2 py-0.5 border border-stone-700">3</span>
+          </button>
+          <p class="text-stone-300 font-sans text-xs">Poção de Vida<br><span class="text-stone-500">+40 HP</span></p>
+        </div>
+        <div class="consumable-slot">
+          <button type="button" onclick="MathBattle.usarPergaminhoFuria()"
+                  class="w-16 h-16 sm:w-20 sm:h-20 bg-black/60 border-2 border-stone-600 rounded-lg flex items-center justify-center text-3xl text-fuchsia-400 cursor-pointer hover:border-gold relative">
+            <i class="fa-solid fa-scroll"></i>
+            <span id="scroll-count" class="absolute -bottom-2 -right-2 text-xs text-white font-bold bg-black rounded-full px-2 py-0.5 border border-stone-700">2</span>
+          </button>
+          <p class="text-stone-300 font-sans text-xs">Pergaminho de Fúria<br><span class="text-stone-500">+40 Fúria</span></p>
+        </div>
+      </div>
+      <button type="button" onclick="MathBattle.fecharConsumiveis()"
+              class="mt-4 px-6 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+        <i class="fa-solid fa-arrow-left mr-2"></i>Voltar à batalha
+      </button>
+    </div>
 
     <!-- VICTORY -->
     <div id="victory-screen" class="battle-overlay hidden">
@@ -280,6 +580,7 @@
         <i class="fa-solid fa-crown text-5xl sm:text-6xl text-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.8)]"></i>
         <h2 class="text-2xl sm:text-3xl font-medieval text-white">Guardião derrotado!</h2>
         <p class="text-stone-300 font-serif italic text-sm sm:text-base">Sua sabedoria prevaleceu. Continue avançando pela trilha.</p>
+        <p id="victory-loot" class="text-xs sm:text-sm font-sans text-stone-300"></p>
         <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
           <button type="button" onclick="MathBattle.nextChallenge()"
                   class="px-5 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform cursor-pointer">
@@ -313,141 +614,21 @@
     </div>
   </div>
 </div>
+</div><!-- /#battle-fullscreen -->
 
+<script>document.body.style.overflow = "hidden";</script>
+<script src="{{ url_for('static', filename='js/battle-audio.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-fx.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-loot.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battle-arena.js') }}"></script>
 <script>
-  const MathBattle = (() => {
-    const BOSS_STEP = 34;
-    const HERO_STEP = 40;
-    let playerHP = 100;
-    let bossHP = 100;
-
-    function $(id) { return document.getElementById(id); }
-
-    function start() {
-      $('story-screen').classList.add('hidden');
-      const arena = $('battle-arena');
-      arena.classList.remove('hidden');
-      arena.classList.add('epic-enter');
-      spawnDust();
-      arena.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      focusAnswer();
-    }
-
-    function spawnDust() {
-      const c = $('dust-container');
-      c.innerHTML = '';
-      for (let i = 0; i < 10; i++) {
-        const d = document.createElement('div');
-        d.className = 'magic-dust';
-        d.style.left = Math.random() * 100 + '%';
-        const size = Math.random() * 4 + 2;
-        d.style.width = size + 'px';
-        d.style.height = size + 'px';
-        d.style.animationDuration = (Math.random() * 3 + 3) + 's';
-        d.style.animationDelay = Math.random() * 3 + 's';
-        c.appendChild(d);
-      }
-    }
-
-    function focusAnswer() {
-      const input = document.querySelector('#question-slot input[name="answer"]');
-      if (input && window.innerWidth > 768) input.focus();
-    }
-
-    document.body.addEventListener('htmx:afterSwap', (evt) => {
-      if (evt.target.id !== 'question-slot') return;
-      const d = evt.target.dataset;
-      if (d.correct === 'true') onHit();
-      else if (d.correct === 'false') onMiss();
-      focusAnswer();
-    });
-
-    function onHit() {
-      const hero = $('hero-avatar');
-      hero.classList.remove('hero-attack-anim'); void hero.offsetWidth; hero.classList.add('hero-attack-anim');
-
-      const fx = $('impact-fx');
-      fx.innerHTML = '<i class="fa-solid fa-bolt slash-effect"></i>';
-      const boss = $('boss-sprite');
-      setTimeout(() => {
-        boss.classList.remove('spell-hit'); void boss.offsetWidth; boss.classList.add('spell-hit');
-        fx.innerHTML = '';
-      }, 150);
-
-      bossHP = Math.max(0, bossHP - BOSS_STEP);
-      $('boss-hp').style.width = bossHP + '%';
-      if (bossHP <= 0) setTimeout(victory, 500);
-    }
-
-    function onMiss() {
-      const arena = $('battle-arena');
-      arena.classList.remove('hit-flash'); void arena.offsetWidth; arena.classList.add('hit-flash');
-
-      const hero = $('hero-avatar');
-      hero.classList.remove('hero-hurt-anim'); void hero.offsetWidth; hero.classList.add('hero-hurt-anim');
-
-      const fx = $('hero-fx');
-      fx.innerHTML = '<i class="fa-solid fa-bolt-lightning miss-spark"></i>';
-      setTimeout(() => { fx.innerHTML = ''; }, 500);
-
-      playerHP = Math.max(0, playerHP - HERO_STEP);
-      $('player-hp').style.width = playerHP + '%';
-      if (playerHP <= 0) setTimeout(defeat, 700);
-    }
-
-    function victory() {
-      const portal = $('portal-effect');
-      portal.className = 'gate-rift gate-rift--mystic';
-      setTimeout(() => $('victory-screen').classList.remove('hidden'), 700);
-    }
-
-    function defeat() { $('defeat-screen').classList.remove('hidden'); }
-
-    function resetBars() {
-      playerHP = 100; bossHP = 100;
-      $('player-hp').style.width = '100%';
-      $('boss-hp').style.width = '100%';
-      $('portal-effect').className = 'gate-rift';
-    }
-
-    function revive() {
-      const portal = $('portal-effect');
-      portal.className = 'gate-rift gate-rift--fire';
-
-      const wipe = $('revive-wipe');
-      wipe.className = 'revive-wipe revive-wipe--in';
-
-      setTimeout(() => {
-        resetBars();
-        $('defeat-screen').classList.add('hidden');
-        wipe.className = 'revive-wipe revive-wipe--out';
-        focusAnswer();
-      }, 550);
-
-      setTimeout(() => { wipe.className = 'revive-wipe'; }, 1050);
-    }
-
-    function nextChallenge() {
-      const ring = $('next-portal-ring');
-      const content = $('arena-content');
-
-      ring.className = 'portal-ring portal-ring--open';
-
-      setTimeout(() => {
-        resetBars();
-        $('victory-screen').classList.add('hidden');
-        content.classList.remove('arena-portal-reveal'); void content.offsetWidth;
-        content.classList.add('arena-portal-reveal');
-        spawnDust();
-        focusAnswer();
-      }, 380); // synced to the ring's brightest, narrowest moment
-
-      setTimeout(() => { ring.className = 'portal-ring'; }, 950);
-    }
-
-    function flee() { window.location.href = "{{ url_for('mathematics.index') }}"; }
-
-    return { start, revive, nextChallenge, flee };
-  })();
+  BattleFx.init("fx-canvas", "battle-arena");
+  MathBattle.init({
+    topicSlug: {{ topic.slug | tojson }},
+    indexUrl: {{ url_for('mathematics.index') | tojson }},
+    victoryUrl: {{ url_for('mathematics.claim_victory', topic_slug=topic.slug) | tojson }},
+    csrfToken: {{ csrf_token() | tojson }},
+    buffs: {{ buffs | tojson }},
+  });
 </script>
 {% endblock %}

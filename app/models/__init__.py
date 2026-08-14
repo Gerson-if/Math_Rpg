@@ -6,6 +6,7 @@ from app.models.ranking import LeaderboardEntry
 from app.models.chat import ChatMessage
 from app.models.misc import Notification, StudySession
 from app.models.social import Friendship, DungeonInvite
+from app.models.inventory import ItemInstance
 
 __all__ = [
     "User",
@@ -26,4 +27,5 @@ __all__ = [
     "StudySession",
     "Friendship",
     "DungeonInvite",
+    "ItemInstance",
 ]

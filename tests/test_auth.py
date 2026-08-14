@@ -1,4 +1,5 @@
-from app.models import User
+from app.extensions import db
+from app.models import User, Level, Rank
 
 
 def test_health(client):
@@ -24,6 +25,32 @@ def test_register_creates_user_and_dependents(client, db):
     assert user is not None
     assert user.profile is not None
     assert user.stats is not None
+
+
+def test_register_places_the_new_player_on_the_rank_ladder_immediately(client, db):
+    """New players used to show a blank '-' rank/level in the ranking
+    until their first answer — confusing. Registration now assigns level 1
+    and the lowest rank right away, when the ladder is seeded."""
+    db.session.add(Level(number=1, xp_required=0))
+    db.session.add(Rank(slug="iniciante", name="Iniciante", order=1, min_level=1))
+    db.session.commit()
+
+    client.post(
+        "/auth/register",
+        data={
+            "username": "novato",
+            "email": "novato@example.com",
+            "password": "senhaforte123",
+            "confirm_password": "senhaforte123",
+        },
+        follow_redirects=True,
+    )
+
+    user = User.query.filter_by(email="novato@example.com").first()
+    assert user.stats.level is not None
+    assert user.stats.level.number == 1
+    assert user.stats.rank is not None
+    assert user.stats.rank.slug == "iniciante"
 
 
 def test_login_wrong_password_shows_error(client, db):

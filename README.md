@@ -285,6 +285,45 @@ inteira antes de revelar a batalha resetada.
   escopo, documentada aqui para quem quiser evoluir para algo
   sincronizado de verdade no futuro.
 
+**Sistema de batalha rico: combo, crítico, fúria, fases do chefe e loot/equipamento**
+A pedido do usuário, o arena de batalha foi reconstruído a partir de um
+segundo template de referência bem mais elaborado que o anterior
+(combo, crítico, fúria/ultimate, fases do chefe, partículas/projéteis em
+canvas, áudio 100% procedural via Web Audio API, e um sistema de loot com
+4 raridades e 6 slots de equipamento). A pergunta continua 100% real
+(`mathematics_service`/HTMX, o mesmo de sempre) — o que mudou foi a
+apresentação por cima dela:
+- **Combo, crítico visual, fúria/ultimate e fase do chefe são cosméticos**
+  — não alteram XP real, só amplificam a mesma barra de vida cosmética
+  que já existia (decisão deliberada, ver `app/services/loot_service.py`,
+  para não abrir uma superfície de "otimizar equipamento pra grindar XP"
+  num app educacional).
+- **O crítico que decide se cai loot é sorteado no servidor**
+  (`answer_question`, usando os buffs reais do equipamento via
+  `loot_service.compute_buffs`) — o cliente só anima o que o servidor já
+  decidiu, nunca inventa uma recompensa sozinho. Loot garantido ao
+  derrotar o chefe passa por um endpoint próprio
+  (`POST /praticar/<slug>/vitoria`), rate-limited e com uma checagem
+  proporcional de integridade (existe um `Attempt` correto recente).
+- **Equipamento é escolhido antes da batalha**, em páginas reais
+  (`/personagem/equipamentos`, `/personagem/espolios`) — 6 slots (arma,
+  anel, amuleto, armadura, capacete, botas), 4 raridades, 6 passivos.
+  Consumíveis (poção/pergaminho) continuam por-batalha, não persistentes,
+  numa tela cheia dedicada dentro do arena — nunca um modal pequeno.
+- **A batalha agora é uma tela exclusiva de verdade**: `#battle-fullscreen`
+  cobre todo o viewport (navbar incluso), com as invocações de início
+  (`showInvocation`) e renascimento (`showRebirth`) portadas quase
+  literalmente do template de referência, barras de HP com "afterimage"
+  (ghost bar) + texto numérico, e filtros de morte (dessintegração do
+  chefe, dessaturação do jogador) — escopados a `#arena-content` para não
+  escurecer a própria tela de derrota por cima.
+- JS extraído para `app/static/js/` (primeira vez que o projeto tem JS em
+  arquivo próprio) em módulos: `battle-audio.js`, `battle-fx.js`,
+  `battle-loot.js`, `battle-arena.js` (orquestrador).
+- Novos jogadores já entram no nível 1 e no rank mais baixo da liga
+  desde o cadastro (antes ficavam com "-" até a primeira resposta), e o
+  ranking ganhou uma trilha visual com todos os ranks — não só o atual.
+
 ## O que ainda não existe
 
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
@@ -295,6 +334,12 @@ inteira antes de revelar a batalha resetada.
   existem rotas reais para esses conceitos ainda.
 - Masmorra em co-op é assíncrona por design (ver acima) — não há
   batalha ao vivo sincronizada entre dois jogadores.
+- Sistema de classes de personagem (escolher classe, trocar ao subir de
+  nível, ganhar habilidade nova) — pedido, ainda não implementado.
+- Mapa de aventura visual, chefes distintos por matéria, pré-requisitos/
+  recomendações de domínio entre tópicos, e um sistema de lore/história
+  do reino que se revela com o progresso — pedidos, ainda não
+  implementados.
 
 ## Instalação local
 
