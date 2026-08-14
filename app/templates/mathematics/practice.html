@@ -412,15 +412,19 @@
 
   /* ---- speech-bubble toasts: answer feedback / achievement / mastery
      review, styled like a comic balloon coming from the hero rather than
-     a block that pushes the challenge box around. Always the same
-     fixed spot regardless of how many appear, so the arena layout below
-     never shifts between questions. ---- */
+     a block that pushes the challenge box around. Lives inside the boss
+     row (the one stretch of the arena with no HP bars/buttons to cover),
+     not pinned to the arena's own top edge — so it never overlaps the
+     header regardless of how tall that header gets (e.g. the "ally"
+     badge adding an extra line). Always the same spot, so the arena
+     layout below never shifts between questions. ---- */
   .speech-bubble-container {
-    position: absolute; top: 80px; left: 8px; right: 8px; z-index: 68;
+    position: absolute; top: 2px; left: 4px; z-index: 68;
     display: flex; flex-direction: column; gap: 6px;
+    max-width: 60%;
     pointer-events: none;
   }
-  @media (min-width: 640px) { .speech-bubble-container { top: 96px; left: 14px; right: auto; max-width: 62%; } }
+  @media (min-width: 640px) { .speech-bubble-container { left: 10px; max-width: 52%; } }
   .speech-bubble {
     position: relative; align-self: flex-start; max-width: 100%;
     background: rgba(10,8,14,0.94); border: 2px solid #d4af37; border-radius: 14px;
@@ -553,7 +557,6 @@
     <div id="revive-wipe" class="revive-wipe"></div>
     <div id="next-portal-ring" class="portal-ring"></div>
     <div id="battle-alert-container" class="battle-alert-container"></div>
-    <div id="speech-bubble-container" class="speech-bubble-container"></div>
 
     <div id="arena-content">
     <div class="relative z-10 p-3 sm:p-4 flex justify-between items-start gap-3 bg-gradient-to-b from-black/80 to-transparent">
@@ -611,6 +614,7 @@
     </div>
 
     <div class="relative z-10 flex items-center justify-center py-2 sm:py-3">
+      <div id="speech-bubble-container" class="speech-bubble-container"></div>
       <div id="boss-sprite" class="floating-boss text-[3rem] sm:text-[4.5rem] text-{{ guardian.color }} relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
         <div id="boss-aura" class="boss-aura"></div>
         <i class="fa-solid {{ guardian.icon }}"></i>
