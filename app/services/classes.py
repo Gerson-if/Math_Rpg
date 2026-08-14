@@ -46,6 +46,18 @@ CLASS_ABILITIES: dict[str, list[str]] = {
     "ladino": ["Golpe Furtivo", "Passos Silenciosos", "Assassinato"],
 }
 
+# One line of flavor per class, tying it into "As Crônicas de Arith" (see
+# app/services/lore.py) — how this class's aprendiz would carry the same
+# quest to find the princesa Sela differently. Purely narrative, shown on
+# the class picker and the profile page.
+CLASS_LORE: dict[str, str] = {
+    "guerreiro": "Você avança pela força bruta — cada golpe certeiro é mais uma prova de que a coragem ainda vale algo em Arith.",
+    "mago": "Você enxerga os padrões escondidos nos números, os mesmos que aprisionam Sela — e sabe que a resposta certa, no instante certo, pode desfazer qualquer feitiço.",
+    "arqueiro": "Sua precisão nunca falha duas vezes seguidas — cada acerto encadeado no anterior, como os passos de quem já decidiu não recuar.",
+    "clerigo": "Você carrega a fé do reino como um escudo — onde outros veem apenas números, você vê pessoas esperando para serem salvas.",
+    "ladino": "Você aprendeu a tirar proveito de cada erro do inimigo — inclusive os do próprio Mercador das Sombras.",
+}
+
 
 def current_tier(level_number: int) -> int:
     """Highest ability tier index this level qualifies for."""

@@ -4,6 +4,20 @@
 <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
   <i class="fa-solid fa-shield-halved"></i> {{ "Trocar de classe" if is_reclass else "Escolha sua classe" }}
 </h1>
+
+{% if not is_reclass %}
+  <div class="bg-purple-950/30 border border-purple-500/40 rounded-lg p-4 sm:p-5 mb-5 max-w-3xl">
+    <p class="text-purple-100 font-serif italic text-sm sm:text-base leading-relaxed">
+      Bem-vindo a Arith, aprendiz. O reino guarda um mistério: a princesa Sela desapareceu na
+      noite em que completou seu treinamento nas Tábuas Sagradas, e uma maldição silenciosa
+      se espalha pelas ruínas desde então. Ninguém sabe ainda o que realmente aconteceu —
+      apenas que alguém precisa dominar o conhecimento das trilhas de Arith para descobrir.
+      <strong class="text-gold not-italic">Essa pessoa pode ser você.</strong> Escolha como vai
+      enfrentar essa jornada.
+    </p>
+  </div>
+{% endif %}
+
 <p class="text-stone-400 font-sans mb-6">
   {% if is_reclass %}
     Você alcançou o nível de <strong class="text-gold">{{ tier_label }}</strong> — escolha (ou confirme) sua classe para desbloquear uma nova habilidade.
@@ -27,6 +41,9 @@
             <span>
               <span class="block font-medieval text-lg text-white">{{ cls.name }}</span>
               <span class="block text-xs text-stone-400 mt-1">Habilidade em {{ tier_label }}: <strong class="text-gold">{{ abilities[value][target_tier] }}</strong></span>
+              {% if class_lore.get(value) %}
+                <span class="block text-[0.7rem] text-purple-300 font-serif italic mt-1.5">{{ class_lore[value] }}</span>
+              {% endif %}
             </span>
           </span>
         </label>

@@ -37,6 +37,7 @@
       <div>
         <p class="text-white font-medieval text-lg">{{ class_info.name }}</p>
         {% if ability %}<p class="text-stone-400 text-sm">Habilidade: <span class="text-gold">{{ ability }}</span></p>{% endif %}
+        {% if class_lore_line %}<p class="text-purple-300 font-serif italic text-xs mt-1">{{ class_lore_line }}</p>{% endif %}
       </div>
     </div>
   {% else %}

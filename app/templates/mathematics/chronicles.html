@@ -19,7 +19,14 @@
         <span class="text-stone-600 font-sans text-xs ml-auto">{{ subject.name }}</span>
       </div>
       {% if discovered %}
-        <p class="text-stone-300 font-serif italic text-sm sm:text-base leading-relaxed">{{ chronicle.text }}</p>
+        <div class="space-y-3">
+          {% for stage in chronicle.stages %}
+            <p class="text-stone-300 font-serif italic text-sm sm:text-base leading-relaxed">
+              <span class="text-gold not-italic font-sans text-xs font-bold mr-1">Capítulo {{ loop.index }}.</span>
+              {{ stage }}
+            </p>
+          {% endfor %}
+        </div>
       {% else %}
         <p class="text-stone-600 font-serif italic text-sm">
           Pratique algo de <strong>{{ subject.name }}</strong> para revelar esta crônica.

@@ -91,21 +91,21 @@ const MathBattle = (() => {
     setTimeout(() => overlay.remove(), 2800);
   }
 
-  /* One sentence of that subject's chronicle per boss defeated — purely
-     narrative flavor (see app/services/lore.py), tracked client-side only
-     since it has no bearing on real progression. Loops back to the last
-     sentence once the chronicle has been fully told bit by bit. */
+  /* One chapter ("stage") of that subject's chronicle per boss defeated —
+     purely narrative flavor (see app/services/lore.py), tracked
+     client-side only since it has no bearing on real progression. Loops
+     back to the last chapter once the chronicle has been fully told. */
   function nextLoreSnippet() {
     const chronicle = cfg.chronicle;
-    if (!chronicle || !chronicle.text) return null;
-    const sentences = chronicle.text.match(/[^.!?]+[.!?]+/g) || [chronicle.text];
+    if (!chronicle || !chronicle.stages || !chronicle.stages.length) return null;
+    const stages = chronicle.stages;
     const key = "mathrpg_lore_" + (cfg.subjectSlug || "geral");
     let idx = parseInt(localStorage.getItem(key) || "0", 10);
     if (isNaN(idx) || idx < 0) idx = 0;
-    const snippet = sentences[Math.min(idx, sentences.length - 1)].trim();
-    const isComplete = idx >= sentences.length - 1;
-    localStorage.setItem(key, String(Math.min(idx + 1, sentences.length - 1)));
-    return { title: chronicle.title, snippet, isComplete };
+    const snippet = stages[Math.min(idx, stages.length - 1)].trim();
+    const isComplete = idx >= stages.length - 1;
+    localStorage.setItem(key, String(Math.min(idx + 1, stages.length - 1)));
+    return { title: chronicle.title, snippet, isComplete, stageNumber: Math.min(idx + 1, stages.length) };
   }
 
   /* Doesn't auto-dismiss — there's a chronicle sliver to actually read —
@@ -123,7 +123,7 @@ const MathBattle = (() => {
       "</div>" +
       '<div class="victory-title">Vitória!</div>';
     if (lore) {
-      html += `<div class="victory-snippet"><strong>${escapeHtml(lore.title)}</strong><br>${escapeHtml(lore.snippet)}${lore.isComplete ? " <em>(crônica completa — reveja em Crônicas do Reino)</em>" : ""}</div>`;
+      html += `<div class="victory-snippet"><strong>${escapeHtml(lore.title)} — Capítulo ${lore.stageNumber}</strong><br>${escapeHtml(lore.snippet)}${lore.isComplete ? " <em>(crônica completa — reveja em Crônicas do Reino)</em>" : ""}</div>`;
     }
     html += '<button type="button" class="victory-continue-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Continuar</button>';
     overlay.innerHTML = html;

@@ -79,9 +79,11 @@ def profile():
     can_choose = classes_service.can_choose_class(
         _level_number(current_user), profile.class_tier_claimed if profile else -1
     )
+    class_lore_line = classes_service.CLASS_LORE.get(class_key) if class_key else None
     return render_template(
         "users/profile.html", user=current_user,
         class_info=class_info, ability=ability, can_choose_class=can_choose,
+        class_lore_line=class_lore_line,
     )
 
 
@@ -125,5 +127,6 @@ def choose_class():
         classes=classes_service.CLASSES, target_tier=target_tier,
         tier_label=classes_service.ABILITY_TIERS[target_tier]["label"],
         abilities=classes_service.CLASS_ABILITIES,
+        class_lore=classes_service.CLASS_LORE,
         is_reclass=tier_claimed >= 0,
     )

@@ -1,10 +1,10 @@
-# Matemática RPG — Fases 1–8 (Fundação → Produção)
+# Matemática RPG
 
 Plataforma de aprendizado de matemática com progressão inspirada em RPG
-(XP, níveis, rankings, domínio, conquistas, chat). Flask app factory,
-modelos do banco, autenticação, motor de questões, progressão, interface
-com identidade visual em construção e chat global — tudo modular por
-blueprints, como descrito no documento de especificação original.
+(XP, níveis, rankings, domínio, conquistas, batalhas, equipamentos, chat).
+Flask app factory, modelos do banco, autenticação, motor de questões,
+progressão, identidade visual medieval e chat global — tudo modular por
+blueprints.
 
 A identidade visual é Tailwind CSS + FontAwesome em tema medieval (ver
 "Remodelagem visual completa" mais abaixo) — não há mais sprites de
@@ -448,6 +448,22 @@ apresentação por cima dela:
   multiplicava por 100 e mostrava como porcentagem (`+1440%`).
   `_macros.html`'s `passive_label()` agora usa a mesma convenção do
   `battle-loot.js`, reutilizada nas duas telas de equipamento.
+
+### "As Crônicas de Arith" — história do reino expandida em capítulos
+
+- Cada matéria tinha um parágrafo curto de lore, revelado frase a
+  frase e repetitivo depois de 3-4 vitórias. Virou uma única trama
+  contínua ("a princesa Sela, aprisionada por uma maldição tecida pelo
+  Mercador das Sombras") contada em ~5 capítulos por matéria
+  (`Chronicle.stages`, no lugar de um texto único) — cada vitória
+  revela o próximo capítulo daquela trilha, e a página Crônicas do
+  Reino mostra a trama inteira, numerada, assim que a matéria é
+  descoberta.
+- Cada classe ganhou uma linha de sabor própria (`classes.CLASS_LORE`)
+  amarrada à mesma trama, mostrada no seletor de classe e no perfil.
+- A primeira escolha de classe agora abre com um parágrafo de
+  ambientação — o mistério da princesa Sela e a missão do jogador —
+  em vez de ir direto para o formulário.
 
 ## O que ainda não existe
 
