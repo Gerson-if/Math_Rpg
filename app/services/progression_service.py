@@ -128,6 +128,39 @@ def get_effective_difficulty(user_id: int, topic: Topic) -> int:
     return max(1, min(5, topic.base_difficulty + delta))
 
 
+# Mastery score above which a prerequisite topic counts as "solid enough"
+# to recommend moving on — deliberately looser than MASTERY_REVIEW_THRESHOLD
+# (which flags an already-practiced topic for review), since this is about
+# a first-time recommendation, not a regression warning.
+_PREREQUISITE_MASTERY_THRESHOLD = 0.5
+
+
+def unmet_prerequisites(user_id: int, topic: Topic) -> list[Topic]:
+    """Prerequisite topics (see Topic.prerequisite_slugs) this user hasn't
+    reasonably mastered yet. Purely advisory — the caller decides how to
+    show it (a badge, a note); nothing here blocks access to `topic`. An
+    empty list means either there are no prerequisites or they're all
+    already solid."""
+    if not topic.prerequisite_slugs:
+        return []
+
+    prereq_topics = Topic.query.filter(Topic.slug.in_(topic.prerequisite_slugs)).all()
+    if not prereq_topics:
+        return []
+
+    masteries = {
+        m.topic_id: m.mastery_score
+        for m in Mastery.query.filter(
+            Mastery.user_id == user_id,
+            Mastery.topic_id.in_([t.id for t in prereq_topics]),
+        ).all()
+    }
+    return [
+        t for t in prereq_topics
+        if masteries.get(t.id, 0.0) < _PREREQUISITE_MASTERY_THRESHOLD
+    ]
+
+
 def _get_or_create_stats(user_id: int) -> PlayerStats:
     stats = PlayerStats.query.filter_by(user_id=user_id).first()
     if stats is None:

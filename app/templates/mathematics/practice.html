@@ -413,13 +413,21 @@
   <div id="story-screen" class="epic-enter bg-black/70 border-2 border-purple-900 rounded-lg p-6 sm:p-10 text-center space-y-5">
     <h1 class="text-3xl sm:text-4xl font-medieval text-gold drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]">{{ topic.name }}</h1>
     <p class="text-stone-300 italic font-serif max-w-xl mx-auto">
-      Um Guardião do Conhecimento vigia esta trilha. Prove seu domínio de <strong class="text-gold">{{ topic.name }}</strong> para seguir em frente.
+      <strong class="text-{{ guardian.color }}">{{ guardian.name }}</strong> vigia esta trilha. Prove seu domínio de <strong class="text-gold">{{ topic.name }}</strong> para seguir em frente.
     </p>
 
     {% if ally %}
       <div class="inline-flex items-center gap-2 bg-purple-950/50 border border-purple-500 rounded-full px-4 py-1.5 text-purple-200 text-sm font-sans">
         <i class="fa-solid fa-people-group text-purple-300"></i>
         Lutando ao lado de <strong class="text-white">{{ ally.username }}</strong> — respostas certas rendem bônus de dupla
+      </div>
+    {% endif %}
+
+    {% if recommend_first %}
+      <div class="inline-flex items-center gap-2 bg-yellow-950/40 border border-gold rounded-full px-4 py-1.5 text-yellow-100 text-sm font-sans">
+        <i class="fa-solid fa-compass text-gold"></i>
+        Recomendado praticar primeiro:
+        {% for t in recommend_first %}<a href="{{ url_for('mathematics.practice', topic_slug=t.slug) }}" class="underline hover:text-gold">{{ t.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
       </div>
     {% endif %}
 
@@ -445,11 +453,11 @@
     <div class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
       <a href="{{ url_for('mathematics.index') }}"
          class="px-6 py-3 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-        <i class="fa-solid fa-arrow-left mr-2"></i>Voltar aos tópicos
+        <i class="fa-solid fa-arrow-left mr-2"></i>Voltar ao mapa
       </a>
       <button type="button" onclick="MathBattle.start()"
               class="px-8 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval text-lg hover:scale-105 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] transition-all cursor-pointer">
-        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Enfrentar o Guardião
+        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Enfrentar {{ guardian.name }}
       </button>
     </div>
   </div>
@@ -498,11 +506,11 @@
       <div class="flex-1 min-w-0">
         <div class="flex items-center flex-row-reverse gap-2 sm:gap-3">
           <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-stone-800 border-2 border-purple-500 flex items-center justify-center text-xl sm:text-3xl shrink-0">
-            <i class="fa-solid fa-dragon text-purple-400"></i>
+            <i class="fa-solid {{ guardian.icon }} text-{{ guardian.color }}"></i>
           </div>
           <div class="flex-1 min-w-0 text-right">
             <div class="flex items-center gap-1 flex-wrap justify-end">
-              <h2 class="font-medieval text-purple-400 text-xs sm:text-lg truncate">Guardião</h2>
+              <h2 class="font-medieval text-purple-400 text-xs sm:text-lg truncate">{{ guardian.name }}</h2>
               <span id="boss-phase-tag" class="phase-tag text-purple-200">Fase 1</span>
             </div>
             <div id="boss-hp-bar-wrap" class="w-full bg-stone-900 rounded-full h-3 sm:h-4 border border-stone-600 mt-1 relative overflow-hidden hp-bar-wrap">
@@ -516,9 +524,9 @@
     </div>
 
     <div class="relative z-10 flex items-center justify-center py-2 sm:py-3">
-      <div id="boss-sprite" class="floating-boss text-[3rem] sm:text-[4.5rem] text-purple-300 relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+      <div id="boss-sprite" class="floating-boss text-[3rem] sm:text-[4.5rem] text-{{ guardian.color }} relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
         <div id="boss-aura" class="boss-aura"></div>
-        <i class="fa-solid fa-dragon"></i>
+        <i class="fa-solid {{ guardian.icon }}"></i>
         <div id="impact-fx" class="absolute inset-0 flex items-center justify-center"></div>
       </div>
     </div>
@@ -578,7 +586,7 @@
     <div id="victory-screen" class="battle-overlay hidden">
       <div class="text-center space-y-4 max-w-md p-6 sm:p-8 bg-black/40 border-2 border-gold rounded-lg backdrop-blur-md shadow-[0_0_50px_rgba(212,175,55,0.3)]">
         <i class="fa-solid fa-crown text-5xl sm:text-6xl text-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.8)]"></i>
-        <h2 class="text-2xl sm:text-3xl font-medieval text-white">Guardião derrotado!</h2>
+        <h2 class="text-2xl sm:text-3xl font-medieval text-white">{{ guardian.name }} derrotado!</h2>
         <p class="text-stone-300 font-serif italic text-sm sm:text-base">Sua sabedoria prevaleceu. Continue avançando pela trilha.</p>
         <p id="victory-loot" class="text-xs sm:text-sm font-sans text-stone-300"></p>
         <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
@@ -588,7 +596,7 @@
           </button>
           <a href="{{ url_for('mathematics.index') }}"
              class="px-5 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-            <i class="fa-solid fa-map mr-1"></i> Voltar aos tópicos
+            <i class="fa-solid fa-map mr-1"></i> Voltar ao mapa
           </a>
         </div>
       </div>

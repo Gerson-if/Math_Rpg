@@ -324,6 +324,37 @@ apresentação por cima dela:
   desde o cadastro (antes ficavam com "-" até a primeira resposta), e o
   ranking ganhou uma trilha visual com todos os ranks — não só o atual.
 
+**Guardiões por matéria, pré-requisitos, mapa de aventura e crônicas do reino**
+- Cada matéria agora tem seu próprio guardião — nome, ícone e cor
+  distintos (`app/services/guardians.py`) — em vez do mesmo dragão
+  genérico em toda batalha. Fallback automático para qualquer matéria
+  fora da lista, então nada quebra se o currículo crescer sem atualizar
+  o arquivo.
+- `Topic.prerequisite_slugs` (campo que já existia no modelo, nunca
+  usado) agora é populado pelo `scripts/seed.py` — cada tópico recomenda
+  o anterior na mesma matéria — e lido por
+  `progression_service.unmet_prerequisites`. É uma **recomendação, não
+  um bloqueio**: o tópico continua 100% acessível, só aparece um aviso
+  ("recomendado praticar primeiro: X") quando a maestria no
+  pré-requisito ainda está abaixo de 50%.
+- A tela de Tópicos virou o **Mapa de Aventura** (`/math/`, renomeado em
+  toda a navegação): cada matéria é uma trilha de nós numerados ligados
+  por um caminho, terminando no guardião daquela matéria — não mais uma
+  lista de links empilhados.
+- **Crônicas do Reino** (`/math/cronicas`): um parágrafo curto de lore
+  por matéria (`app/services/lore.py`), amarrando o currículo à mesma
+  ambientação "Ruínas de Arith" já estabelecida na abertura da batalha.
+  Cada crônica é "descoberta" assim que o jogador responde qualquer
+  questão daquela matéria — antes disso aparece como "???".
+- A suíte de testes ganhou uma fixture `autouse` que fixa a semente do
+  `random` antes de cada teste (`tests/conftest.py`) — o módulo `random`
+  é global ao processo, então quantas vezes um teste anterior sorteou
+  algo (pergunta, crítico, raridade de loot) mudava o que o próximo
+  teste sorteava, causando falhas intermitentes dependentes da ordem de
+  execução. Isso também expôs um bug real: um crítico suprimia a
+  palavra "Correto!" do feedback (substituída por "Golpe Crítico!"),
+  quebrando a confirmação de acerto — corrigido.
+
 ## O que ainda não existe
 
 - O deploy em si (servidor real, domínio, TLS emitido de verdade) — os
@@ -336,10 +367,6 @@ apresentação por cima dela:
   batalha ao vivo sincronizada entre dois jogadores.
 - Sistema de classes de personagem (escolher classe, trocar ao subir de
   nível, ganhar habilidade nova) — pedido, ainda não implementado.
-- Mapa de aventura visual, chefes distintos por matéria, pré-requisitos/
-  recomendações de domínio entre tópicos, e um sistema de lore/história
-  do reino que se revela com o progresso — pedidos, ainda não
-  implementados.
 
 ## Instalação local
 

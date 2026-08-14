@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Crônicas do Reino{% endblock %}
+{% block content %}
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
+  <i class="fa-solid fa-scroll"></i> Crônicas do Reino
+</h1>
+<p class="text-stone-400 font-sans text-sm mb-6">
+  A história de Arith se revela conforme você pratica — pelo menos uma resposta em cada matéria destranca sua crônica.
+</p>
+
+<div class="space-y-4">
+  {% for subject, chronicle, discovered in chronicles %}
+    <div class="bg-stone-900/60 border rounded-lg p-5 sm:p-6 shadow-lg {{ 'border-gold' if discovered else 'border-stone-700' }}">
+      <div class="flex items-center gap-2 mb-2">
+        <i class="fa-solid {{ 'fa-book-open text-gold' if discovered else 'fa-lock text-stone-600' }}"></i>
+        <h2 class="font-medieval text-lg {{ 'text-gold' if discovered else 'text-stone-500' }}">
+          {{ chronicle.title if discovered else "???" }}
+        </h2>
+        <span class="text-stone-600 font-sans text-xs ml-auto">{{ subject.name }}</span>
+      </div>
+      {% if discovered %}
+        <p class="text-stone-300 font-serif italic text-sm sm:text-base leading-relaxed">{{ chronicle.text }}</p>
+      {% else %}
+        <p class="text-stone-600 font-serif italic text-sm">
+          Pratique algo de <strong>{{ subject.name }}</strong> para revelar esta crônica.
+        </p>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

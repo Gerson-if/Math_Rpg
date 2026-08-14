@@ -23,6 +23,8 @@ from app.services import (
     mentor_tips,
     dungeon_service,
     loot_service,
+    guardians,
+    lore,
 )
 
 mathematics_bp = Blueprint("mathematics", __name__, url_prefix="/math")
@@ -52,7 +54,21 @@ def index():
     subjects = (
         Subject.query.filter_by(is_active=True).order_by(Subject.order).all()
     )
-    return render_template("mathematics/index.html", subjects=subjects)
+    # Advisory only (see progression_service.unmet_prerequisites) — every
+    # topic stays reachable, this just tells the adventure map which nodes
+    # to flag as "pratique isso primeiro" instead of hard-locking anything.
+    recommend_first = {
+        topic.id: progression_service.unmet_prerequisites(current_user.id, topic)
+        for subject in subjects
+        for topic in subject.topics
+    }
+    subject_guardians = {subject.slug: guardians.for_subject(subject.slug) for subject in subjects}
+    return render_template(
+        "mathematics/index.html",
+        subjects=subjects,
+        recommend_first=recommend_first,
+        guardians=subject_guardians,
+    )
 
 
 @mathematics_bp.route("/topics")
@@ -77,6 +93,8 @@ def practice(topic_slug):
     return render_template(
         "mathematics/practice.html",
         topic=topic,
+        guardian=guardians.for_subject(topic.subject.slug),
+        recommend_first=progression_service.unmet_prerequisites(current_user.id, topic),
         mentor_tip=mentor_tips.random_tip(),
         ally=dungeon_service.active_ally(current_user.id, topic.id),
         equipped=loot_service.list_equipped(current_user.id),
@@ -194,6 +212,31 @@ def claim_victory(topic_slug):
         "passive_value": item.passive_value,
         "rarity": item.rarity,
     })
+
+
+@mathematics_bp.route("/cronicas")
+@login_required
+def chronicles():
+    """The kingdom's lore, one chronicle per subject — discovered as soon
+    as the player has practiced anything in that subject at all (no
+    mastery threshold; this is flavor, not a gate)."""
+    subjects = Subject.query.filter_by(is_active=True).order_by(Subject.order).all()
+    discovered_subject_ids = {
+        row[0]
+        for row in (
+            db.session.query(Topic.subject_id)
+            .join(Attempt, Attempt.topic_id == Topic.id)
+            .filter(Attempt.user_id == current_user.id)
+            .distinct()
+            .all()
+        )
+    }
+    chronicles_by_subject = [
+        (subject, lore.for_subject(subject.slug), subject.id in discovered_subject_ids)
+        for subject in subjects
+        if lore.for_subject(subject.slug) is not None
+    ]
+    return render_template("mathematics/chronicles.html", chronicles=chronicles_by_subject)
 
 
 @mathematics_bp.route("/historico")

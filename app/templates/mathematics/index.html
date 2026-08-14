@@ -1,34 +1,67 @@
 {% extends "base.html" %}
-{% block title %}Tópicos{% endblock %}
+{% block title %}Mapa de Aventura{% endblock %}
 {% block content %}
-<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
-  <i class="fa-solid fa-compass"></i> Tópicos
-</h1>
+<div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+  <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold">
+    <i class="fa-solid fa-map-location-dot"></i> Mapa de Aventura
+  </h1>
+  <a href="{{ url_for('mathematics.chronicles') }}"
+     class="inline-flex items-center gap-2 text-sm font-sans text-stone-400 hover:text-gold transition-colors">
+    <i class="fa-solid fa-scroll"></i> Crônicas do Reino
+  </a>
+</div>
+<p class="text-stone-400 font-sans text-sm mb-6">
+  Cada trilha termina num guardião. Siga o caminho — ou pule à frente, se se sentir corajoso.
+</p>
 
 {% for subject in subjects %}
-  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-4 shadow-lg">
-    <h2 class="flex items-center gap-3 text-xl font-medieval text-stone-100 mb-3">
-      {% if subject.icon_key %}
-        <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-stone-800 border border-stone-700 shrink-0 p-1">
-          <img src="{{ url_for('static', filename=subject.icon_key) }}" alt=""
-               class="w-full h-full object-contain" style="image-rendering: pixelated;">
-        </span>
-      {% else %}
-        <i class="fa-solid fa-book-open text-purple-400"></i>
-      {% endif %}
-      {{ subject.name }}
-    </h2>
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-6 shadow-lg">
+    <div class="flex items-center justify-between flex-wrap gap-2 mb-5">
+      <h2 class="flex items-center gap-3 text-xl font-medieval text-stone-100">
+        {% if subject.icon_key %}
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-stone-800 border border-stone-700 shrink-0 p-1">
+            <img src="{{ url_for('static', filename=subject.icon_key) }}" alt=""
+                 class="w-full h-full object-contain" style="image-rendering: pixelated;">
+          </span>
+        {% else %}
+          <i class="fa-solid fa-book-open text-purple-400"></i>
+        {% endif %}
+        {{ subject.name }}
+      </h2>
+      {% set subject_guardian = guardians[subject.slug] %}
+      <span class="inline-flex items-center gap-2 text-xs font-sans text-stone-500">
+        <i class="fa-solid {{ subject_guardian.icon }} text-{{ subject_guardian.color }}"></i>
+        Guardado por {{ subject_guardian.name }}
+      </span>
+    </div>
+
     {% if subject.topics %}
-      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <!-- Trilha: nós numerados ligados por um caminho, terminando no
+           guardião da matéria — um mapa de verdade, não uma lista. -->
+      <div class="flex flex-wrap items-center gap-x-1 gap-y-5 overflow-x-auto pb-1">
         {% for topic in subject.topics %}
-          <li>
-            <a href="{{ url_for('mathematics.practice', topic_slug=topic.slug) }}"
-               class="flex items-center gap-2 font-sans text-stone-300 bg-stone-800/60 border border-stone-700 rounded px-3 py-2 hover:border-gold hover:text-gold transition-colors">
-              <i class="fa-solid fa-chevron-right text-xs text-purple-400"></i> {{ topic.name }}
-            </a>
-          </li>
+          {% set unmet = recommend_first.get(topic.id, []) %}
+          <a href="{{ url_for('mathematics.practice', topic_slug=topic.slug) }}"
+             class="group flex flex-col items-center gap-1.5 w-16 sm:w-20 shrink-0"
+             title="{{ topic.name }}{% if unmet %} — recomendado praticar antes: {{ unmet | map(attribute='name') | join(', ') }}{% endif %}">
+            <span class="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 flex items-center justify-center font-medieval text-xs sm:text-sm transition-colors
+                         {{ 'border-dashed border-stone-700 text-stone-600' if unmet else 'border-purple-500 text-purple-200 group-hover:border-gold group-hover:text-gold group-hover:shadow-[0_0_10px_rgba(212,175,55,0.4)]' }}">
+              {% if unmet %}<i class="fa-solid fa-compass text-[0.7rem]"></i>{% else %}{{ loop.index }}{% endif %}
+            </span>
+            <span class="text-[0.6rem] sm:text-[0.65rem] font-sans text-center leading-tight text-stone-400 group-hover:text-gold transition-colors">
+              {{ topic.name }}
+            </span>
+          </a>
+          <div class="h-0.5 w-3 sm:w-5 bg-stone-700 shrink-0"></div>
         {% endfor %}
-      </ul>
+        <!-- nó do guardião, fim da trilha -->
+        <div class="flex flex-col items-center gap-1.5 w-16 sm:w-20 shrink-0">
+          <span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-{{ subject_guardian.color }} flex items-center justify-center text-lg sm:text-xl text-{{ subject_guardian.color }} shadow-[0_0_10px_rgba(168,85,247,0.3)]">
+            <i class="fa-solid {{ subject_guardian.icon }}"></i>
+          </span>
+          <span class="text-[0.6rem] sm:text-[0.65rem] font-sans text-center leading-tight text-stone-500">{{ subject_guardian.name }}</span>
+        </div>
+      </div>
     {% else %}
       <p class="text-stone-400 font-sans text-sm">Sem tópicos cadastrados ainda.</p>
     {% endif %}

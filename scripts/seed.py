@@ -113,6 +113,13 @@ def seed_curriculum():
             subject.name, subject.order, subject.icon_key = name, order, icon_key
 
         for t_order, t_slug in enumerate(topic_slugs):
+            # Each topic recommends the one right before it in the same
+            # subject's list — a simple linear chain, not a hand-designed
+            # dependency graph. First topic of a subject has none. This is
+            # a *recommendation* (see mathematics/routes.py), never a hard
+            # lock — a player can still jump ahead.
+            prereqs = [topic_slugs[t_order - 1]] if t_order > 0 else []
+
             topic = Topic.query.filter_by(slug=t_slug).first()
             if not topic:
                 db.session.add(Topic(
@@ -120,7 +127,11 @@ def seed_curriculum():
                     name=t_slug.replace("-", " ").capitalize(),
                     subject_id=subject.id,
                     order=t_order,
+                    prerequisite_slugs=prereqs,
                 ))
+            else:
+                topic.order = t_order
+                topic.prerequisite_slugs = prereqs
 
 
 def seed_levels(count: int = 50):

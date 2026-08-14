@@ -57,7 +57,7 @@
       {% if current_user.is_authenticated %}
         <div class="flex items-center gap-4 sm:gap-6 font-medieval text-stone-300 text-sm sm:text-base flex-wrap">
           <a href="{{ url_for('users.dashboard') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-shield-halved"></i> Salão do Herói</a>
-          <a href="{{ url_for('mathematics.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-scroll"></i> Tópicos</a>
+          <a href="{{ url_for('mathematics.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-map-location-dot"></i> Mapa de Aventura</a>
           <a href="{{ url_for('ranking.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-ranking-star"></i> Ranking</a>
           <a href="{{ url_for('achievements.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-trophy"></i> Conquistas</a>
           <a href="{{ url_for('character.equipamentos') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-khanda"></i> Equipamentos</a>

@@ -16,7 +16,8 @@
     <div class="battle-toast font-sans text-sm font-semibold rounded p-3 border text-center {{ 'bg-green-950/60 border-green-500 text-green-200' if feedback.is_correct else 'bg-red-950/60 border-blood text-red-200' }}">
       {% if feedback.is_correct %}
         <i class="fa-solid fa-check"></i>
-        {% if feedback.is_crit %}<span class="text-yellow-300">Golpe Crítico!</span>{% else %}Correto!{% endif %}
+        Correto!
+        {% if feedback.is_crit %}<span class="text-yellow-300">Golpe Crítico!</span>{% endif %}
         +{{ feedback.xp_awarded }} XP
         {% if feedback.bonus_xp %}<span class="text-purple-300">(+{{ feedback.bonus_xp }} bônus de dupla com {{ feedback.ally_name }})</span>{% endif %}
         {% if feedback.leveled_up %}· <i class="fa-solid fa-star"></i> Subiu para o nível {{ feedback.level_number }}!{% endif %}
