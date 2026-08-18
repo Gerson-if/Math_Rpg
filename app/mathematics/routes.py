@@ -53,22 +53,7 @@ def _stars_for(is_correct: bool, elapsed_ms: int) -> int:
     return 1
 
 
-def _normalize(value: str) -> str:
-    """Numeric-aware comparison: '007' == '7', '0,3' == '0.3' (pt-BR decimal
-    comma) == '0.30', and whole-valued floats collapse to plain ints ('3.0'
-    == '3') so decimal-operation answers that land on a whole number still
-    match. Falls back to a trimmed/lowered/space-stripped string compare for
-    non-numeric answers (e.g. fractions like '5/6')."""
-    value = (value or "").strip().replace(",", ".")
-    try:
-        return str(int(value))
-    except (TypeError, ValueError):
-        pass
-    try:
-        as_float = float(value)
-        return str(int(as_float)) if as_float.is_integer() else repr(as_float)
-    except (TypeError, ValueError):
-        return value.lower().replace(" ", "")
+_normalize = mathematics_service.normalize_answer
 
 
 @mathematics_bp.route("/")

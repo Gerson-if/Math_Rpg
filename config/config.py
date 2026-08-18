@@ -40,6 +40,16 @@ class BaseConfig:
     RATELIMIT_DEFAULT = "200 per hour"  # RATELIMIT_DEFAULT is a single delimited string, not a list
     RATELIMIT_HEADERS_ENABLED = True
 
+    # Real-time duels (Flask-SocketIO). "threading" needs no monkey-patching
+    # and works fine for dev and a single Gunicorn worker; production with
+    # more than one worker needs "eventlet" (see gunicorn.conf.py's eventlet
+    # worker class, which monkey-patches automatically on boot) *and* a
+    # shared message queue so events reach clients connected to a different
+    # worker — same "in-memory by default, Redis for multi-worker" pattern
+    # as RATELIMIT_STORAGE_URI above.
+    SOCKETIO_ASYNC_MODE = os.environ.get("SOCKETIO_ASYNC_MODE", "threading")
+    SOCKETIO_MESSAGE_QUEUE = os.environ.get("SOCKETIO_MESSAGE_QUEUE")  # e.g. redis://localhost:6379
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True

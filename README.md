@@ -169,8 +169,25 @@ XP" — ver `app/services/loot_service.py`.
 - Convite de masmorra (co-op) assíncrono: um amigo aceito pode ajudar
   num tópico — o aliado aparece ao lado do herói na arena e ambos ganham
   um bônus de XP pequeno e verificado no servidor enquanto praticam o
-  mesmo tópico dentro da janela do convite. Não é uma batalha
-  sincronizada em tempo real (o app não tem transporte realtime).
+  mesmo tópico dentro da janela do convite. Deliberadamente não
+  sincronizado — ver Duelos abaixo para a exceção real-time do app.
+
+### Duelos em tempo real
+
+- Único recurso do app com transporte ao vivo — Flask-SocketIO por trás
+  de tudo o mais (que continua HTTP/HTMX comum). Um amigo aceito pode
+  desafiar o outro para um duelo 1x1 num tópico à escolha; aceitar abre
+  uma arena dedicada (`/duelo/<id>`) onde os dois veem a **mesma**
+  pergunta ao mesmo tempo — quem responde certo primeiro causa dano no
+  oponente (100 HP cada, -20 por rodada vencida).
+- Como em qualquer outro lugar do app, quem decide a resposta certa e
+  aplica o dano é o servidor (`app/services/duel_service.py`), nunca o
+  cliente — o Socket.IO é só o transporte que avisa os dois jogadores na
+  hora, no lugar do polling HTMX usado no chat.
+- Emotes rápidos (👋😂🔥😅😤🤝) podem ser trocados durante o duelo,
+  aparecendo como balões flutuantes sobre o avatar de quem enviou.
+- Resultado registrado via `Notification` para os dois jogadores
+  (`duel_result`), do mesmo jeito que qualquer outra notificação do app.
 
 ## Produção
 
@@ -200,10 +217,11 @@ XP" — ver `app/services/loot_service.py`.
 
 - Deploy em servidor real (domínio, TLS emitido de verdade) — artefatos
   e runbook prontos em [DEPLOY.md](DEPLOY.md).
-- PvP ranqueado com troféus (desenho: assíncrono por pontuação, mesmo
-  desafio para os dois jogadores, comparado depois).
+- Duelos ranqueados com troféus/placar histórico — os duelos em si já
+  existem (ver acima); falta a camada de ranking sobre os resultados.
 - Sistema de amigos: doação de itens, presença online/offline, incursão
-  de masmorra em dupla sincronizada de verdade.
+  de masmorra em dupla sincronizada de verdade (o transporte real-time
+  dos duelos poderia ser reaproveitado aqui no futuro).
 - Troca de senha na conta.
 - Moderação de chat automática: detecção por palavras-chave e fila de
   sanção graduada (a denúncia manual e o sinalizador já existem — falta
@@ -282,6 +300,7 @@ app/
   friends/         amigos e convites de masmorra
   character/       equipamentos e espólios
   market/          loja do reino e mercado entre jogadores
+  duels/           duelos 1x1 em tempo real (rotas HTTP + handlers Socket.IO)
   api/             endpoints internos para HTMX
   models/          um arquivo por domínio (user, mathematics, progression, chat, inventory, ...)
   services/        regras de negócio (mathematics_service, progression_service,
@@ -293,9 +312,13 @@ app/
 config/            classes de configuração (dev/test/produção)
 migrations/        Flask-Migrate/Alembic — já commitado, só rodar `flask db upgrade`
 scripts/seed.py    popula currículo, níveis, ranks, conquistas (upsert — roda de novo sem duplicar)
-tests/             pytest (218 testes)
+tests/             pytest (249 testes)
 deploy/            unit systemd de exemplo para o Gunicorn
 gunicorn.conf.py   config do servidor WSGI de produção
 Caddyfile          proxy reverso + HTTPS automático
 DEPLOY.md          runbook completo de deploy
 ```
+
+## Licença
+
+Distribuído sob a licença [MIT](LICENSE).

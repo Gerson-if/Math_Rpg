@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Duelo vs {{ opponent.username }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+  .duel-frame {
+    background: radial-gradient(circle at center, #2a1b38 0%, #0a0a0a 100%);
+    border: 2px solid #57534e; border-radius: 0.5rem; min-height: 70vh;
+    position: relative; overflow: hidden; display: flex; flex-direction: column;
+  }
+  .duel-hp-wrap { position: relative; }
+  .duel-hp-track { width: 100%; height: 1rem; background: #1c1917; border: 1px solid #57534e; border-radius: 9999px; overflow: hidden; }
+  .duel-hp-fill { height: 100%; border-radius: 9999px; transition: width 0.5s cubic-bezier(0.2,0.8,0.2,1); }
+  .duel-hp-fill.mine { background: linear-gradient(90deg, #22c55e, #4ade80); }
+  .duel-hp-fill.theirs { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .duel-hp-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: #fff; text-shadow: 1px 1px 2px #000; font-family: 'Cinzel', serif; }
+
+  .duel-avatar { width: 3.5rem; height: 3.5rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 2px solid; }
+  .duel-avatar.mine { border-color: #4ade80; background: rgba(74,222,128,0.1); color: #4ade80; }
+  .duel-avatar.theirs { border-color: #ef4444; background: rgba(239,68,68,0.1); color: #f87171; }
+
+  .duel-question-box { background: rgba(0,0,0,0.5); border: 2px solid #d4af37; border-radius: 0.5rem; padding: 1.5rem; text-align: center; }
+  .duel-round-tag { font-family: 'Cinzel', serif; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: #a1801f; }
+
+  .duel-emote-bar { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+  .duel-emote-btn {
+    width: 2.75rem; height: 2.75rem; border-radius: 9999px; font-size: 1.3rem;
+    background: rgba(0,0,0,0.4); border: 2px solid #57534e; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .duel-emote-btn:hover { transform: scale(1.15); border-color: #d4af37; }
+
+  .duel-emote-bubble {
+    position: fixed; z-index: 9998; font-size: 2.5rem; pointer-events: none;
+    animation: duelEmotePop 1.8s ease-out forwards;
+  }
+  @keyframes duelEmotePop {
+    0% { opacity: 0; transform: translateY(0) scale(0.4); }
+    15% { opacity: 1; transform: translateY(-10px) scale(1.2); }
+    30% { transform: translateY(-16px) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-70px) scale(0.9); }
+  }
+
+  .duel-feedback { min-height: 1.5rem; font-family: 'Cinzel', serif; font-size: 0.9rem; text-align: center; }
+  .duel-feedback.win { color: #4ade80; }
+  .duel-feedback.lose { color: #f87171; }
+  .duel-feedback.miss { color: #a8a29e; }
+
+  .duel-end-overlay {
+    position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+    background: rgba(5,5,5,0.94);
+  }
+  .duel-connecting { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; flex: 1; color: #a8a29e; font-family: 'Cinzel', serif; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between flex-wrap gap-2 mb-4">
+  <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold">
+    <i class="fa-solid fa-bolt"></i> Duelo vs {{ opponent.profile.display_name if opponent.profile else opponent.username }}
+  </h1>
+  <button type="button" id="forfeit-btn" class="text-sm font-sans text-stone-400 hover:text-blood transition-colors">
+    <i class="fa-solid fa-flag mr-1"></i> Desistir
+  </button>
+</div>
+
+<div class="duel-frame p-4 sm:p-6">
+  <div id="duel-connecting" class="duel-connecting">
+    <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
+    <p>Conectando ao duelo...</p>
+  </div>
+
+  <div id="duel-body" class="hidden flex-1 flex flex-col gap-5">
+    <div class="flex items-center justify-between gap-4 flex-wrap">
+      <div class="flex items-center gap-3 flex-1 min-w-[200px]">
+        <span class="duel-avatar mine">{{ ui.avatar_icon(current_user.profile) }}</span>
+        <div class="flex-1">
+          <p class="font-sans text-sm text-emerald-300 font-bold">Você</p>
+          <div class="duel-hp-wrap">
+            <div class="duel-hp-track"><div class="duel-hp-fill mine" id="my-hp-fill" style="width:100%"></div></div>
+            <span class="duel-hp-text" id="my-hp-text">100/100</span>
+          </div>
+        </div>
+      </div>
+      <div class="font-medieval text-purple-400 text-xl shrink-0">VS</div>
+      <div class="flex items-center gap-3 flex-1 min-w-[200px] flex-row-reverse text-right">
+        <span class="duel-avatar theirs">{{ ui.avatar_icon(opponent.profile) }}</span>
+        <div class="flex-1">
+          <p class="font-sans text-sm text-red-300 font-bold">{{ opponent.profile.display_name if opponent.profile else opponent.username }}</p>
+          <div class="duel-hp-wrap">
+            <div class="duel-hp-track"><div class="duel-hp-fill theirs" id="opp-hp-fill" style="width:100%"></div></div>
+            <span class="duel-hp-text" id="opp-hp-text">100/100</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1 flex items-center justify-center">
+      <div class="duel-question-box w-full max-w-md">
+        <p class="duel-round-tag mb-2" id="round-tag">Rodada 1</p>
+        <div class="text-2xl sm:text-3xl font-serif text-white font-bold mb-4" id="duel-prompt">—</div>
+        <form id="answer-form" class="flex gap-2">
+          <input type="text" id="answer-input" inputmode="numeric" autocomplete="off" autofocus
+                 placeholder="Sua resposta"
+                 class="w-full bg-stone-800 border-2 border-stone-600 rounded-lg p-2.5 text-lg text-center text-white font-bold focus:border-gold focus:outline-none transition-colors">
+          <button type="submit" class="bg-purple-800 text-white border-2 border-purple-400 font-bold px-5 rounded-lg text-lg hover:bg-purple-600 transition-colors shrink-0">
+            <i class="fa-solid fa-bolt"></i>
+          </button>
+        </form>
+        <p class="duel-feedback mt-3" id="duel-feedback"></p>
+      </div>
+    </div>
+
+    <div class="duel-emote-bar" id="emote-bar">
+      <button type="button" class="duel-emote-btn" data-emote="wave" title="Aceno">👋</button>
+      <button type="button" class="duel-emote-btn" data-emote="laugh" title="Risada">😂</button>
+      <button type="button" class="duel-emote-btn" data-emote="fire" title="Mandou bem">🔥</button>
+      <button type="button" class="duel-emote-btn" data-emote="sweat" title="Aperto">😅</button>
+      <button type="button" class="duel-emote-btn" data-emote="angry" title="Frustrado">😤</button>
+      <button type="button" class="duel-emote-btn" data-emote="gg" title="Boa partida">🤝</button>
+    </div>
+  </div>
+
+  <div id="duel-end-overlay" class="duel-end-overlay hidden">
+    <div class="text-center space-y-4 max-w-sm p-6 bg-black/40 border-2 border-gold rounded-lg backdrop-blur-md">
+      <i class="fa-solid fa-crown text-5xl text-gold" id="duel-end-icon"></i>
+      <h2 class="text-2xl font-medieval text-white" id="duel-end-title">Fim de duelo</h2>
+      <p class="text-stone-300 font-serif italic text-sm" id="duel-end-sub"></p>
+      <a href="{{ url_for('friends.index') }}"
+         class="inline-flex items-center gap-2 px-5 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform">
+        <i class="fa-solid fa-arrow-left mr-1"></i> Voltar aos Amigos
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var duelId = {{ duel.id | tojson }};
+  var myUserId = {{ current_user.id | tojson }};
+  var isChallenger = {{ is_challenger | tojson }};
+
+  var connectingEl = document.getElementById("duel-connecting");
+  var bodyEl = document.getElementById("duel-body");
+  var myHpFill = document.getElementById("my-hp-fill"), myHpText = document.getElementById("my-hp-text");
+  var oppHpFill = document.getElementById("opp-hp-fill"), oppHpText = document.getElementById("opp-hp-text");
+  var promptEl = document.getElementById("duel-prompt");
+  var roundTagEl = document.getElementById("round-tag");
+  var feedbackEl = document.getElementById("duel-feedback");
+  var answerForm = document.getElementById("answer-form");
+  var answerInput = document.getElementById("answer-input");
+  var endOverlay = document.getElementById("duel-end-overlay");
+  var endIcon = document.getElementById("duel-end-icon");
+  var endTitle = document.getElementById("duel-end-title");
+  var endSub = document.getElementById("duel-end-sub");
+  var forfeitBtn = document.getElementById("forfeit-btn");
+
+  function hpFor(challengerHp, opponentHp, wantMine) {
+    var mineIsChallenger = isChallenger;
+    if (wantMine) return mineIsChallenger ? challengerHp : opponentHp;
+    return mineIsChallenger ? opponentHp : challengerHp;
+  }
+
+  function updateHp(challengerHp, opponentHp) {
+    var mine = hpFor(challengerHp, opponentHp, true);
+    var theirs = hpFor(challengerHp, opponentHp, false);
+    myHpFill.style.width = Math.max(0, mine) + "%";
+    myHpText.textContent = Math.max(0, mine) + "/100";
+    oppHpFill.style.width = Math.max(0, theirs) + "%";
+    oppHpText.textContent = Math.max(0, theirs) + "/100";
+  }
+
+  var socket = io();
+
+  socket.on("connect", function () {
+    socket.emit("join_duel", { duel_id: duelId }, function (resp) {
+      if (!resp || resp.error) {
+        feedbackEl.textContent = (resp && resp.error) || "Não foi possível entrar no duelo.";
+        return;
+      }
+      connectingEl.classList.add("hidden");
+      bodyEl.classList.remove("hidden");
+      promptEl.textContent = resp.prompt || "Aguardando pergunta...";
+      roundTagEl.textContent = "Rodada " + (resp.round_number || 1);
+      updateHp(resp.challenger_hp, resp.opponent_hp);
+      answerInput.focus();
+    });
+  });
+
+  socket.on("round_result", function (data) {
+    if (data.duel_id !== duelId) return;
+
+    if (!data.is_correct) {
+      if (data.answered_by === myUserId) {
+        feedbackEl.className = "duel-feedback miss";
+        feedbackEl.textContent = "Resposta errada — tente de novo!";
+      }
+      return;
+    }
+
+    updateHp(data.challenger_hp, data.opponent_hp);
+    var iAnswered = data.answered_by === myUserId;
+    feedbackEl.className = "duel-feedback " + (iAnswered ? "win" : "lose");
+    feedbackEl.textContent = iAnswered
+      ? "Você acertou primeiro! -20 no oponente."
+      : "Seu oponente foi mais rápido dessa vez!";
+
+    if (data.finished) {
+      var won = data.winner_id === myUserId;
+      endIcon.className = "fa-solid " + (won ? "fa-crown text-gold" : "fa-skull text-stone-500") + " text-5xl";
+      endTitle.textContent = won ? "Vitória!" : "Derrota";
+      endSub.textContent = won ? "Você venceu o duelo!" : "Dessa vez não foi possível vencer.";
+      endOverlay.classList.remove("hidden");
+      return;
+    }
+
+    promptEl.textContent = data.next_prompt || "—";
+    roundTagEl.textContent = "Rodada " + (data.next_round_number || "?");
+    answerInput.value = "";
+    answerInput.focus();
+  });
+
+  socket.on("duel_ended", function (data) {
+    if (data.duel_id !== duelId) return;
+    var won = data.winner_id === myUserId;
+    endIcon.className = "fa-solid " + (won ? "fa-crown text-gold" : "fa-flag text-stone-500") + " text-5xl";
+    endTitle.textContent = won ? "Vitória por desistência" : "Você desistiu";
+    endSub.textContent = won ? "Seu oponente abandonou o duelo." : "Talvez da próxima vez!";
+    endOverlay.classList.remove("hidden");
+  });
+
+  socket.on("emote_received", function (data) {
+    var el = document.createElement("div");
+    var EMOJI = { wave: "👋", laugh: "😂", fire: "🔥", sweat: "😅", angry: "😤", gg: "🤝" };
+    el.className = "duel-emote-bubble";
+    el.textContent = EMOJI[data.emote] || "✨";
+    var fromMine = data.from_user_id === myUserId;
+    var anchor = fromMine ? document.querySelector(".duel-avatar.mine") : document.querySelector(".duel-avatar.theirs");
+    var rect = anchor ? anchor.getBoundingClientRect() : { left: window.innerWidth / 2, top: 100, width: 0 };
+    el.style.left = (rect.left + rect.width / 2) + "px";
+    el.style.top = rect.top + "px";
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1800);
+  });
+
+  answerForm.addEventListener("submit", function (evt) {
+    evt.preventDefault();
+    var value = answerInput.value.trim();
+    if (!value) return;
+    socket.emit("submit_answer", { duel_id: duelId, answer: value }, function (ack) {
+      if (ack && ack.error) {
+        feedbackEl.className = "duel-feedback miss";
+        feedbackEl.textContent = ack.error;
+      }
+    });
+  });
+
+  document.querySelectorAll(".duel-emote-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      socket.emit("send_emote", { duel_id: duelId, emote: btn.getAttribute("data-emote") });
+    });
+  });
+
+  forfeitBtn.addEventListener("click", function () {
+    if (!confirm("Desistir deste duelo?")) return;
+    socket.emit("forfeit_duel", { duel_id: duelId });
+  });
+
+  window.addEventListener("beforeunload", function () {
+    socket.emit("leave_duel", { duel_id: duelId });
+  });
+})();
+</script>
+{% endblock %}

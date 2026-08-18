@@ -77,6 +77,16 @@ DATABASE_URL=postgresql://math_rpg:escolha-uma-senha-forte@localhost:5432/math_r
 # aplicado de forma consistente entre eles. Requer "pip install redis"
 # (não vem em requirements.txt — é opcional, só quem usa Redis precisa).
 RATELIMIT_STORAGE_URI=redis://localhost:6379
+
+# Duelos em tempo real (Flask-SocketIO). Deixe SOCKETIO_ASYNC_MODE de fora
+# em produção com um único worker eventlet (é o padrão do gunicorn.conf.py)
+# — só defina explicitamente se estiver rodando atrás de outro arranjo.
+# SOCKETIO_MESSAGE_QUEUE só é necessário se você for rodar MAIS de um
+# worker: uma conexão WebSocket fica presa a um único worker, então sem
+# uma fila compartilhada os dois duelistas podem cair em workers
+# diferentes e nunca verem os eventos um do outro. Mesmo Redis do
+# RATELIMIT_STORAGE_URI acima serve.
+# SOCKETIO_MESSAGE_QUEUE=redis://localhost:6379
 ```
 
 ## 6. Migrações e seed
@@ -98,6 +108,13 @@ sudo systemctl status math-rpg   # deve mostrar "active (running)"
 
 `gunicorn.conf.py` já lê `GUNICORN_WORKERS`/`GUNICORN_BIND`/etc. de
 variáveis de ambiente se você quiser ajustar sem editar o arquivo.
+
+O worker padrão agora é `eventlet` (não `sync`) — necessário para os
+duelos em tempo real via WebSocket. Com um único worker (o padrão sem
+`SOCKETIO_MESSAGE_QUEUE` configurado) não precisa de mais nada: um worker
+eventlet já lida bem com muitas conexões simultâneas via green threads,
+diferente de um worker `sync`. Só suba para mais de um worker depois de
+configurar `SOCKETIO_MESSAGE_QUEUE` (Redis) — ver seção 5.
 
 ## 8. Caddy (proxy reverso + HTTPS automático)
 

@@ -16,6 +16,10 @@ math-rpg.example.com {
 	}
 
 	handle {
+		# reverse_proxy already forwards WebSocket upgrade requests
+		# transparently (it detects the Connection: Upgrade header on
+		# its own) — nothing extra needed here for the real-time duel
+		# Socket.IO traffic under /socket.io/.
 		reverse_proxy 127.0.0.1:8000 {
 			header_up X-Real-IP {remote_host}
 		}

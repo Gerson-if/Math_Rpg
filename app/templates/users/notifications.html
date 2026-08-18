@@ -54,6 +54,26 @@
         {% endif %}
       </div>
 
+    {% elif n.type == 'duel_challenge' %}
+      <i class="fa-solid fa-bolt text-blood text-xl mt-0.5"></i>
+      <div>
+        <p class="font-sans text-stone-100">
+          Você foi desafiado para um duelo em <strong class="text-red-300">{{ n.payload.topic_name }}</strong>.
+        </p>
+        <a href="{{ url_for('friends.index') }}" class="text-xs font-sans text-purple-300 hover:text-purple-200">Ver desafio</a>
+      </div>
+
+    {% elif n.type == 'duel_result' %}
+      <i class="fa-solid {{ 'fa-crown text-gold' if n.payload.won else 'fa-skull text-stone-500' }} text-xl mt-0.5"></i>
+      <div>
+        <p class="font-sans text-stone-100">
+          Duelo encerrado:
+          <strong class="{{ 'text-gold' if n.payload.won else 'text-stone-400' }}">
+            {{ "vitória!" if n.payload.won else "derrota" }}
+          </strong>
+        </p>
+      </div>
+
     {% else %}
       <i class="fa-solid fa-circle-info text-stone-400 text-xl mt-0.5"></i>
       <p class="font-sans text-stone-300">{{ n.type }}</p>

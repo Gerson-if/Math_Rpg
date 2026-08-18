@@ -7,6 +7,7 @@ from app.models.chat import ChatMessage, ChatReport
 from app.models.misc import Notification, StudySession
 from app.models.social import Friendship, DungeonInvite
 from app.models.inventory import ItemInstance, ShopOffer
+from app.models.duels import Duel
 
 __all__ = [
     "User",

@@ -9,7 +9,7 @@ architecture described in the project spec.
 import click
 from flask import Flask, render_template
 
-from app.extensions import db, migrate, login_manager, csrf, limiter
+from app.extensions import db, migrate, login_manager, csrf, limiter, socketio
 from app.logging_config import configure_logging
 
 
@@ -24,6 +24,16 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
+    # cors_allowed_origins deliberately left at its default (same-origin
+    # only) — this app is never embedded/consumed cross-origin, and the
+    # duel handlers authenticate purely off the Flask-Login session
+    # cookie, so accepting a handshake from another origin would be a
+    # real hole, not just noise.
+    socketio.init_app(
+        app,
+        async_mode=app.config.get("SOCKETIO_ASYNC_MODE", "threading"),
+        message_queue=app.config.get("SOCKETIO_MESSAGE_QUEUE"),
+    )
 
     login_manager.login_view = "auth.login"
 
@@ -42,6 +52,7 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     from app.friends.routes import friends_bp
     from app.character.routes import character_bp
     from app.market.routes import market_bp
+    from app.duels.routes import duels_bp
     from app.api.routes import api_bp
 
     app.register_blueprint(auth_bp)
@@ -54,22 +65,29 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
     app.register_blueprint(friends_bp)
     app.register_blueprint(character_bp)
     app.register_blueprint(market_bp)
+    app.register_blueprint(duels_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
+
+    # Socket.IO event handlers register themselves on the shared `socketio`
+    # instance via decorators — importing the module is what wires them up.
+    from app.duels import socket_events  # noqa: F401
 
     @app.context_processor
     def _inject_pending_invites_count():
         """Small badge count for the navbar's "Amigos" link — friend
-        requests + dungeon invites waiting on the current user. Cheap (two
-        indexed COUNT-shaped queries) and only runs when logged in."""
+        requests + dungeon invites + duel challenges waiting on the
+        current user. Cheap (indexed COUNT-shaped queries) and only runs
+        when logged in."""
         from flask_login import current_user
 
         if not current_user.is_authenticated:
             return {}
-        from app.services import friends_service, dungeon_service
+        from app.services import friends_service, dungeon_service, duel_service
 
         count = (
             len(friends_service.list_incoming_requests(current_user.id))
             + len(dungeon_service.list_incoming(current_user.id))
+            + len(duel_service.list_pending_challenges(current_user.id))
         )
         return {"pending_invites_count": count}
 

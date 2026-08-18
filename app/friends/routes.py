@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 
 from app.extensions import limiter
 from app.models import Subject
-from app.services import friends_service, dungeon_service
+from app.services import friends_service, dungeon_service, duel_service
 
 friends_bp = Blueprint("friends", __name__, url_prefix="/amigos")
 
@@ -22,6 +22,7 @@ def index():
         incoming=friends_service.list_incoming_requests(current_user.id),
         outgoing=friends_service.list_outgoing_requests(current_user.id),
         dungeon_invites=dungeon_service.list_incoming(current_user.id),
+        duel_challenges=duel_service.list_pending_challenges(current_user.id),
         subjects=subjects,
     )
 

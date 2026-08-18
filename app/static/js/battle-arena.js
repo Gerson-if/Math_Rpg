@@ -411,9 +411,18 @@ const MathBattle = (() => {
   }
 
   function applyBossDamage(dmg, isCrit, lootItem) {
-    // Boss can't actually fall below 1 HP until MIN_HITS_FOR_VICTORY
-    // correct answers have landed — see the constant's comment above.
-    const floor = hitsLanded >= MIN_HITS_FOR_VICTORY ? 0 : 1;
+    // Boss can't actually fall to 0 until MIN_HITS_FOR_VICTORY correct
+    // answers have landed (see the constant's comment above) — but the
+    // floor itself drains gradually with each hit instead of clamping to
+    // a flat near-zero value. A flat floor made the bar look completely
+    // dead after a single lucky combo, even though several more correct
+    // answers were still required — confusing ("the enemy has no health
+    // left, why do I still have to answer questions?"). This way the bar
+    // reads as real progress the whole fight: it starts able to drop to
+    // half health on the very first hit, and that ceiling drains in step
+    // with hitsLanded, reaching a true 0 exactly when the fight can end.
+    const hitsProgress = Math.min(1, hitsLanded / MIN_HITS_FOR_VICTORY);
+    const floor = hitsLanded >= MIN_HITS_FOR_VICTORY ? 0 : Math.round(bossMaxHP * 0.5 * (1 - hitsProgress));
     bossHP = Math.max(floor, bossHP - dmg);
     const boss = $("boss-sprite");
 

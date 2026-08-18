@@ -43,6 +43,26 @@ _COMPARISON_RANGES = {1: (1, 10), 2: (1, 20), 3: (1, 50), 4: (1, 100), 5: (1, 50
 _COUNTING_SYMBOLS = ["⭐", "🍎", "🐱", "⚽", "🌸", "🚗", "🐟", "🎈"]
 
 
+def normalize_answer(value: str) -> str:
+    """Numeric-aware comparison: '007' == '7', '0,3' == '0.3' (pt-BR decimal
+    comma) == '0.30', and whole-valued floats collapse to plain ints ('3.0'
+    == '3') so decimal-operation answers that land on a whole number still
+    match. Falls back to a trimmed/lowered/space-stripped string compare for
+    non-numeric answers (e.g. fractions like '5/6'). Shared by the solo
+    practice loop (app/mathematics/routes.py) and real-time duels
+    (app/services/duel_service.py) so both grade answers the same way."""
+    value = (value or "").strip().replace(",", ".")
+    try:
+        return str(int(value))
+    except (TypeError, ValueError):
+        pass
+    try:
+        as_float = float(value)
+        return str(int(as_float)) if as_float.is_integer() else repr(as_float)
+    except (TypeError, ValueError):
+        return value.lower().replace(" ", "")
+
+
 def generate_question(topic_slug: str, difficulty: int) -> Question:
     difficulty = max(1, min(5, difficulty))
 
