@@ -34,13 +34,15 @@ def messages():
 def send():
     content = request.form.get("content", "")
     error = None
+    warning = None
     try:
-        chat_service.send_message(current_user.id, content)
+        message = chat_service.send_message(current_user.id, content)
+        warning = message.moderation_warning
     except chat_service.ChatError as exc:
         error = str(exc)
 
     messages = chat_service.get_recent_messages()
-    return render_template("chat/_messages.html", messages=messages, error=error)
+    return render_template("chat/_messages.html", messages=messages, error=error, warning=warning)
 
 
 @chat_bp.route("/denunciar/<int:message_id>", methods=["POST"])

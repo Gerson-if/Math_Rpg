@@ -54,6 +54,24 @@
         {% endif %}
       </div>
 
+    {% elif n.type == 'chat_violation' %}
+      <i class="fa-solid {{ 'fa-ban text-blood' if n.payload.action == 'banned' else ('fa-comment-slash text-blood' if n.payload.action == 'muted' else 'fa-triangle-exclamation text-yellow-400') }} text-xl mt-0.5"></i>
+      <div>
+        {% if n.payload.action == 'banned' %}
+          <p class="font-sans text-stone-100">
+            <strong class="text-blood">Sua conta foi suspensa</strong> por violações repetidas das regras do chat.
+          </p>
+        {% elif n.payload.action == 'muted' %}
+          <p class="font-sans text-stone-100">
+            Você foi <strong class="text-blood">silenciado no chat por {{ n.payload.muted_label }}</strong> (violação nº {{ n.payload.violation_count }}).
+          </p>
+          <p class="text-stone-400 font-sans text-xs mt-1">Reincidência leva a punições cada vez mais severas, podendo chegar à suspensão da conta.</p>
+        {% else %}
+          <p class="font-sans text-stone-100">Aviso: sua mensagem no chat pode ter violado as regras.</p>
+        {% endif %}
+        <p class="text-stone-400 font-sans text-xs mt-1">{{ n.payload.reason }}</p>
+      </div>
+
     {% elif n.type == 'duel_challenge' %}
       <i class="fa-solid fa-bolt text-blood text-xl mt-0.5"></i>
       <div>

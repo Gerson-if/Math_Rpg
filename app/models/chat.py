@@ -43,3 +43,23 @@ class ChatReport(db.Model, TimestampMixin):
     message = db.relationship("ChatMessage")
     reporter = db.relationship("User", foreign_keys=[reporter_id])
     reported_user = db.relationship("User", foreign_keys=[reported_user_id])
+
+
+class ChatModeration(db.Model, TimestampMixin):
+    """Per-user *current* moderation status — separate from ChatReport
+    (an audit trail of individual denúncias) because this is live gating
+    state: how many confirmed violations so far, and whether a chat mute
+    is in effect right now. One row per user, created lazily on that
+    user's first confirmed violation (see chat_service._register_violation
+    for the escalation ladder that drives muted_until/violation_count)."""
+
+    __tablename__ = "chat_moderations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False, index=True)
+    violation_count = db.Column(db.Integer, default=0, nullable=False)
+    muted_until = db.Column(db.DateTime, nullable=True)
+    last_violation_at = db.Column(db.DateTime, nullable=True)
+    last_reason = db.Column(db.String(200), nullable=True)
+
+    user = db.relationship("User")

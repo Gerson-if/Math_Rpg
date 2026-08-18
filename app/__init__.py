@@ -119,6 +119,22 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
         count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
         return {"notifications_unread_count": count}
 
+    @app.before_request
+    def _enforce_account_ban():
+        # Escalating chat violations can deactivate an account outright
+        # (see chat_service.ESCALATION_LADDER) — that blocks *new* logins
+        # for free (flask_login.login_user refuses an inactive user), but
+        # someone already mid-session keeps their cookie until it expires
+        # unless something actively checks is_active on each request. This
+        # is that check: catches it within one request instead of leaving
+        # a banned player playing until their session naturally lapses.
+        if current_user.is_authenticated and not current_user.is_active:
+            from flask import flash
+            from flask_login import logout_user
+
+            logout_user()
+            flash("Sua conta foi suspensa por violações repetidas das regras do chat.", "error")
+
     @app.after_request
     def _apply_security_headers(response):
         # HSTS is left to Caddy (it sets it automatically for HTTPS sites)

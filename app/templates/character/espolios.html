@@ -19,6 +19,23 @@
   .item-detail-placeholder { display: block; }
   .item-detail-content:target ~ .item-detail-placeholder,
   .item-detail-panel:has(.item-detail-content:target) .item-detail-placeholder { display: none; }
+
+  /* Rarity filter — used to be bare text links with a thin border, easy to
+     mistake for a caption instead of a control. Now a proper chip: icon,
+     tinted fill and glow when selected, so it reads as game UI instead of
+     plain hyperlinks. */
+  .rarity-chip {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .rarity-chip:hover { transform: translateY(-1px); }
+  .rarity-chip.is-active { box-shadow: 0 0 12px var(--chip-color, rgba(212,175,55,0.5)); }
+
+  @keyframes chestFloat {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-6px) rotate(2deg); }
+  }
+  .empty-loot-chest { animation: chestFloat 2.6s ease-in-out infinite; display: inline-block; }
 </style>
 {% endblock %}
 
@@ -39,14 +56,15 @@
 
 <div class="flex flex-wrap gap-2 mb-4">
   <a href="{{ url_for('character.espolios') }}"
-     class="px-3 py-1.5 rounded-full text-xs font-sans border {{ 'border-gold text-gold' if not selected_rarity else 'border-stone-700 text-stone-400 hover:border-stone-500' }}">
-    Todas
+     class="rarity-chip px-3 py-1.5 rounded-full text-xs font-sans font-semibold border {{ 'is-active border-gold text-gold bg-gold/10' if not selected_rarity else 'border-stone-700 text-stone-400 hover:border-stone-500' }}"
+     style="--chip-color: rgba(212,175,55,0.5);">
+    <i class="fa-solid fa-layer-group"></i> Todas
   </a>
   {% for r in rarities %}
     <a href="{{ url_for('character.espolios', raridade=r.id) }}"
-       class="px-3 py-1.5 rounded-full text-xs font-sans border {{ 'text-gold' if selected_rarity == r.id else 'border-stone-700 text-stone-400 hover:border-stone-500' }}"
-       style="{{ ('border-color: ' + r.color + ';') if selected_rarity == r.id else '' }}">
-      {{ r.label }}
+       class="rarity-chip px-3 py-1.5 rounded-full text-xs font-sans font-semibold border {{ 'is-active' if selected_rarity == r.id else 'border-stone-700 text-stone-400 hover:border-stone-500' }}"
+       style="{{ ('border-color: ' + r.color + '; color: ' + r.color + '; background: color-mix(in srgb, ' + r.color + ' 14%, transparent); --chip-color: ' + r.color + ';') if selected_rarity == r.id else '' }}">
+      <i class="fa-solid fa-gem" style="{{ 'color: ' + r.color if selected_rarity != r.id else '' }}"></i> {{ r.label }}
     </a>
   {% endfor %}
 </div>
@@ -132,8 +150,16 @@
   </div>
 </div>
 {% else %}
-  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
-    <p class="text-stone-400 font-sans">Nenhum espólio encontrado ainda — vença batalhas para encontrar itens.</p>
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-10 sm:p-14 shadow-lg text-center">
+    <i class="fa-solid fa-sack-dollar empty-loot-chest text-5xl text-stone-600 mb-4"></i>
+    <p class="font-medieval text-lg text-stone-300 mb-2">O baú do herói está vazio</p>
+    <p class="text-stone-500 font-sans text-sm mb-5">
+      Golpes críticos em batalha têm chance de deixar cair equipamentos — vença desafios no mapa para começar a encher seus espólios.
+    </p>
+    <a href="{{ url_for('mathematics.index') }}"
+       class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medieval text-sm bg-mystic border-2 border-purple-400 text-white hover:scale-105 transition-transform">
+      <i class="fa-solid fa-map-location-dot"></i> Ir para o Mapa de Aventura
+    </a>
   </div>
 {% endif %}
 {% endblock %}

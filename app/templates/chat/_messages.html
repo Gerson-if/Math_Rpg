@@ -2,6 +2,21 @@
 {% if error %}
   <div class="font-sans text-sm font-semibold rounded p-3 border bg-red-950/60 border-blood text-red-200 mb-3">{{ error }}</div>
 {% endif %}
+{% if warning %}
+  <div class="font-sans text-sm rounded p-3 border mb-3
+              {{ 'bg-red-950/60 border-blood text-red-200' if warning.action in ('muted', 'banned') else 'bg-yellow-950/40 border-gold text-yellow-100' }}">
+    <i class="fa-solid {{ 'fa-ban' if warning.action == 'banned' else ('fa-comment-slash' if warning.action == 'muted' else 'fa-triangle-exclamation') }} mr-1"></i>
+    {% if warning.action == 'banned' %}
+      <strong>Sua conta foi suspensa</strong> por violações repetidas das regras do chat.
+    {% elif warning.action == 'muted' %}
+      <strong>Você foi silenciado no chat</strong> até {{ warning.muted_until.strftime('%d/%m %H:%M') }}. {{ warning.reason }}
+      Reincidência leva a punições cada vez mais severas, podendo chegar à suspensão da conta.
+    {% else %}
+      Talvez sua mensagem esteja violando as regras do chat — {{ warning.reason }} Evite esse tipo de assunto ou palavra;
+      violações confirmadas levam a silêncio temporário e, em casos graves, à suspensão da conta.
+    {% endif %}
+  </div>
+{% endif %}
 {% if report_result %}
   <div class="font-sans text-sm rounded p-3 border mb-3
               {{ 'bg-red-950/60 border-blood text-red-200' if report_result.is_violation else 'bg-stone-900/70 border-stone-600 text-stone-300' }}">

@@ -66,6 +66,13 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
+            if not user.is_active:
+                # login_user() would silently refuse an inactive user and
+                # return False on its own — checking explicitly here means
+                # a banned player gets a real explanation instead of a
+                # confusing "nothing happened" redirect back to /login.
+                flash("Sua conta foi suspensa por violações repetidas das regras do chat.", "error")
+                return render_template("auth/login.html", form=form)
             login_user(user, remember=form.remember.data)
             return redirect(request.args.get("next") or url_for("users.dashboard"))
         flash("Email ou senha inválidos.", "error")
