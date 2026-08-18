@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Notificações{% endblock %}
+
+{% block extra_head %}
+<style>
+  @keyframes notifRise { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+  .notif-card { animation: notifRise 0.35s ease-out forwards; opacity: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
+  <i class="fa-solid fa-bell"></i> Notificações
+</h1>
+
+{% for n in notifications %}
+  <div class="notif-card bg-stone-900/60 border rounded-lg p-4 sm:p-5 mb-3 shadow-lg flex items-start gap-3
+              {{ 'border-stone-700' if n.is_read else 'border-gold/60 shadow-[0_0_14px_rgba(212,175,55,0.2)]' }}"
+       style="animation-delay: {{ (loop.index0 * 0.04) | round(2) }}s;">
+
+    {% if n.type == 'achievement' %}
+      <i class="fa-solid fa-trophy text-gold text-xl mt-0.5"></i>
+      <div>
+        <p class="font-sans text-stone-100">Nova conquista desbloqueada: <strong class="text-gold">{{ n.payload.name }}</strong></p>
+      </div>
+
+    {% elif n.type == 'report_result' %}
+      <i class="fa-solid {{ 'fa-triangle-exclamation text-blood' if n.payload.is_violation else 'fa-circle-check text-emerald-400' }} text-xl mt-0.5"></i>
+      <div>
+        <p class="font-sans text-stone-100">
+          Sua denúncia foi analisada:
+          <strong class="{{ 'text-blood' if n.payload.is_violation else 'text-emerald-400' }}">
+            {{ "violação confirmada" if n.payload.is_violation else "nenhuma violação encontrada" }}
+          </strong>
+        </p>
+        <p class="text-stone-400 font-sans text-xs mt-1">{{ n.payload.reason }}</p>
+        {% if n.payload.snippet %}
+          <p class="text-stone-500 font-sans text-xs mt-1 italic">"{{ n.payload.snippet }}"</p>
+        {% endif %}
+      </div>
+
+    {% elif n.type == 'report_against_you' %}
+      <i class="fa-solid {{ 'fa-flag text-blood' if n.payload.is_violation else 'fa-shield-halved text-stone-400' }} text-xl mt-0.5"></i>
+      <div>
+        <p class="font-sans text-stone-100">
+          Uma mensagem sua foi denunciada e analisada:
+          <strong class="{{ 'text-blood' if n.payload.is_violation else 'text-stone-300' }}">
+            {{ "violação confirmada" if n.payload.is_violation else "nenhuma violação encontrada" }}
+          </strong>
+        </p>
+        <p class="text-stone-400 font-sans text-xs mt-1">{{ n.payload.reason }}</p>
+        {% if n.payload.snippet %}
+          <p class="text-stone-500 font-sans text-xs mt-1 italic">"{{ n.payload.snippet }}"</p>
+        {% endif %}
+      </div>
+
+    {% else %}
+      <i class="fa-solid fa-circle-info text-stone-400 text-xl mt-0.5"></i>
+      <p class="font-sans text-stone-300">{{ n.type }}</p>
+    {% endif %}
+
+    <div class="ml-auto flex flex-col items-end gap-1.5 shrink-0">
+      <span class="text-stone-500 font-sans text-[0.65rem] whitespace-nowrap">{{ n.created_at.strftime('%d/%m %H:%M') }}</span>
+      <form method="POST" action="{{ url_for('users.delete_notification', notification_id=n.id) }}"
+            onsubmit="return confirm('Excluir esta notificação?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" title="Excluir notificação" class="text-stone-600 hover:text-blood text-xs cursor-pointer">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+{% else %}
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-6 shadow-lg text-center">
+    <i class="fa-solid fa-bell-slash text-stone-500 text-3xl mb-2"></i>
+    <p class="font-sans text-stone-300">Nenhuma notificação por aqui ainda.</p>
+  </div>
+{% endfor %}
+{% endblock %}

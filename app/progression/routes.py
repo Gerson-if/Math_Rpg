@@ -5,6 +5,8 @@ saved (see app/mathematics/routes.py) — this blueprint just surfaces the
 results, starting with the review queue described in section 4 of the
 spec ("Você domina muito bem X, mas apresentou uma queda recente em Y").
 """
+from datetime import datetime
+
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
 
@@ -21,4 +23,13 @@ def review_queue():
         .order_by(Mastery.mastery_score.asc())
         .all()
     )
-    return render_template("progression/review.html", items=items)
+    now = datetime.utcnow()
+    # How long it's actually been since practice, alongside the mastery
+    # gap — a topic that's both weak AND stale reads as more urgent than
+    # one that's merely weak, even though both already passed the same
+    # needs_review threshold.
+    days_since = {
+        m.id: (now - m.last_practiced_at).days if m.last_practiced_at else None
+        for m in items
+    }
+    return render_template("progression/review.html", items=items, days_since=days_since)

@@ -103,6 +103,37 @@ _SUPREME_FALLBACK = "Guardião Ressuscitado"
 
 _FALLBACK: Guardian = {"name": "Guardião do Conhecimento", "icon": "fa-dragon", "color": "purple-400"}
 
+# Named special attacks and battle taunts per subject — every enemy (not
+# just the final guardian) gets a bit of personality instead of one
+# generic shared pool. Purely cosmetic flavor for the battle arena's
+# damage/dialogue popups (see battle-arena.js's onMiss/showEnemyBubble) —
+# never affects real XP/mastery, same as the rest of the combat feel.
+SPECIAL_ATTACKS: dict[str, list[str]] = {
+    "fundamentos": ["Golpe de Pedra", "Investida Ancestral"],
+    "tabuada": ["Mordida da Hidra", "Chicote de Escamas", "Fúria Multiplicada"],
+    "operacoes-fundamentais": ["Martelo da Forja", "Golpe Calculado"],
+    "potenciacao": ["Chamas Exponenciais", "Explosão Ígnea"],
+    "radiciacao": ["Lâmina Glacial", "Sopro Congelante"],
+    "fracoes": ["Teia Fragmentada", "Emboscada do Labirinto"],
+    "numeros-decimais": ["Estilhaço de Cristal", "Corte Refratado"],
+    "porcentagem": ["Golpe das Sombras", "Ilusão Sombria"],
+    "algebra": ["Investida Real", "Golpe da Incógnita"],
+}
+_SPECIAL_ATTACK_FALLBACK = ["Investida Sombria", "Golpe Devastador"]
+
+BATTLE_TAUNTS: dict[str, list[str]] = {
+    "fundamentos": ["Você ainda tem muito a aprender!", "A base treme, mas resiste!"],
+    "tabuada": ["Multiplique seu esforço, aprendiz!", "Minhas cabeças não param de contar!"],
+    "operacoes-fundamentais": ["Cada erro forja minha força!", "Sinta o peso da operação!"],
+    "potenciacao": ["Meu poder cresce exponencialmente!", "Você não resiste às minhas chamas!"],
+    "radiciacao": ["Frio o bastante para você?", "Meu reflexo nunca falha!"],
+    "fracoes": ["Perdido no labirinto, aprendiz?", "Cada fragmento me fortalece!"],
+    "numeros-decimais": ["Precisão é minha arma!", "Nem uma casa decimal escapa!"],
+    "porcentagem": ["As sombras sempre calculam a seu favor!", "Um desconto na sua sorte!"],
+    "algebra": ["A incógnita sou eu!", "Resolva-me, se conseguir!"],
+}
+_BATTLE_TAUNT_FALLBACK = ["Você não é páreo para mim!", "Tente de novo, aprendiz!"]
+
 
 def for_subject(subject_slug: str) -> Guardian:
     return GUARDIANS.get(subject_slug, _FALLBACK)
@@ -110,6 +141,14 @@ def for_subject(subject_slug: str) -> Guardian:
 
 def supreme_name_for(subject_slug: str) -> str:
     return SUPREME_NAMES.get(subject_slug, _SUPREME_FALLBACK)
+
+
+def special_attacks_for(subject_slug: str) -> list[str]:
+    return SPECIAL_ATTACKS.get(subject_slug, _SPECIAL_ATTACK_FALLBACK)
+
+
+def battle_taunts_for(subject_slug: str) -> list[str]:
+    return BATTLE_TAUNTS.get(subject_slug, _BATTLE_TAUNT_FALLBACK)
 
 
 def for_topic(topic) -> tuple[Guardian, str]:

@@ -164,6 +164,28 @@
     animation: victoryTextIn 1s ease-out 0.3s forwards;
   }
   @media (min-width: 640px) { .victory-title { font-size: 2.1rem; } }
+
+  /* End-of-fight star recap — same 0-3 rating shown per question during
+     combat, aggregated into one epic "battle rank" here instead of only
+     flashing by one question at a time. */
+  .victory-stars { margin-top: 0.85rem; display: flex; gap: 0.5rem; justify-content: center; }
+  .victory-star {
+    font-size: 1.7rem; color: rgba(255,255,255,0.15);
+    opacity: 0; transform: scale(0.3) rotate(-15deg);
+    animation: victoryStarPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @media (min-width: 640px) { .victory-star { font-size: 2.2rem; } }
+  .victory-star.filled { color: #fbbf24; text-shadow: 0 0 12px #f59e0b, 0 0 24px #fbbf24; }
+  @keyframes victoryStarPop {
+    0% { opacity: 0; transform: scale(0.3) rotate(-15deg); }
+    60% { opacity: 1; transform: scale(1.25) rotate(6deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  .victory-stars-label {
+    margin-top: 0.35rem; font-family: 'Cinzel', serif; font-size: 0.85rem; color: #fde68a;
+    text-align: center; opacity: 0; animation: victoryTextIn 1s ease-out 1.5s forwards;
+  }
+
   .victory-snippet {
     margin-top: 0.75rem; font-family: 'Cinzel', serif; text-align: center; padding: 0 1.5rem;
     max-width: 620px; font-size: 0.8rem; line-height: 1.55; opacity: 0; color: #fde68a;
@@ -356,11 +378,75 @@
   .fury-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #f472b6, #a855f7, #f472b6); background-size: 200% 100%; transition: width 0.4s ease; animation: furyShift 3s linear infinite; }
   @keyframes furyShift { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
 
-  .ultimate-btn { opacity: 0.35; filter: grayscale(1); transition: all 0.3s ease; }
-  .ultimate-btn.ready { opacity: 1; filter: grayscale(0); animation: ultimatePulse 1.2s infinite; cursor: pointer; }
+  .ultimate-btn { opacity: 0.4; filter: grayscale(1); transition: all 0.3s ease; }
+  .ultimate-btn.ready { opacity: 1; filter: grayscale(0); animation: ultimatePulse 1.2s infinite; cursor: pointer; border-color: #f472b6 !important; color: #fce7f3 !important; }
   @keyframes ultimatePulse {
     0%, 100% { box-shadow: 0 0 10px 2px rgba(244,114,182,0.6); }
     50% { box-shadow: 0 0 25px 8px rgba(244,114,182,0.95); }
+  }
+
+  /* Fugir/Consumíveis used to be bare text links, out of place next to the
+     bordered-and-glowing ultimate button right beside them — same HUD
+     "action button" treatment now, just toned down (smaller, no pulse). */
+  .arena-action-btn {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0.45rem 0.85rem; border-radius: 9999px; border: 2px solid;
+    font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.72rem;
+    background: rgba(0,0,0,0.4); cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  @media (min-width: 640px) { .arena-action-btn { font-size: 0.8rem; padding: 0.5rem 1.05rem; } }
+  .arena-action-btn:hover { transform: translateY(-2px); }
+  .arena-action-btn.flee { border-color: #57534e; color: #a8a29e; }
+  .arena-action-btn.flee:hover { border-color: #ef4444; color: #fecaca; box-shadow: 0 0 12px rgba(239,68,68,0.4); }
+  .arena-action-btn.consumables { border-color: #0891b2; color: #67e8f9; box-shadow: 0 0 8px rgba(8,145,178,0.3); }
+  .arena-action-btn.consumables:hover { border-color: #22d3ee; box-shadow: 0 0 16px rgba(34,211,238,0.55); }
+  .arena-action-btn.ultimate { border-color: #86198f; color: #f5d0fe; font-size: 0.85rem; padding: 0.5rem 1rem; }
+  @media (min-width: 640px) { .arena-action-btn.ultimate { font-size: 0.95rem; padding: 0.55rem 1.2rem; } }
+  .arena-action-badge-count {
+    position: absolute; top: -7px; right: -7px;
+    background: #0e7490; border: 1.5px solid #67e8f9; color: #ecfeff;
+    font-size: 0.55rem; font-family: sans-serif; font-weight: 700;
+    border-radius: 9999px; min-width: 16px; height: 16px; padding: 0 3px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Bigger, more intense than a normal phase banner — the boss's own
+     "second wind" moment gets a taunt line styled like actual speech. */
+  .enrage-banner { font-size: 1.9rem; color: #fca5a5; }
+  .enrage-taunt {
+    margin-top: 0.5rem; font-family: 'Cinzel', serif; font-style: italic;
+    font-size: 1.1rem; color: #fecaca;
+  }
+
+  /* Enemy dialogue: a comic bubble floating above the enemy's own sprite
+     (position: fixed, computed from its live bounding rect — same trick
+     as floating damage numbers), not anchored inside the arena's own
+     speech-bubble containers which are reserved for player-side feedback. */
+  .enemy-bubble {
+    position: fixed;
+    background: rgba(20,4,4,0.95); border: 2px solid #ef4444; border-radius: 12px;
+    padding: 6px 12px; font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.72rem;
+    color: #fecaca; max-width: 220px; text-align: center; z-index: 9997;
+    box-shadow: 0 0 14px rgba(239,68,68,0.5); pointer-events: none;
+    animation: enemyBubbleInOut 2.8s ease-in-out forwards;
+  }
+  /* The -50%,-100% offset (centered above the sprite) has to live inside
+     the keyframes themselves, not a static transform on the base rule —
+     a CSS animation replaces the whole transform each frame rather than
+     composing with it, so a separate static transform would just get
+     clobbered the instant the animation starts. */
+  @keyframes enemyBubbleInOut {
+    0% { opacity: 0; transform: translate(-50%, -100%) translateY(8px) scale(0.92); }
+    8% { opacity: 1; transform: translate(-50%, -100%) translateY(0) scale(1); }
+    85% { opacity: 1; transform: translate(-50%, -100%) translateY(0) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -100%) translateY(-6px) scale(0.96); }
+  }
+  .enemy-bubble::after {
+    content: ""; position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%);
+    border-width: 8px 8px 0 8px; border-style: solid;
+    border-color: #ef4444 transparent transparent transparent;
   }
 
   /* ---- boss phases ---- */
@@ -588,6 +674,28 @@
       <strong class="text-{{ guardian.color }}">{{ guardian.name }}</strong> vigia esta trilha. Prove seu domínio de <strong class="text-gold">{{ topic.name }}</strong> para seguir em frente.
     </p>
 
+    {% if topic_mastery %}
+      {% set pct = (topic_mastery.mastery_score * 100) | round(0) | int %}
+      <div class="inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-stone-900/70 border border-stone-700 rounded-lg px-4 py-2.5 text-sm font-sans text-stone-300">
+        <span class="flex items-center gap-1.5">
+          <i class="fa-solid fa-book-open text-stone-400"></i> Seu progresso:
+          <strong class="{{ 'text-emerald-400' if pct >= 75 else ('text-yellow-400' if pct >= 40 else 'text-blood') }}">{{ pct }}% de domínio</strong>
+        </span>
+        <span class="flex items-center gap-1.5">
+          <i class="fa-solid fa-check text-green-400"></i> {{ topic_mastery.correct_count }} acertos
+          <i class="fa-solid fa-xmark text-red-400 ml-1"></i> {{ topic_mastery.wrong_count }} erros
+        </span>
+        {% if best_stars is not none %}
+          <span class="flex items-center gap-1" title="Melhor tempo de resposta já registrado neste tópico">
+            Recorde:
+            {% for i in range(3) %}
+              <i class="fa-solid fa-star" style="color: {{ '#fbbf24' if i < best_stars else 'rgba(255,255,255,0.2)' }};"></i>
+            {% endfor %}
+          </span>
+        {% endif %}
+      </div>
+    {% endif %}
+
     {% if ally %}
       <div class="inline-flex items-center gap-2 bg-purple-950/50 border border-purple-500 rounded-full px-4 py-1.5 text-purple-200 text-sm font-sans">
         <i class="fa-solid fa-people-group text-purple-300"></i>
@@ -726,16 +834,17 @@
            class="max-w-xl mx-auto space-y-3">
         <p class="text-center text-stone-400 font-sans">Carregando desafio...</p>
       </div>
-      <div class="flex justify-center items-center gap-4 mt-3">
-        <button type="button" onclick="MathBattle.flee()" class="text-stone-400 hover:text-white text-sm font-sans cursor-pointer">
-          <i class="fa-solid fa-person-running mr-1"></i> Fugir
+      <div class="flex justify-center items-center gap-3 mt-3">
+        <button type="button" onclick="MathBattle.flee()" title="Fugir da batalha" class="arena-action-btn flee">
+          <i class="fa-solid fa-door-open"></i> <span class="hidden sm:inline">Fugir</span>
         </button>
-        <button type="button" onclick="MathBattle.abrirConsumiveis()" class="text-stone-400 hover:text-white text-sm font-sans cursor-pointer">
-          <i class="fa-solid fa-flask mr-1"></i> Consumíveis
+        <button type="button" onclick="MathBattle.abrirConsumiveis()" title="Consumíveis" class="arena-action-btn consumables">
+          <i class="fa-solid fa-flask"></i> <span class="hidden sm:inline">Consumíveis</span>
+          <span id="consumables-total-badge" class="arena-action-badge-count">5</span>
         </button>
         <button type="button" id="ultimate-btn" onclick="MathBattle.useUltimate()" disabled title="Fúria Arcana Suprema"
-                class="ultimate-btn bg-fuchsia-900 text-white border-2 border-fuchsia-400 font-bold px-3 py-1.5 rounded-lg text-lg">
-          <i class="fa-solid fa-meteor"></i>
+                class="ultimate-btn arena-action-btn ultimate">
+          <i class="fa-solid fa-meteor"></i> <span class="hidden sm:inline">Ultimate</span>
         </button>
       </div>
     </div>
@@ -767,27 +876,6 @@
               class="mt-4 px-6 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
         <i class="fa-solid fa-arrow-left mr-2"></i>Voltar à batalha
       </button>
-    </div>
-
-    <!-- VICTORY -->
-    <div id="victory-screen" class="battle-overlay hidden">
-      <div class="text-center space-y-4 max-w-md p-6 sm:p-8 bg-black/40 border-2 border-gold rounded-lg backdrop-blur-md shadow-[0_0_50px_rgba(212,175,55,0.3)]">
-        <i class="fa-solid fa-crown text-5xl sm:text-6xl text-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.8)]"></i>
-        <h2 class="text-2xl sm:text-3xl font-medieval text-white">{{ guardian.name }} derrotado!</h2>
-        <p class="text-stone-300 font-serif italic text-sm sm:text-base">Sua sabedoria prevaleceu. Continue avançando pela trilha.</p>
-        <p id="victory-loot" class="text-xs sm:text-sm font-sans text-stone-300"></p>
-        <p class="text-stone-500 font-sans text-[0.68rem]"><i class="fa-solid fa-hourglass-half mr-1"></i>Seguindo para o próximo desafio em instantes...</p>
-        <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-          <button type="button" onclick="MathBattle.nextChallenge()"
-                  class="px-5 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform cursor-pointer">
-            <i class="fa-solid fa-arrow-right mr-1"></i> Novo desafio
-          </button>
-          <a href="{{ url_for('mathematics.index') }}"
-             class="px-5 py-2.5 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-            <i class="fa-solid fa-map mr-1"></i> Voltar ao mapa
-          </a>
-        </div>
-      </div>
     </div>
 
     <!-- DEFEAT -->
@@ -829,6 +917,10 @@
     subjectSlug: {{ topic.subject.slug | tojson }},
     chronicle: {{ chronicle | tojson }},
     bossTier: {{ boss_tier | tojson }},
+    bossName: {{ guardian.name | tojson }},
+    playerName: {{ (current_user.profile.display_name if current_user.profile else current_user.username) | tojson }},
+    specialAttacks: {{ special_attacks | tojson }},
+    battleTaunts: {{ battle_taunts | tojson }},
   });
 </script>
 {% endblock %}

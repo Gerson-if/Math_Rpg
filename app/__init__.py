@@ -86,6 +86,20 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
 
         return {"chat_unread_count": chat_service.unread_count(current_user.id)}
 
+    @app.context_processor
+    def _inject_notifications_unread_count():
+        """Small badge count for the navbar's notification bell — unread
+        Notification rows (achievement unlocks, chat-report verdicts, ...).
+        Same pattern as the two badges above."""
+        from flask_login import current_user
+
+        if not current_user.is_authenticated:
+            return {}
+        from app.models import Notification
+
+        count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+        return {"notifications_unread_count": count}
+
     @app.after_request
     def _apply_security_headers(response):
         # HSTS is left to Caddy (it sets it automatically for HTTPS sites)

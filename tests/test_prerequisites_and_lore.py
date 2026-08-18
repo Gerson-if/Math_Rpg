@@ -1,5 +1,5 @@
 from app.extensions import db
-from app.models import User, Subject, Topic, Mastery
+from app.models import User, Subject, Topic, Mastery, Attempt
 from app.services import progression_service, guardians, lore
 
 
@@ -126,3 +126,57 @@ def test_chronicle_is_locked_until_the_subject_has_been_practiced(client, db, ap
     assert resp.status_code == 200
     assert "???" in resp.data.decode()
     assert "Os Primeiros Passos" not in resp.data.decode()
+
+
+def test_chronicle_chapters_unlocked_starts_at_one_with_no_attempts(app, db):
+    with app.app_context():
+        user = _make_user()
+        subject, _ = _make_subject_with_topics(["adicao"])
+        db.session.commit()
+
+        assert progression_service.chronicle_chapters_unlocked(user.id, subject.id) == 1
+
+
+def test_chronicle_chapters_unlocked_climbs_with_correct_attempts(app, db):
+    with app.app_context():
+        user = _make_user()
+        subject, topics = _make_subject_with_topics(["adicao"])
+        db.session.commit()
+
+        for _ in range(10):
+            db.session.add(Attempt(
+                user_id=user.id, topic_id=topics[0].id, difficulty=1,
+                is_correct=True, response_time_ms=1000,
+            ))
+        db.session.commit()
+
+        assert progression_service.chronicle_chapters_unlocked(user.id, subject.id) == 2
+
+
+def test_chronicle_reader_locks_chapters_beyond_real_progress(client, db, app):
+    user = User(email="lockedreader@example.com", username="lockedreader")
+    user.set_password("senhaforte123")
+    db.session.add(user)
+    db.session.commit()
+    client.post("/auth/login", data={"email": "lockedreader@example.com", "password": "senhaforte123"})
+
+    with app.app_context():
+        subject = Subject(slug="fundamentos", name="Fundamentos", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        topic = Topic(slug="numeros-e-contagem", name="Números e contagem", subject_id=subject.id, order=0)
+        db.session.add(topic)
+        db.session.flush()
+        db.session.add(Attempt(
+            user_id=user.id, topic_id=topic.id, difficulty=1,
+            is_correct=True, response_time_ms=1000,
+        ))
+        db.session.commit()
+
+    resp = client.get("/math/cronicas/fundamentos")
+    body = resp.data.decode()
+    assert resp.status_code == 200
+    # Only one battle's worth of correct answers so far -> only chapter 1
+    # is unlocked (the JS reader locks anything from index 1 onward).
+    assert "var unlockedCount = 1;" in body
+    assert "Mestre Oren" in body

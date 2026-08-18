@@ -47,10 +47,13 @@ def send():
 @login_required
 def report(message_id):
     error = None
+    report_result = None
     try:
-        chat_service.report_message(message_id, current_user.id)
+        report_result = chat_service.report_message(message_id, current_user.id)
     except chat_service.ChatError as exc:
         error = str(exc)
 
     messages = chat_service.get_recent_messages()
-    return render_template("chat/_messages.html", messages=messages, error=error)
+    return render_template(
+        "chat/_messages.html", messages=messages, error=error, report_result=report_result
+    )

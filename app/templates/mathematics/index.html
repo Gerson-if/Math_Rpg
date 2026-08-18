@@ -20,72 +20,84 @@
 
   .map-path-wrap { position: relative; }
 
+  /* Vertical winding ("snake") trail — top to bottom, page-scrolled like
+     the rest of the site instead of a side-scrolling strip. Each node
+     lands in one of three horizontal lanes (left/center/right, cycling)
+     off a dashed spine down the middle, which is what actually reads as
+     "cobra" — no per-viewport pixel math needed, so it stays responsive
+     for free. */
   .map-path {
-    display: flex; align-items: center; gap: 2.75rem;
-    overflow-x: auto; padding: 3.25rem 2rem 1.5rem;
-    position: relative; scroll-snap-type: x proximity;
-    scroll-behavior: smooth;
-    /* A native drag-scrollbar looked out of place on a hand-drawn map —
-       the prev/next buttons below are the intended way to move through
-       it (still touch/drag-scrollable, just without the ugly bar). */
-    scrollbar-width: none; -ms-overflow-style: none;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3.5rem; padding: 3rem 1rem 2rem; position: relative;
   }
-  .map-path::-webkit-scrollbar { display: none; }
   .map-path::before {
-    content: ""; position: absolute; left: 1.5rem; right: 1.5rem; top: 50%;
-    border-top: 3px dashed rgba(139,107,31,0.55);
+    content: ""; position: absolute; top: 0; bottom: 0; left: 50%;
+    width: 0; border-left: 3px dashed rgba(139,107,31,0.5); transform: translateX(-50%);
+    z-index: 0;
   }
 
-  .map-nav-btn {
-    position: absolute; top: 54%; transform: translateY(-50%); z-index: 5;
-    width: 2.25rem; height: 2.25rem; border-radius: 9999px;
-    background: rgba(10,8,4,0.82); border: 2px solid #d4af37; color: #d4af37;
-    display: flex; align-items: center; justify-content: center; font-size: 1rem;
-    cursor: pointer; box-shadow: 0 0 12px rgba(212,175,55,0.45);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  @media (min-width: 640px) { .map-nav-btn { width: 2.75rem; height: 2.75rem; font-size: 1.15rem; } }
-  .map-nav-btn:hover { transform: translateY(-50%) scale(1.12); box-shadow: 0 0 20px rgba(212,175,55,0.8); }
-  .map-nav-prev { left: 4px; }
-  .map-nav-next { right: 4px; }
-
-  /* Waypoints fade + scale in as the path scrolls them into view —
-     "revealing the trail ahead" instead of a static row. */
+  /* Waypoints fade + rise in as the page scrolls them into view — staggered
+     per node (see the inline --stagger custom property set in the markup)
+     so a run of nodes crossing the viewport threshold together still reads
+     as one materializing one after another, not a single flat pop-in. */
   .map-waypoint {
-    --ty: 0px;
-    position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
-    scroll-snap-align: center;
-    opacity: 0; transform: translateY(var(--ty)) scale(0.82);
-    transition: opacity 0.55s cubic-bezier(0.2,0.8,0.2,1), transform 0.55s cubic-bezier(0.2,0.8,0.2,1);
+    position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center;
+    width: 8.5rem;
+    opacity: 0; transform: translateY(18px) scale(0.85);
+    transition: opacity 0.5s cubic-bezier(0.2,0.8,0.2,1), transform 0.5s cubic-bezier(0.2,0.8,0.2,1);
+    transition-delay: var(--stagger, 0s);
   }
-  .map-waypoint.revealed { opacity: 1; transform: translateY(var(--ty)) scale(1); }
-  .map-waypoint.up { --ty: -24px; }
-  .map-waypoint.down { --ty: 24px; }
-  .map-waypoint .stem { width: 2px; background: rgba(139,107,31,0.6); }
-  .map-waypoint.up .stem { height: 24px; order: 3; }
-  .map-waypoint.down .stem { height: 24px; order: -1; }
+  .map-waypoint.revealed { opacity: 1; transform: translateY(0) scale(1); }
+  .map-waypoint.lane-left { align-self: flex-start; margin-left: 2%; }
+  .map-waypoint.lane-center { align-self: center; }
+  .map-waypoint.lane-right { align-self: flex-end; margin-right: 2%; }
+  @media (min-width: 640px) {
+    .map-waypoint.lane-left { margin-left: 8%; }
+    .map-waypoint.lane-right { margin-right: 8%; }
+  }
 
   .map-landmark {
-    width: 3.5rem; height: 3.5rem; border-radius: 9999px; border: 3px solid;
-    display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+    width: 4.25rem; height: 4.25rem; border-radius: 9999px; border: 3px solid;
+    display: flex; align-items: center; justify-content: center; font-size: 1.7rem;
     background: rgba(15,10,4,0.78); box-shadow: 0 4px 14px rgba(0,0,0,0.55);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, filter 0.25s ease;
   }
-  @media (min-width: 640px) { .map-landmark { width: 4rem; height: 4rem; font-size: 1.6rem; } }
-  .map-waypoint:hover .map-landmark { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.7); }
+  @media (min-width: 640px) { .map-landmark { width: 5.25rem; height: 5.25rem; font-size: 2.1rem; } }
+  /* currentColor picks up the guardian's own text-{color} class already
+     on this element, so the glow is tinted per-guardian for free instead
+     of needing a dynamic CSS rule per subject. */
+  .map-waypoint:hover .map-landmark {
+    transform: scale(1.16) rotate(-4deg);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+    filter: drop-shadow(0 0 14px currentColor);
+    animation: landmarkWobble 0.5s ease-in-out;
+  }
+  @keyframes landmarkWobble {
+    0%, 100% { rotate: -4deg; }
+    30% { rotate: 5deg; }
+    60% { rotate: -2deg; }
+  }
+  .map-waypoint:hover .map-label { text-shadow: 0 0 8px currentColor, 0 1px 3px #000; }
 
   .map-label {
-    font-family: 'MedievalSharp', cursive; font-size: 0.68rem; text-align: center;
-    color: #f4e8c1; text-shadow: 0 1px 3px #000; white-space: nowrap; margin-top: 0.35rem;
+    font-family: 'MedievalSharp', cursive; font-size: 0.75rem; text-align: center;
+    color: #f4e8c1; text-shadow: 0 1px 3px #000; margin-top: 0.4rem; line-height: 1.2;
+    transition: text-shadow 0.25s ease;
   }
-  @media (min-width: 640px) { .map-label { font-size: 0.8rem; } }
+  @media (min-width: 640px) { .map-label { font-size: 0.9rem; } }
 
-  .map-topics { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem; margin-top: 0.4rem; max-width: 7rem; }
+  .map-topics { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; margin-top: 0.6rem; max-width: 9rem; }
   .map-topic-dot {
-    width: 0.85rem; height: 0.85rem; border-radius: 9999px; border: 1.5px solid;
-    display: block; transition: transform 0.15s ease;
+    width: 1.05rem; height: 1.05rem; border-radius: 9999px; border: 1.5px solid;
+    display: block; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
   }
-  .map-topic-dot:hover { transform: scale(1.4); }
+  @media (min-width: 640px) { .map-topic-dot { width: 1.2rem; height: 1.2rem; } }
+  .map-topic-dot:not(.border-dashed) { animation: topicDotBreathe 3.4s ease-in-out infinite; }
+  @keyframes topicDotBreathe {
+    0%, 100% { filter: drop-shadow(0 0 0px currentColor); }
+    50% { filter: drop-shadow(0 0 5px currentColor); }
+  }
+  .map-topic-dot:hover { transform: scale(1.7); filter: drop-shadow(0 0 8px currentColor) !important; animation: none; }
 
   .new-badge {
     position: absolute; top: -12px; right: -10px; background: #7f1d1d; color: #fde68a;
@@ -109,6 +121,18 @@
   .boss-action-badge.locked { background: rgba(10,8,4,0.92); border-color: #57534e; color: #a8a29e; }
   .map-landmark.boss-locked { opacity: 0.55; filter: grayscale(0.4); }
   .boss-status-line { font-size: 0.55rem; font-family: sans-serif; margin-top: 0.15rem; }
+
+  /* Same visual language as .boss-action-badge.ready but its own class —
+     the "Início" node isn't a boss shortcut, it's the onboarding one, and
+     keeping them distinct avoids the two meanings ever being confused by
+     a bare substring check on the rendered page. */
+  .start-action-badge {
+    position: absolute; bottom: -6px; right: -6px; z-index: 2;
+    width: 1.35rem; height: 1.35rem; border-radius: 9999px; border: 1.5px solid #fbbf24;
+    display: flex; align-items: center; justify-content: center; font-size: 0.6rem;
+    background: #422006; color: #fde68a;
+    box-shadow: 0 0 8px rgba(251,191,36,0.7); animation: bossReadyPulse 1.8s ease-in-out infinite;
+  }
 
   .map-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; font-family: 'Cinzel', serif; font-size: 0.68rem; color: #e0c99a; }
 </style>
@@ -134,16 +158,19 @@
   <p class="map-subtitle text-center text-[0.65rem] sm:text-xs mb-1">— Uma Jornada de Aprendizado —</p>
 
   <div class="map-path-wrap">
-    <button type="button" id="map-nav-prev" class="map-nav-btn map-nav-prev" aria-label="Trecho anterior da trilha">
-      <i class="fa-solid fa-chevron-left"></i>
-    </button>
-    <button type="button" id="map-nav-next" class="map-nav-btn map-nav-next" aria-label="Próximo trecho da trilha">
-      <i class="fa-solid fa-chevron-right"></i>
-    </button>
     <div class="map-path" id="map-path">
-    <div class="map-waypoint">
-      <div class="map-landmark border-yellow-700 text-yellow-600"><i class="fa-solid fa-campground"></i></div>
+    <div class="map-waypoint lane-center">
+      {% if first_topic %}
+        <a href="{{ url_for('mathematics.practice', topic_slug=first_topic.slug) }}" class="relative"
+           title="Comece por aqui — {{ first_topic.name }}, a missão mais fácil do reino">
+          <div class="map-landmark border-yellow-700 text-yellow-600"><i class="fa-solid fa-campground"></i></div>
+          <span class="start-action-badge" title="Missão inicial"><i class="fa-solid fa-play"></i></span>
+        </a>
+      {% else %}
+        <div class="map-landmark border-yellow-700 text-yellow-600"><i class="fa-solid fa-campground"></i></div>
+      {% endif %}
       <span class="map-label">Início</span>
+      {% if first_topic %}<span class="boss-status-line text-yellow-400/90">clique para começar</span>{% endif %}
     </div>
 
     {% for subject in subjects %}
@@ -151,9 +178,11 @@
       {% set boss_topic = boss_topics.get(subject.id) %}
       {% set unmet_boss = boss_unmet.get(subject.id, []) %}
       {% set boss_ready = boss_topic and not unmet_boss %}
-      <div class="map-waypoint {{ 'up' if loop.index0 % 2 == 0 else 'down' }}">
-        <div class="stem"></div>
-        <a href="{{ url_for('mathematics.practice', topic_slug=boss_topic.slug) if boss_ready else ('#trilha-' ~ subject.slug) }}"
+      {% set landmark_tag = 'a' if boss_ready else 'div' %}
+      {% set lane = ['lane-left', 'lane-center', 'lane-right'][loop.index0 % 3] %}
+      {% set stagger = (loop.index0 % 4) * 0.09 %}
+      <div class="map-waypoint {{ lane }}" style="--stagger: {{ stagger }}s;">
+        <{{ landmark_tag }} {% if boss_ready %}href="{{ url_for('mathematics.practice', topic_slug=boss_topic.slug) }}"{% endif %}
            class="relative"
            title="{% if boss_ready %}Enfrentar {{ g.name }}{% elif boss_topic %}Complete {{ unmet_boss | map(attribute='name') | join(', ') }} antes de enfrentar {{ g.name }}{% else %}{{ subject.name }} — guardado por {{ g.name }}{% endif %}">
           {% if subject.slug in new_subjects %}<span class="new-badge">Novo!</span>{% endif %}
@@ -163,7 +192,7 @@
           {% elif boss_topic %}
             <span class="boss-action-badge locked"><i class="fa-solid fa-lock"></i></span>
           {% endif %}
-        </a>
+        </{{ landmark_tag }}>
         <span class="map-label text-{{ g.color }}">{{ subject.name }}</span>
         {% if boss_ready %}
           <span class="boss-status-line text-yellow-400/90"><i class="fa-solid fa-khanda"></i> Chefe liberado</span>
@@ -193,20 +222,18 @@
 <script>
 (function () {
   var path = document.getElementById("map-path");
-  var prev = document.getElementById("map-nav-prev");
-  var next = document.getElementById("map-nav-next");
   if (!path) return;
 
-  prev.addEventListener("click", function () { path.scrollBy({ left: -path.clientWidth * 0.6, behavior: "smooth" }); });
-  next.addEventListener("click", function () { path.scrollBy({ left: path.clientWidth * 0.6, behavior: "smooth" }); });
-
+  // The trail now flows down the normal page (no side-scrolling strip of
+  // its own), so reveal-on-scroll watches the viewport directly instead
+  // of a contained scroll area.
   var waypoints = path.querySelectorAll(".map-waypoint");
   if ("IntersectionObserver" in window) {
     var observer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (entry.isIntersecting) entry.target.classList.add("revealed");
       });
-    }, { root: path, threshold: 0.35 });
+    }, { threshold: 0.25 });
     waypoints.forEach(function (el) { observer.observe(el); });
   } else {
     waypoints.forEach(function (el) { el.classList.add("revealed"); });
@@ -214,64 +241,9 @@
 })();
 </script>
 
-{% for subject in subjects %}
-  <div id="trilha-{{ subject.slug }}" class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-6 shadow-lg scroll-mt-20">
-    <div class="flex items-center justify-between flex-wrap gap-2 mb-5">
-      <h2 class="flex items-center gap-3 text-xl font-medieval text-stone-100">
-        {% if subject.icon_key %}
-          <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-stone-800 border border-stone-700 shrink-0 p-1">
-            <img src="{{ url_for('static', filename=subject.icon_key) }}" alt=""
-                 class="w-full h-full object-contain" style="image-rendering: pixelated;">
-          </span>
-        {% else %}
-          <i class="fa-solid fa-book-open text-purple-400"></i>
-        {% endif %}
-        {{ subject.name }}
-        {% if subject.slug in new_subjects %}
-          <span class="text-[0.6rem] font-sans bg-red-950/50 border border-red-500 text-red-300 rounded-full px-2 py-0.5">Novo</span>
-        {% endif %}
-      </h2>
-      {% set subject_guardian = guardians[subject.slug] %}
-      <span class="inline-flex items-center gap-2 text-xs font-sans text-stone-500">
-        <i class="fa-solid {{ subject_guardian.icon }} text-{{ subject_guardian.color }}"></i>
-        Guardado por {{ subject_guardian.name }}
-      </span>
-    </div>
-
-    {% if subject.topics %}
-      <!-- Trilha: nós numerados ligados por um caminho, terminando no
-           guardião da matéria — um mapa de verdade, não uma lista. -->
-      <div class="flex flex-wrap items-center gap-x-1 gap-y-5 overflow-x-auto pb-1">
-        {% for topic in subject.topics %}
-          {% set unmet = recommend_first.get(topic.id, []) %}
-          <a href="{{ url_for('mathematics.practice', topic_slug=topic.slug) }}"
-             class="group flex flex-col items-center gap-1.5 w-16 sm:w-20 shrink-0"
-             title="{{ topic.name }}{% if unmet %} — recomendado praticar antes: {{ unmet | map(attribute='name') | join(', ') }}{% endif %}">
-            <span class="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 flex items-center justify-center font-medieval text-xs sm:text-sm transition-colors
-                         {{ 'border-dashed border-stone-700 text-stone-600' if unmet else 'border-purple-500 text-purple-200 group-hover:border-gold group-hover:text-gold group-hover:shadow-[0_0_10px_rgba(212,175,55,0.4)]' }}">
-              {% if unmet %}<i class="fa-solid fa-compass text-[0.7rem]"></i>{% else %}{{ loop.index }}{% endif %}
-            </span>
-            <span class="text-[0.6rem] sm:text-[0.65rem] font-sans text-center leading-tight text-stone-400 group-hover:text-gold transition-colors">
-              {{ topic.name }}
-            </span>
-          </a>
-          <div class="h-0.5 w-3 sm:w-5 bg-stone-700 shrink-0"></div>
-        {% endfor %}
-        <!-- nó do guardião, fim da trilha -->
-        <div class="flex flex-col items-center gap-1.5 w-16 sm:w-20 shrink-0">
-          <span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-{{ subject_guardian.color }} flex items-center justify-center text-lg sm:text-xl text-{{ subject_guardian.color }} shadow-[0_0_10px_rgba(168,85,247,0.3)]">
-            <i class="fa-solid {{ subject_guardian.icon }}"></i>
-          </span>
-          <span class="text-[0.6rem] sm:text-[0.65rem] font-sans text-center leading-tight text-stone-500">{{ subject_guardian.name }}</span>
-        </div>
-      </div>
-    {% else %}
-      <p class="text-stone-400 font-sans text-sm">Sem tópicos cadastrados ainda.</p>
-    {% endif %}
-  </div>
-{% else %}
+{% if not subjects %}
   <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5">
     <p class="font-sans text-stone-300">Nenhum tópico cadastrado. Rode <code class="bg-black/40 px-1 rounded">python scripts/seed.py</code> para popular o currículo inicial.</p>
   </div>
-{% endfor %}
+{% endif %}
 {% endblock %}

@@ -88,14 +88,26 @@ def test_send_message_via_route_rate_limited_shows_error(client, db):
     assert "Aguarde" in resp.data.decode()
 
 
-def test_report_message_flags_it(app, db):
+def test_report_message_flags_a_message_with_offensive_language(app, db):
     author = _create_user(db, email="autor@example.com", username="autor")
     reporter = _create_user(db, email="rep@example.com", username="rep")
-    message = chat_service.send_message(author.id, "mensagem duvidosa")
+    message = chat_service.send_message(author.id, "isso é uma grande merda")
 
-    chat_service.report_message(message.id, reporter.id)
+    result = chat_service.report_message(message.id, reporter.id)
 
     assert message.is_flagged is True
+    assert result.is_violation is True
+
+
+def test_report_message_does_not_flag_a_clean_message(app, db):
+    author = _create_user(db, email="autorclean@example.com", username="autorclean")
+    reporter = _create_user(db, email="repclean@example.com", username="repclean")
+    message = chat_service.send_message(author.id, "bom dia, pessoal!")
+
+    result = chat_service.report_message(message.id, reporter.id)
+
+    assert message.is_flagged is False
+    assert result.is_violation is False
 
 
 def test_report_message_rejects_reporting_your_own_message(app, db):
@@ -106,14 +118,53 @@ def test_report_message_rejects_reporting_your_own_message(app, db):
         chat_service.report_message(message.id, author.id)
 
 
+def test_report_message_rejects_a_duplicate_report_from_the_same_reporter(app, db):
+    author = _create_user(db, email="autordup@example.com", username="autordup")
+    reporter = _create_user(db, email="repdup@example.com", username="repdup")
+    message = chat_service.send_message(author.id, "mensagem qualquer")
+
+    chat_service.report_message(message.id, reporter.id)
+    with pytest.raises(chat_service.ChatError):
+        chat_service.report_message(message.id, reporter.id)
+
+
+def test_report_message_notifies_both_the_reporter_and_the_reported_user(app, db):
+    from app.models import Notification
+
+    author = _create_user(db, email="autornotif@example.com", username="autornotif")
+    reporter = _create_user(db, email="repnotif@example.com", username="repnotif")
+    message = chat_service.send_message(author.id, "porra, que ódio")
+
+    chat_service.report_message(message.id, reporter.id)
+
+    reporter_notif = Notification.query.filter_by(user_id=reporter.id, type="report_result").first()
+    reported_notif = Notification.query.filter_by(user_id=author.id, type="report_against_you").first()
+    assert reporter_notif is not None
+    assert reporter_notif.payload["is_violation"] is True
+    assert reported_notif is not None
+    assert reported_notif.payload["is_violation"] is True
+
+
 def test_report_message_via_route_marks_it_flagged_in_the_rendered_list(client, db):
     author = _create_user(db, email="autor3@example.com", username="autor3")
-    message = chat_service.send_message(author.id, "outra mensagem duvidosa")
+    message = chat_service.send_message(author.id, "outra mensagem cheia de merda")
     _create_and_login(client, db, email="rep2@example.com", username="rep2")
 
     resp = client.post(f"/chat/denunciar/{message.id}")
     assert resp.status_code == 200
-    assert "outline-blood" in resp.data.decode()
+    body = resp.data.decode()
+    assert "outline-blood" in body
+    assert "violação confirmada" in body
+
+
+def test_report_message_via_route_shows_no_violation_for_a_clean_message(client, db):
+    author = _create_user(db, email="autor3b@example.com", username="autor3b")
+    message = chat_service.send_message(author.id, "boa tarde a todos")
+    _create_and_login(client, db, email="rep2b@example.com", username="rep2b")
+
+    resp = client.post(f"/chat/denunciar/{message.id}")
+    assert resp.status_code == 200
+    assert "nenhuma violação encontrada" in resp.data.decode()
 
 
 def test_chat_message_username_links_to_public_profile(client, db):

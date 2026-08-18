@@ -2,10 +2,10 @@
 Mathematics engine blueprint: browse topics, practice a topic (question in,
 answer out, immediately loop to the next question), and view answer
 history. XP/mastery/streak updates are deliberately NOT done here — that's
-Fase 4 (Progressão), which reads from the Attempt rows this blueprint
-writes. Keeping the two separated means the mathematics engine has no idea
-progression even exists, matching the "XP calculation centralized in one
-service" requirement from the spec.
+app.services.progression_service, which reads from the Attempt rows this
+blueprint writes. Keeping the two separated means the mathematics engine
+has no idea progression even exists, matching the "XP calculation
+centralized in one service" requirement from the spec.
 """
 from datetime import datetime, timezone
 
@@ -15,7 +15,7 @@ from flask_login import login_required, current_user
 import random
 
 from app.extensions import db, limiter
-from app.models import Subject, Topic, Attempt
+from app.models import Subject, Topic, Attempt, Mastery
 from app.services import (
     mathematics_service,
     question_token,
@@ -101,6 +101,13 @@ def index():
         boss_topics[subject.id] = boss_topic
         boss_unmet[subject.id] = progression_service.unmet_prerequisites(current_user.id, boss_topic)
 
+    # The "Início" landmark used to be purely decorative (no href at all)
+    # — now it's a real onboarding shortcut straight into the easiest
+    # topic in the curriculum (first topic of the first active subject,
+    # by Subject.order/Topic.order), so a brand-new player always has an
+    # obvious "start here" to click instead of guessing which node to try.
+    first_topic = subjects[0].topics[0] if subjects and subjects[0].topics else None
+
     return render_template(
         "mathematics/index.html",
         subjects=subjects,
@@ -109,6 +116,7 @@ def index():
         new_subjects=NEW_SUBJECT_SLUGS,
         boss_topics=boss_topics,
         boss_unmet=boss_unmet,
+        first_topic=first_topic,
     )
 
 
@@ -140,6 +148,19 @@ def practice(topic_slug):
         if already_defeated:
             display_guardian = dict(display_guardian, name=guardians.supreme_name_for(topic.subject.slug))
             boss_tier = "supreme"
+
+    topic_mastery = Mastery.query.filter_by(user_id=current_user.id, topic_id=topic.id).first()
+    # Best-ever star rating on this topic, derived from real Attempt
+    # history (fastest correct answer) rather than a separately tracked
+    # "high score" column — same STAR_TIME_THRESHOLDS_MS used to rate
+    # each answer live during a battle (see answer_question below).
+    best_correct = (
+        Attempt.query.filter_by(user_id=current_user.id, topic_id=topic.id, is_correct=True)
+        .order_by(Attempt.response_time_ms.asc())
+        .first()
+    )
+    best_stars = _stars_for(True, best_correct.response_time_ms) if best_correct else None
+
     return render_template(
         "mathematics/practice.html",
         topic=topic,
@@ -151,6 +172,10 @@ def practice(topic_slug):
         equipped=loot_service.list_equipped(current_user.id),
         buffs=loot_service.compute_buffs(current_user.id),
         chronicle=lore.for_subject(topic.subject.slug),
+        special_attacks=guardians.special_attacks_for(topic.subject.slug),
+        battle_taunts=guardians.battle_taunts_for(topic.subject.slug),
+        topic_mastery=topic_mastery,
+        best_stars=best_stars,
     )
 
 
@@ -286,22 +311,40 @@ def _discovered_subject_ids(user_id: int) -> set[int]:
 def chronicles():
     """The kingdom's lore, one chronicle per subject — discovered as soon
     as the player has practiced anything in that subject at all (no
-    mastery threshold; this is flavor, not a gate)."""
+    mastery threshold; this is flavor, not a gate). How many chapters of
+    each are actually *readable* is a separate, gradual thing — see
+    chronicle_detail below."""
     subjects = Subject.query.filter_by(is_active=True).order_by(Subject.order).all()
     discovered_subject_ids = _discovered_subject_ids(current_user.id)
-    chronicles_by_subject = [
-        (subject, lore.for_subject(subject.slug), subject.id in discovered_subject_ids)
-        for subject in subjects
-        if lore.for_subject(subject.slug) is not None
-    ]
-    return render_template("mathematics/chronicles.html", chronicles=chronicles_by_subject)
+    chronicles_by_subject = []
+    for subject in subjects:
+        chronicle = lore.for_subject(subject.slug)
+        if chronicle is None:
+            continue
+        discovered = subject.id in discovered_subject_ids
+        unlocked = 0
+        if discovered:
+            unlocked = min(
+                len(chronicle["stages"]),
+                progression_service.chronicle_chapters_unlocked(current_user.id, subject.id),
+            )
+        chronicles_by_subject.append((subject, chronicle, discovered, unlocked))
+    subject_guardians = {subject.slug: guardians.for_subject(subject.slug) for subject in subjects}
+    return render_template(
+        "mathematics/chronicles.html", chronicles=chronicles_by_subject, guardians=subject_guardians,
+    )
 
 
 @mathematics_bp.route("/cronicas/<subject_slug>")
 @login_required
 def chronicle_detail(subject_slug):
     """A single chronicle read as its own immersive, page-by-page story —
-    not the whole thing dumped as one wall of text on the index."""
+    not the whole thing dumped as one wall of text on the index. Chapters
+    unlock gradually as the player actually wins battles in that subject
+    (see progression_service.chronicle_chapters_unlocked) rather than the
+    entire story being available the moment the subject is discovered —
+    reading ahead of your own progress would spoil the pacing the battle
+    arena's own chapter-reveal-per-victory is built around."""
     subject = Subject.query.filter_by(slug=subject_slug, is_active=True).first_or_404()
     chronicle = lore.for_subject(subject_slug)
     if chronicle is None:
@@ -309,8 +352,13 @@ def chronicle_detail(subject_slug):
     if subject.id not in _discovered_subject_ids(current_user.id):
         flash(f"Pratique algo de {subject.name} para revelar esta crônica.", "warning")
         return redirect(url_for("mathematics.chronicles"))
+    unlocked_chapters = min(
+        len(chronicle["stages"]),
+        progression_service.chronicle_chapters_unlocked(current_user.id, subject.id),
+    )
     return render_template(
         "mathematics/chronicle_detail.html", subject=subject, chronicle=chronicle,
+        unlocked_chapters=unlocked_chapters,
     )
 
 

@@ -33,11 +33,49 @@ const MathBattle = (() => {
   // it just sits at a sliver of HP until the player gets there.
   const MIN_HITS_FOR_VICTORY = 10;
 
-  let cfg = { topicSlug: "", indexUrl: "/math/", buffs: {} };
+  // Second wind: the first time the boss drops to a quarter health, it
+  // refuses to just die quietly — it taunts, tops its own bar back up,
+  // and hits harder for the rest of the fight. Once per fight (see
+  // bossEnraged below), not every time HP dips low.
+  const ENRAGE_HP_THRESHOLD = 0.25;
+  const ENRAGE_DMG_MULT = 1.3;
+  const ENRAGE_TAUNTS = [
+    "Achou que seria fácil?",
+    "Isso é só o começo da minha fúria!",
+    "Você não vai vencer tão fácil assim!",
+    "Sinta o verdadeiro poder do guardião!",
+  ];
+
+  // A wrong answer already counters with a normal hit (see onMiss) — this
+  // gives the boss a chance to throw a named, harder-hitting special
+  // attack instead, with its own callout and bigger impact fx. Names come
+  // from the server per-subject (cfg.specialAttacks, see guardians.py) so
+  // every enemy — not just the final guardian — has its own flavor
+  // instead of one generic shared pool; this array is only the fallback
+  // if that ever comes through empty.
+  const SPECIAL_ATTACK_CHANCE = 0.22;
+  const SPECIAL_ATTACK_MULT = 1.6;
+  const SPECIAL_ATTACK_NAMES_FALLBACK = [
+    "Investida Sombria", "Fúria Arcana", "Golpe Devastador",
+    "Investida Ancestral", "Lâmina do Caos",
+  ];
+
+  // Enemy dialogue: a small chance per wrong answer (higher on a special
+  // attack) that the enemy taunts the player — same per-subject flavor
+  // source as the special attack names.
+  const BATTLE_TAUNT_CHANCE = 0.18;
+  const BATTLE_TAUNT_FALLBACK = ["Você não é páreo para mim!", "Tente de novo, aprendiz!"];
+
+  let cfg = {
+    topicSlug: "", indexUrl: "/math/", buffs: {}, bossName: "O guardião", playerName: "aprendiz",
+    specialAttacks: SPECIAL_ATTACK_NAMES_FALLBACK, battleTaunts: BATTLE_TAUNT_FALLBACK,
+  };
   let maxHP = BASE_MAX_HP, playerHP = maxHP;
   let bossMaxHP = BOSS_HP_BY_TIER.boss, bossHP = bossMaxHP;
   let combo = 0, fury = 0, lastPhase = 1;
   let hitsLanded = 0;
+  let bossEnraged = false;
+  let totalStars = 0, starRatingsCount = 0;
   let potions = CONFIG.potionsStart, furyScrolls = CONFIG.furyScrollsStart;
   let claimingVictory = false;
   let victoryTriggered = false;
@@ -102,6 +140,25 @@ const MathBattle = (() => {
     setTimeout(() => overlay.remove(), 2800);
   }
 
+  /* Same ring+icon+fade language, one more time, for leaving mid-fight —
+     "Fugir" used to just jump straight to the map with no transition at
+     all, out of step with every other moment in the arena getting this
+     treatment. Personalized with the player's own name for the "waiting
+     for you" framing. */
+  function showFarewell(onDone) {
+    const overlay = document.createElement("div");
+    overlay.className = "intro-overlay";
+    overlay.innerHTML =
+      '<div class="intro-sigil-wrap">' +
+      '<div class="intro-ring"></div>' +
+      '<div class="intro-ring reverse"></div>' +
+      '<div class="intro-icon"><i class="fa-solid fa-dungeon"></i></div>' +
+      "</div>" +
+      `<div class="intro-text">Até logo, ${escapeHtml(cfg.playerName || "aprendiz")}. O Reino aguarda seu retorno...</div>`;
+    document.body.appendChild(overlay);
+    setTimeout(onDone, 1700);
+  }
+
   /* One chapter ("stage") of that subject's chronicle per boss defeated —
      purely narrative flavor (see app/services/lore.py), tracked
      client-side only since it has no bearing on real progression. Loops
@@ -119,6 +176,24 @@ const MathBattle = (() => {
     return { title: chronicle.title, snippet, isComplete, stageNumber: Math.min(idx + 1, stages.length) };
   }
 
+  /* Aggregate star performance across every correct answer this fight
+     (see totalStars/starRatingsCount above) into a 1-3 star "battle
+     rank" — the same per-question rating, just recapped as one epic
+     number at the end instead of only flashing by one question at a
+     time during the fight itself. */
+  function performanceStarsHtml() {
+    if (starRatingsCount === 0) return "";
+    const avg = totalStars / starRatingsCount;
+    const rounded = Math.max(1, Math.min(3, Math.round(avg)));
+    const labels = { 1: "Bom combate!", 2: "Ótimo desempenho!", 3: "Desempenho Lendário!" };
+    let stars = "";
+    for (let i = 0; i < 3; i++) {
+      const delay = (0.9 + i * 0.15).toFixed(2);
+      stars += `<i class="fa-solid fa-star victory-star${i < rounded ? " filled" : ""}" style="animation-delay:${delay}s"></i>`;
+    }
+    return `<div class="victory-stars">${stars}</div><div class="victory-stars-label">${labels[rounded]}</div>`;
+  }
+
   /* Doesn't auto-dismiss — there's a chronicle sliver to actually read —
      it waits for the player to tap "Continuar", then fades out and hands
      control back via onContinue (which reveals the victory-screen box). */
@@ -132,7 +207,8 @@ const MathBattle = (() => {
       '<div class="intro-ring reverse"></div>' +
       '<div class="victory-icon"><i class="fa-solid fa-scroll"></i></div>' +
       "</div>" +
-      '<div class="victory-title">Vitória!</div>';
+      '<div class="victory-title">Vitória!</div>' +
+      performanceStarsHtml();
     if (lore) {
       html += `<div class="victory-snippet"><strong>${escapeHtml(lore.title)} — Capítulo ${lore.stageNumber}</strong><br>${escapeHtml(lore.snippet)}${lore.isComplete ? " <em>(crônica completa — reveja em Crônicas do Reino)</em>" : ""}</div>`;
     }
@@ -172,6 +248,8 @@ const MathBattle = (() => {
     playerHP = maxHP; bossHP = bossMaxHP;
     combo = 0; fury = 0; lastPhase = 1;
     hitsLanded = 0;
+    bossEnraged = false;
+    totalStars = 0; starRatingsCount = 0;
     furyWasReady = false; comboAlertedTier = 0;
     victoryTriggered = false;
     potions = CONFIG.potionsStart; furyScrolls = CONFIG.furyScrollsStart;
@@ -184,6 +262,7 @@ const MathBattle = (() => {
     updateBossPhaseUi(1);
     $("potion-count") && ($("potion-count").innerText = potions);
     $("scroll-count") && ($("scroll-count").innerText = furyScrolls);
+    updateConsumablesBadge();
     $("speech-bubble-container") && ($("speech-bubble-container").innerHTML = "");
     $("battle-alert-container") && ($("battle-alert-container").innerHTML = "");
     $("loot-toast-container") && ($("loot-toast-container").innerHTML = "");
@@ -266,6 +345,11 @@ const MathBattle = (() => {
         name: d.lootName, icon_key: d.lootIcon, rarity: d.lootRarity,
         passive_type: d.lootPassive, passive_value: parseFloat(d.lootValue || "0"),
       });
+      // Tallied for the end-of-fight performance recap (see
+      // showVictoryReveal) — every correct answer counts, not just the
+      // ones landed after the boss is already low on HP.
+      totalStars += parseInt(d.stars || "0", 10) || 0;
+      starRatingsCount++;
       let msg = `<i class="fa-solid fa-check"></i> Correto! +${escapeHtml(d.xp || "0")} XP <span class="ml-1">${starsHtml(d.stars)}</span>`;
       if (d.bonusXp) msg += ` <span style="color:#c084fc">(+${escapeHtml(d.bonusXp)} dupla c/ ${escapeHtml(d.allyName)})</span>`;
       if (d.levelup === "true") msg += ` · <i class="fa-solid fa-star"></i> Nível ${escapeHtml(d.level)}!`;
@@ -360,6 +444,14 @@ const MathBattle = (() => {
 
     if (lootItem && lootItem.name) BattleLoot.toast("loot-toast-container", lootItem);
 
+    // Second wind — checked before the normal death/phase handling below,
+    // so a killing blow that also happens to cross the enrage threshold
+    // for the first time triggers the comeback instead of ending the fight.
+    if (!bossEnraged && bossHP > 0 && bossHP / bossMaxHP <= ENRAGE_HP_THRESHOLD) {
+      triggerBossEnrage();
+      return;
+    }
+
     checkPhaseTransition();
     if (bossHP <= 0) {
       boss.classList.add("boss-dead");
@@ -367,30 +459,106 @@ const MathBattle = (() => {
     }
   }
 
+  /* Boss "levels up" once per fight instead of just quietly losing: taunts,
+     refills its own bar, and hits harder for the remainder of the fight
+     (see ENRAGE_DMG_MULT in onMiss). Purely a mid-fight twist — it never
+     changes what a correct/wrong answer means for real XP/mastery. */
+  function triggerBossEnrage() {
+    bossEnraged = true;
+    const boss = $("boss-sprite");
+
+    BattleAudio.sfx.ultimate();
+    BattleFx.triggerCritFlash("crit-flash", true);
+    BattleFx.spawnShockwave(boss, "#ef4444");
+    boss.classList.remove("crit-shake"); void boss.offsetWidth; boss.classList.add("crit-shake");
+
+    bossHP = bossMaxHP;
+    updateHpBar("boss-hp", bossHP, bossMaxHP);
+    lastPhase = 3;
+    updateBossPhaseUi(3);
+    const aura = $("boss-aura");
+    aura.classList.add("aura-active", "aura-intense");
+
+    const taunt = ENRAGE_TAUNTS[rand(0, ENRAGE_TAUNTS.length - 1)];
+    showEnrageBanner(taunt);
+  }
+
+  function showEnrageBanner(taunt) {
+    const banner = document.createElement("div");
+    banner.className = "phase-banner enrage-banner";
+    banner.innerHTML =
+      `<div>💢 ${escapeHtml(cfg.bossName)} desperta com fúria renovada!</div>` +
+      `<div class="enrage-taunt">"${escapeHtml(taunt)}"</div>`;
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 3200);
+  }
+
+  function randomFrom(arr, fallback) {
+    const pool = arr && arr.length ? arr : fallback;
+    return pool && pool.length ? pool[rand(0, pool.length - 1)] : null;
+  }
+
+  /* Enemy "speech" floating above its own sprite — same technique as
+     BattleFx.showFloatingDamage (positioned from the live target rect),
+     just longer-lived and styled like a taunt instead of a number. */
+  function showEnemyBubble(text) {
+    if (!text) return;
+    const boss = $("boss-sprite");
+    if (!boss) return;
+    const rect = boss.getBoundingClientRect();
+    const el = document.createElement("div");
+    el.className = "enemy-bubble";
+    el.innerText = text;
+    el.style.left = (rect.left + rect.width / 2) + "px";
+    el.style.top = (rect.top - 14) + "px";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2800);
+  }
+
   function onMiss() {
     combo = 0;
     updateComboUi();
 
+    // The boss occasionally throws a named special attack instead of a
+    // plain counter-hit — more likely once it's enraged. Every enemy tier
+    // (minion/elite/boss/supreme) can throw one, not just the final
+    // guardian — this isn't gated by bossTier anywhere above.
+    const isSpecial = Math.random() < (bossEnraged ? SPECIAL_ATTACK_CHANCE * 1.6 : SPECIAL_ATTACK_CHANCE);
+
     const range = CONFIG.bossDmgByPhase[getPhase() - 1];
-    const dmg = rand(range.min, range.max);
+    let dmg = rand(range.min, range.max);
+    if (bossEnraged) dmg = Math.round(dmg * ENRAGE_DMG_MULT);
+    if (isSpecial) dmg = Math.round(dmg * SPECIAL_ATTACK_MULT);
 
     const boss = $("boss-sprite"), hero = $("hero-avatar");
-    BattleFx.launchProjectile(boss, hero, "#ef4444", () => applyPlayerDamage(dmg));
+    if (isSpecial) {
+      const name = randomFrom(cfg.specialAttacks, SPECIAL_ATTACK_NAMES_FALLBACK);
+      showBattleAlert("💥 " + name + "!", "danger");
+      showEnemyBubble(randomFrom(cfg.battleTaunts, BATTLE_TAUNT_FALLBACK));
+      BattleFx.spawnShockwave(boss, "#ef4444");
+    } else if (Math.random() < BATTLE_TAUNT_CHANCE) {
+      showEnemyBubble(randomFrom(cfg.battleTaunts, BATTLE_TAUNT_FALLBACK));
+    }
+    BattleFx.launchProjectile(boss, hero, "#ef4444", () => applyPlayerDamage(dmg, isSpecial), isSpecial);
 
     const arena = $("battle-arena");
     arena.classList.remove("hit-flash"); void arena.offsetWidth; arena.classList.add("hit-flash");
     hero.classList.remove("hero-hurt-anim"); void hero.offsetWidth; hero.classList.add("hero-hurt-anim");
+    if (isSpecial) {
+      arena.classList.remove("crit-shake"); void arena.offsetWidth; arena.classList.add("crit-shake");
+      setTimeout(() => arena.classList.remove("crit-shake"), 450);
+    }
     const fx = $("hero-fx");
     fx.innerHTML = '<i class="fa-solid fa-bolt-lightning miss-spark"></i>';
     setTimeout(() => { fx.innerHTML = ""; }, 500);
   }
 
-  function applyPlayerDamage(dmg) {
+  function applyPlayerDamage(dmg, isSpecial) {
     playerHP = Math.max(0, playerHP - dmg);
-    BattleFx.showFloatingDamage("hero-avatar", "-" + dmg, "#ef4444", false);
+    BattleFx.showFloatingDamage("hero-avatar", "-" + dmg, "#ef4444", !!isSpecial);
     updateHpBar("player-hp", playerHP, maxHP);
-    BattleFx.spawnBurst($("hero-avatar"), "#ef4444", 14);
-    BattleAudio.sfx.hit(false);
+    BattleFx.spawnBurst($("hero-avatar"), "#ef4444", isSpecial ? 26 : 14);
+    BattleAudio.sfx.hit(!!isSpecial);
     if (playerHP <= 0) {
       $("arena-content").classList.add("player-dead");
       setTimeout(defeat, 800);
@@ -415,6 +583,7 @@ const MathBattle = (() => {
     playerHP = Math.min(maxHP, playerHP + CONFIG.potionHeal);
     updateHpBar("player-hp", playerHP, maxHP);
     $("potion-count").innerText = potions;
+    updateConsumablesBadge();
     BattleFx.spawnBurst($("hero-avatar"), "#60a5fa", 14);
     BattleAudio.sfx.heal();
     showBattleAlert("🧪 Poção usada! +" + CONFIG.potionHeal + " HP");
@@ -426,9 +595,18 @@ const MathBattle = (() => {
     fury = Math.min(100, fury + CONFIG.furyScrollAmount);
     updateFuryUi();
     $("scroll-count").innerText = furyScrolls;
+    updateConsumablesBadge();
     BattleFx.spawnBurst($("hero-avatar"), "#f472b6", 14);
     BattleAudio.sfx.heal();
     showBattleAlert("📜 Pergaminho usado! +" + CONFIG.furyScrollAmount + " Fúria");
+  }
+
+  // Small resource-count badge on the "Consumíveis" HUD button, so the
+  // player can see at a glance whether anything's left without opening
+  // the screen.
+  function updateConsumablesBadge() {
+    const badge = $("consumables-total-badge");
+    if (badge) badge.innerText = potions + furyScrolls;
   }
 
   /* ---------------- UI helpers ---------------- */
@@ -526,19 +704,7 @@ const MathBattle = (() => {
 
   /* ---------------- victory / defeat / revive / next-challenge ---------------- */
 
-  // The chapter-reveal overlay still waits for a manual "Continuar" — that
-  // one has actual reading on it. The victory-screen box that follows
-  // (loot summary, nothing to read) used to also require a manual click on
-  // "Novo desafio" before the next fight would start; it now advances on
-  // its own after a few seconds so the loop keeps moving, while both
-  // buttons stay live for anyone who wants to jump ahead or leave instead.
-  const AUTO_ADVANCE_DELAY_MS = 3600;
-  let autoAdvanceTimer = null;
   let advancingChallenge = false;
-
-  function clearAutoAdvance() {
-    if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
-  }
 
   function victory() {
     // A hit that lands just as the boss reaches 0 HP can overlap with
@@ -549,17 +715,15 @@ const MathBattle = (() => {
     victoryTriggered = true;
 
     BattleAudio.sfx.victory();
-    // The chapter-reveal overlay below IS the victory transition now — no
-    // need for the small in-arena gate-rift portal underneath it too.
-    // The victory-screen box (with loot) only appears once the player has
-    // dismissed the chapter-reveal overlay themselves — no fixed timer for
-    // that part. Once it's showing, though, the next fight starts on its
-    // own (see AUTO_ADVANCE_DELAY_MS) unless the player acts first.
-    showVictoryReveal(() => {
-      $("victory-screen").classList.remove("hidden");
-      clearAutoAdvance();
-      autoAdvanceTimer = setTimeout(() => { autoAdvanceTimer = null; nextChallenge(); }, AUTO_ADVANCE_DELAY_MS);
-    });
+    // The chapter-reveal overlay below IS the victory transition — it
+    // still waits for a manual "Continuar" since there's actual reading
+    // on it, but once dismissed the next fight starts right away. There
+    // used to be a "Novo desafio" / "Voltar ao mapa" box in between —
+    // showing a choice screen right after the player just confirmed they
+    // won read as a leftover decision gate, not a smooth transition,
+    // so it's gone; "Fugir" in the arena footer is the one bail-out now,
+    // same as during any other fight.
+    showVictoryReveal(() => nextChallenge());
 
     if (claimingVictory) return;
     claimingVictory = true;
@@ -570,11 +734,7 @@ const MathBattle = (() => {
       .then((r) => (r.ok ? r.json() : null))
       .then((item) => {
         claimingVictory = false;
-        if (item) {
-          BattleLoot.toast("loot-toast-container", item);
-          const label = { comum: "Comum", magico: "Mágico", raro: "Raro", lendario: "Lendário" }[item.rarity] || item.rarity;
-          $("victory-loot").innerHTML = `<i class="fa-solid ${item.icon_key} mr-1"></i> Espólio: ${item.name} (${label})`;
-        }
+        if (item) BattleLoot.toast("loot-toast-container", item);
       })
       .catch(() => { claimingVictory = false; });
   }
@@ -609,12 +769,10 @@ const MathBattle = (() => {
   }
 
   function nextChallenge() {
-    // Reachable both from the "Novo desafio" button and the auto-advance
-    // timer above — without this guard, a manual click right as the timer
-    // fires (or vice versa) could run the whole transition twice.
+    // A hit landing right as the reveal's "Continuar" is tapped could
+    // theoretically fire this twice — guard keeps the transition single.
     if (advancingChallenge) return;
     advancingChallenge = true;
-    clearAutoAdvance();
 
     const ring = $("next-portal-ring");
     const content = $("arena-content");
@@ -624,8 +782,6 @@ const MathBattle = (() => {
 
     setTimeout(() => {
       resetBars();
-      $("victory-screen").classList.add("hidden");
-      $("victory-loot").innerHTML = "";
       content.classList.remove("arena-portal-reveal"); void content.offsetWidth;
       content.classList.add("arena-portal-reveal");
       spawnDust();
@@ -637,8 +793,7 @@ const MathBattle = (() => {
   }
 
   function flee() {
-    clearAutoAdvance();
-    window.location.href = cfg.indexUrl;
+    showFarewell(() => { window.location.href = cfg.indexUrl; });
   }
 
   return {

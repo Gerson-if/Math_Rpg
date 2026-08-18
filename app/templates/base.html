@@ -73,6 +73,12 @@
               <span class="absolute -top-2 -right-3 bg-blood text-white text-[0.6rem] rounded-full w-4 h-4 flex items-center justify-center">{{ pending_invites_count }}</span>
             {% endif %}
           </a>
+          <a href="{{ url_for('users.notifications') }}" class="hover:text-gold transition-colors relative" title="Notificações">
+            <i class="fa-solid fa-bell"></i>
+            {% if notifications_unread_count %}
+              <span class="absolute -top-2 -right-3 bg-blood text-white text-[0.6rem] rounded-full w-4 h-4 flex items-center justify-center">{{ "9+" if notifications_unread_count > 9 else notifications_unread_count }}</span>
+            {% endif %}
+          </a>
           <span class="text-stone-600">|</span>
           <a href="{{ url_for('users.profile') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-circle-user"></i> {{ current_user.username }}</a>
           <a href="{{ url_for('auth.logout') }}" class="hover:text-blood transition-colors" title="Sair"><i class="fa-solid fa-right-from-bracket"></i></a>

@@ -1,74 +1,170 @@
 {% extends "base.html" %}
 {% import "_macros.html" as ui %}
 {% block title %}Perfil{% endblock %}
+
+{% block extra_head %}
+<style>
+  .char-banner {
+    background: radial-gradient(circle at 20% 20%, rgba(168,85,247,0.12), transparent 55%),
+                radial-gradient(circle at 80% 80%, rgba(212,175,55,0.08), transparent 55%);
+  }
+  .char-portrait-ring {
+    position: relative; width: 5.5rem; height: 5.5rem; border-radius: 9999px;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle, rgba(212,175,55,0.18) 0%, transparent 70%);
+    border: 3px solid #d4af37; box-shadow: 0 0 22px rgba(212,175,55,0.4), inset 0 0 14px rgba(0,0,0,0.5);
+  }
+  @media (min-width: 640px) { .char-portrait-ring { width: 6.5rem; height: 6.5rem; } }
+  .char-portrait-ring .rank-corner { position: absolute; bottom: -6px; right: -6px; }
+
+  .xp-track { width: 100%; height: 10px; background: #1c1917; border: 1px solid #57534e; border-radius: 9999px; overflow: hidden; }
+  .xp-fill {
+    height: 100%; width: 0%; border-radius: 9999px;
+    background: linear-gradient(90deg, #a855f7, #d4af37, #a855f7);
+    background-size: 200% 100%; animation: xpShift 3s linear infinite;
+    transition: width 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes xpShift { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
+
+  .gear-slot {
+    width: 3.4rem; height: 3.4rem; border-radius: 0.6rem; border: 2px solid;
+    display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+    transition: transform 0.15s ease;
+  }
+  @media (min-width: 640px) { .gear-slot { width: 3.8rem; height: 3.8rem; font-size: 1.4rem; } }
+  .gear-slot:hover { transform: translateY(-2px); }
+
+  .mastery-track { width: 100%; height: 7px; background: #1c1917; border: 1px solid #44403c; border-radius: 9999px; overflow: hidden; }
+  .mastery-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #a855f7, #d4af37); }
+</style>
+{% endblock %}
+
 {% block content %}
 
-<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg flex gap-4 sm:gap-6 items-center flex-wrap">
-  <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold flex items-center justify-center text-3xl sm:text-4xl bg-blue-950 text-gold shadow-inner shrink-0">
-    {{ ui.avatar_icon(user.profile) }}
-  </div>
-  {% if user.stats and user.stats.rank %}{{ ui.rank_badge(user.stats.rank) }}{% endif %}
-  <div class="flex-1">
-    <h1 class="text-2xl sm:text-3xl font-medieval text-gold">{{ user.profile.display_name if user.profile else user.username }}</h1>
-    <p class="text-stone-400 font-sans mt-1">{{ user.email }}</p>
-    {% if user.stats and user.stats.rank %}
-      <p class="text-stone-400 font-sans mt-1">{{ user.stats.rank.name }}</p>
-    {% endif %}
-    {% if user.profile and user.profile.title %}
-      <p class="text-gold font-sans mt-1">{{ user.profile.title }}</p>
-    {% endif %}
-    {% if user.profile and user.profile.bio %}
-      <p class="text-stone-300 font-sans mt-2 text-sm italic">"{{ user.profile.bio }}"</p>
-    {% endif %}
-  </div>
-  <a href="{{ url_for('users.edit_profile') }}"
-     class="inline-flex items-center gap-2 px-4 py-2 rounded font-medieval text-sm text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors shrink-0">
-    <i class="fa-solid fa-pen"></i> Editar perfil
-  </a>
-</div>
-
-<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
-  <h2 class="text-xl font-medieval text-stone-100 mb-3">Classe</h2>
-  {% if class_info %}
-    <div class="flex items-center gap-4 flex-wrap font-sans">
-      <div class="w-12 h-12 rounded-full border-2 border-{{ class_info.color }} flex items-center justify-center text-xl text-{{ class_info.color }} bg-black/40 shrink-0">
-        <i class="fa-solid {{ class_info.icon }}"></i>
-      </div>
-      <div>
-        <p class="text-white font-medieval text-lg">{{ class_info.name }}</p>
-        {% if ability %}<p class="text-stone-400 text-sm">Habilidade: <span class="text-gold">{{ ability }}</span></p>{% endif %}
-        {% if class_lore_line %}<p class="text-purple-300 font-serif italic text-xs mt-1">{{ class_lore_line }}</p>{% endif %}
+<div class="char-banner border-2 border-gold/40 rounded-lg p-5 sm:p-7 shadow-lg">
+  <div class="flex gap-4 sm:gap-6 items-center flex-wrap">
+    <div class="char-portrait-ring shrink-0">
+      <span class="text-3xl sm:text-4xl text-gold">{{ ui.avatar_icon(user.profile) }}</span>
+      {% if user.stats and user.stats.rank %}
+        <span class="rank-corner">{{ ui.rank_badge(user.stats.rank, size='sm') }}</span>
+      {% endif %}
+    </div>
+    <div class="flex-1 min-w-[220px]">
+      <h1 class="text-2xl sm:text-3xl font-medieval text-gold drop-shadow-[0_0_10px_rgba(212,175,55,0.35)]">
+        {{ user.profile.display_name if user.profile else user.username }}
+      </h1>
+      <p class="text-stone-300 font-sans mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <span><i class="fa-solid fa-shield-halved text-purple-400 mr-1"></i>Nível {{ user.stats.level.number if user.stats and user.stats.level else 1 }}</span>
+        {% if user.stats and user.stats.rank %}<span>· {{ user.stats.rank.name }}</span>{% endif %}
+        <span><i class="fa-solid fa-coins text-gold mr-1"></i>{{ gold }} Ouro</span>
+      </p>
+      {% if user.profile and user.profile.title %}
+        <p class="text-gold font-sans text-sm mt-1"><i class="fa-solid fa-crown mr-1"></i>{{ user.profile.title }}</p>
+      {% endif %}
+      {% if user.profile and user.profile.bio %}
+        <p class="text-stone-400 font-sans mt-2 text-sm italic">"{{ user.profile.bio }}"</p>
+      {% endif %}
+      <div class="mt-3 max-w-sm">
+        <div class="xp-track"><div class="xp-fill" style="width:{{ level_progress_pct }}%"></div></div>
+        <p class="text-stone-500 font-sans text-[0.7rem] mt-1">
+          {% if next_level %}{{ level_progress_pct }}% até o nível {{ next_level.number }}{% else %}Nível máximo alcançado{% endif %}
+        </p>
       </div>
     </div>
-  {% else %}
-    <p class="text-stone-400 font-sans">Você ainda não escolheu uma classe.</p>
-  {% endif %}
-  {% if can_choose_class %}
-    <a href="{{ url_for('users.choose_class') }}"
-       class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded font-medieval text-sm text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-      <i class="fa-solid fa-shield-halved"></i> {{ "Trocar de classe" if class_info else "Escolher classe" }}
+    <a href="{{ url_for('users.edit_profile') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded font-medieval text-sm text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors shrink-0 self-start">
+      <i class="fa-solid fa-pen"></i> Editar perfil
     </a>
-  {% endif %}
+  </div>
 </div>
 
-<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
-  <h2 class="text-xl font-medieval text-stone-100 mb-3">Estatísticas</h2>
-  <ul class="font-sans text-stone-300 space-y-1">
-    <li><i class="fa-solid fa-coins text-gold mr-2"></i>XP total: {{ user.stats.xp if user.stats else 0 }}</li>
-    <li><i class="fa-solid fa-check text-green-400 mr-2"></i>Acertos: {{ user.stats.total_correct if user.stats else 0 }}</li>
-    <li><i class="fa-solid fa-xmark text-red-400 mr-2"></i>Erros: {{ user.stats.total_wrong if user.stats else 0 }}</li>
-    <li><i class="fa-solid fa-fire text-orange-500 mr-2"></i>Melhor sequência: {{ user.stats.best_streak if user.stats else 0 }}</li>
-  </ul>
+{% if featured_achievements %}
+<div class="bg-stone-900/60 border border-gold/40 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+    <h2 class="text-lg font-medieval text-stone-100"><i class="fa-solid fa-star text-gold mr-2"></i>Conquistas em destaque</h2>
+    <a href="{{ url_for('achievements.index') }}" class="text-xs font-sans text-purple-300 hover:text-purple-200">Gerenciar destaque</a>
+  </div>
+  <div class="flex flex-wrap gap-4">
+    {% for a in featured_achievements %}
+      <div class="flex flex-col items-center gap-1.5 w-20 text-center">
+        {{ ui.achievement_badge(a, true) }}
+        <span class="text-[0.65rem] font-sans text-stone-300 leading-tight">{{ a.name }}</span>
+      </div>
+    {% endfor %}
+  </div>
 </div>
+{% endif %}
 
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
-  <h2 class="text-xl font-medieval text-stone-100 mb-3">Domínio por tópico</h2>
-  {% if user.mastery_records %}
-    <ul class="font-sans text-stone-300 space-y-1">
-      {% for m in user.mastery_records %}
-        <li>{{ m.topic.name }} — <span class="text-gold">{{ (m.mastery_score * 100) | round(1) }}%</span></li>
-      {% endfor %}
+  <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+    <h2 class="text-lg font-medieval text-stone-100"><i class="fa-solid fa-khanda text-purple-400 mr-2"></i>Equipamento</h2>
+    <a href="{{ url_for('character.equipamentos') }}" class="text-xs font-sans text-purple-300 hover:text-purple-200">Gerenciar</a>
+  </div>
+  <div class="flex flex-wrap gap-3">
+    {% for slot, icon in [('arma', 'fa-khanda'), ('anel', 'fa-ring'), ('amuleto', 'fa-gem'), ('armadura', 'fa-shield'), ('capacete', 'fa-hat-wizard'), ('botas', 'fa-shoe-prints')] %}
+      {% set item = equipped.get(slot) %}
+      {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity if item else '', '#3f3a33') %}
+      <div class="gear-slot" title="{{ item.name if item else 'Vazio' }}"
+           style="border-color: {{ rc }};{{ ' background: color-mix(in srgb, ' + rc + ' 14%, #0c0a0f); box-shadow: 0 0 10px color-mix(in srgb, ' + rc + ' 35%, transparent);' if item else '' }}">
+        <i class="fa-solid {{ item.icon_key if item else icon }}" style="color: {{ rc if item else '#57534e' }};{{ ' filter: drop-shadow(0 0 5px ' + rc + ');' if item else '' }}"></i>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+    <h2 class="text-lg font-medieval text-stone-100 mb-3"><i class="fa-solid fa-hat-wizard text-purple-400 mr-2"></i>Classe</h2>
+    {% if class_info %}
+      <div class="flex items-center gap-4 flex-wrap font-sans">
+        <div class="w-12 h-12 rounded-full border-2 border-{{ class_info.color }} flex items-center justify-center text-xl text-{{ class_info.color }} bg-black/40 shrink-0">
+          <i class="fa-solid {{ class_info.icon }}"></i>
+        </div>
+        <div>
+          <p class="text-white font-medieval text-lg">{{ class_info.name }}</p>
+          {% if ability %}<p class="text-stone-400 text-sm">Habilidade: <span class="text-gold">{{ ability }}</span></p>{% endif %}
+          {% if class_lore_line %}<p class="text-purple-300 font-serif italic text-xs mt-1">{{ class_lore_line }}</p>{% endif %}
+        </div>
+      </div>
+    {% else %}
+      <p class="text-stone-400 font-sans">Você ainda não escolheu uma classe.</p>
+    {% endif %}
+    {% if can_choose_class %}
+      <a href="{{ url_for('users.choose_class') }}"
+         class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded font-medieval text-sm text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+        <i class="fa-solid fa-shield-halved"></i> {{ "Trocar de classe" if class_info else "Escolher classe" }}
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+    <h2 class="text-lg font-medieval text-stone-100 mb-3"><i class="fa-solid fa-chart-line text-emerald-400 mr-2"></i>Estatísticas</h2>
+    {% set total = (user.stats.total_correct + user.stats.total_wrong) if user.stats else 0 %}
+    <ul class="font-sans text-stone-300 space-y-1.5 text-sm">
+      <li><i class="fa-solid fa-coins text-gold mr-2 w-4"></i>XP total: {{ user.stats.xp if user.stats else 0 }}</li>
+      <li><i class="fa-solid fa-check text-green-400 mr-2 w-4"></i>Acertos: {{ user.stats.total_correct if user.stats else 0 }}</li>
+      <li><i class="fa-solid fa-xmark text-red-400 mr-2 w-4"></i>Erros: {{ user.stats.total_wrong if user.stats else 0 }}</li>
+      <li><i class="fa-solid fa-bullseye text-purple-300 mr-2 w-4"></i>Precisão: {{ ((user.stats.total_correct / total * 100) | round(0) | int) if total else 0 }}%</li>
+      <li><i class="fa-solid fa-fire text-orange-500 mr-2 w-4"></i>Melhor sequência: {{ user.stats.best_streak if user.stats else 0 }}</li>
     </ul>
+  </div>
+</div>
+
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+  <h2 class="text-lg font-medieval text-stone-100 mb-3"><i class="fa-solid fa-book-open text-stone-400 mr-2"></i>Domínio por tópico</h2>
+  {% if user.mastery_records %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+      {% for m in user.mastery_records %}
+        {% set pct = (m.mastery_score * 100) | round(0) | int %}
+        <div>
+          <div class="flex justify-between font-sans text-xs text-stone-300 mb-1">
+            <span>{{ m.topic.name }}</span>
+            <span class="{{ 'text-emerald-400' if pct >= 75 else ('text-yellow-400' if pct >= 40 else 'text-blood') }}">{{ pct }}%</span>
+          </div>
+          <div class="mastery-track"><div class="mastery-fill" style="width:{{ pct }}%"></div></div>
+        </div>
+      {% endfor %}
+    </div>
   {% else %}
     <p class="text-stone-400 font-sans">Ainda sem registros — pratique um tópico para começar.</p>
   {% endif %}

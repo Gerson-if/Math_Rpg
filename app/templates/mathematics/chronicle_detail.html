@@ -62,6 +62,24 @@
   .reader-dots { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
   .reader-dot { width: 0.55rem; height: 0.55rem; border-radius: 9999px; background: rgba(139,107,31,0.4); transition: background 0.2s ease, transform 0.2s ease; cursor: pointer; border: none; padding: 0; }
   .reader-dot.active { background: #d4af37; transform: scale(1.35); box-shadow: 0 0 8px rgba(212,175,55,0.7); }
+  .reader-dot.locked { background: rgba(80,80,80,0.5); }
+
+  /* A recurring named character framing the story instead of pure
+     disembodied narration — appears once at the opening chapter and
+     once at the true final chapter, styled like a comic aside rather
+     than blended into the prose itself. */
+  .narrator-box {
+    display: flex; align-items: flex-start; gap: 0.75rem; text-align: left;
+    max-width: 560px; margin: 1.25rem auto 0; padding: 0.75rem 1rem;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(212,175,55,0.35); border-radius: 10px;
+  }
+  .narrator-icon {
+    flex-shrink: 0; width: 2.25rem; height: 2.25rem; border-radius: 9999px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(212,175,55,0.12); border: 1.5px solid #d4af37; color: #d4af37; font-size: 0.9rem;
+  }
+  .narrator-name { font-family: 'Cinzel', serif; font-size: 0.68rem; letter-spacing: 0.05em; color: #a1801f; text-transform: uppercase; }
+  .narrator-line { font-family: 'Cinzel', serif; font-size: 0.85rem; font-style: italic; color: #d6c491; margin-top: 0.15rem; }
 </style>
 {% endblock %}
 
@@ -76,6 +94,13 @@
     <p class="reader-chapter-label" id="reader-chapter-label">Capítulo 1 de {{ chronicle.stages | length }}</p>
     <h1 class="reader-title text-2xl sm:text-3xl mb-4">{{ chronicle.title }}</h1>
     <p class="reader-text page-enter" id="reader-text">{{ chronicle.stages[0] }}</p>
+    <div class="narrator-box hidden" id="narrator-box">
+      <span class="narrator-icon"><i class="fa-solid fa-feather-pointed"></i></span>
+      <div>
+        <p class="narrator-name">Mestre Oren, Cronista de Arith</p>
+        <p class="narrator-line" id="narrator-line"></p>
+      </div>
+    </div>
     <p class="reader-continue-hint" id="reader-continue-hint">
       <i class="fa-solid fa-chevron-down"></i> Toque para continuar
     </p>
@@ -94,7 +119,12 @@
 <script>
 (function () {
   var stages = {{ chronicle.stages | tojson }};
+  var unlockedCount = {{ unlocked_chapters | tojson }};
   var idx = 0;
+
+  var NARRATOR_INTRO = "Sente-se, aprendiz. Toda grande jornada começa com uma única página — e esta é a sua.";
+  var NARRATOR_OUTRO = "Assim se encerra este capítulo da história de Arith... mas nenhuma crônica termina de verdade enquanto o reino ainda respira.";
+  var LOCKED_TEXT = "Este trecho da crônica ainda não foi revelado — vença mais batalhas nesta trilha para continuar a história.";
 
   var dustEl = document.getElementById("reader-dust");
   for (var i = 0; i < 14; i++) {
@@ -112,15 +142,22 @@
   var nextBtn = document.getElementById("reader-next");
   var pageEl = document.getElementById("reader-page");
   var hintEl = document.getElementById("reader-continue-hint");
+  var narratorBox = document.getElementById("narrator-box");
+  var narratorLine = document.getElementById("narrator-line");
 
   stages.forEach(function (_, i) {
     var dot = document.createElement("button");
     dot.type = "button";
-    dot.className = "reader-dot" + (i === 0 ? " active" : "");
-    dot.setAttribute("aria-label", "Ir ao capítulo " + (i + 1));
+    var isLocked = i >= unlockedCount;
+    dot.className = "reader-dot" + (i === 0 ? " active" : "") + (isLocked ? " locked" : "");
+    dot.setAttribute("aria-label", isLocked ? "Capítulo " + (i + 1) + " (bloqueado)" : "Ir ao capítulo " + (i + 1));
     dot.addEventListener("click", function () { goTo(i); });
     dotsEl.appendChild(dot);
   });
+
+  function stageText(i) {
+    return i < unlockedCount ? stages[i] : LOCKED_TEXT;
+  }
 
   function render() {
     labelEl.textContent = "Capítulo " + (idx + 1) + " de " + stages.length;
@@ -130,12 +167,23 @@
     prevBtn.disabled = idx === 0;
     nextBtn.disabled = idx === stages.length - 1;
 
-    var isFinal = idx === stages.length - 1;
-    hintEl.classList.toggle("is-final", isFinal);
-    hintEl.innerHTML = isFinal
+    var isTrueFinal = idx === stages.length - 1 && idx < unlockedCount;
+    var isLast = idx === stages.length - 1;
+    hintEl.classList.toggle("is-final", isLast);
+    hintEl.innerHTML = isLast
       ? '<i class="fa-solid fa-flag-checkered"></i> Fim deste capítulo da crônica'
       : '<i class="fa-solid fa-chevron-down"></i> Toque para continuar';
-    pageEl.style.cursor = isFinal ? "default" : "pointer";
+    pageEl.style.cursor = isLast ? "default" : "pointer";
+
+    if (idx === 0) {
+      narratorBox.classList.remove("hidden");
+      narratorLine.textContent = NARRATOR_INTRO;
+    } else if (isTrueFinal) {
+      narratorBox.classList.remove("hidden");
+      narratorLine.textContent = NARRATOR_OUTRO;
+    } else {
+      narratorBox.classList.add("hidden");
+    }
   }
 
   function goTo(newIdx) {
@@ -144,7 +192,7 @@
     textEl.classList.add("page-leave");
     setTimeout(function () {
       idx = newIdx;
-      textEl.textContent = stages[idx];
+      textEl.textContent = stageText(idx);
       textEl.classList.remove("page-leave");
       textEl.classList.add("page-enter");
       render();

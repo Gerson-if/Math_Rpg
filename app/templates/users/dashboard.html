@@ -85,6 +85,24 @@
   </div>
 {% endif %}
 
+{% if focus_topic %}
+  <div class="hall-card d2 bg-gradient-to-br from-emerald-950/40 to-stone-900/60 border-2 border-emerald-700/60 rounded-lg p-5 sm:p-6 mt-4 shadow-lg flex items-center gap-4 flex-wrap">
+    <i class="fa-solid fa-brain text-emerald-400 text-2xl shrink-0"></i>
+    <div class="flex-1 min-w-[220px]">
+      <h2 class="text-lg font-medieval text-emerald-200">Treino Personalizado</h2>
+      <p class="font-sans text-stone-300 text-sm mt-0.5">
+        Com base no seu desempenho, a recomendação de hoje é
+        <strong class="text-white">{{ focus_topic.name }}</strong>
+        <span class="text-stone-400">({{ focus_topic.subject.name }})</span>.
+      </p>
+    </div>
+    <a href="{{ url_for('mathematics.practice', topic_slug=focus_topic.slug) }}"
+       class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-800 border-2 border-emerald-400 text-white rounded font-medieval text-sm hover:scale-105 transition-transform shrink-0">
+      <i class="fa-solid fa-play"></i> Começar treino
+    </a>
+  </div>
+{% endif %}
+
 <div class="hall-card d2 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
   <h2 class="text-xl font-medieval text-stone-100 mb-2">Continuar a aventura</h2>
   <p class="font-sans text-stone-400 mb-4">Escolha uma trilha no mapa e comece a praticar.</p>

@@ -47,6 +47,9 @@ _RETENTION_MAX_DECAY = 0.4
 # topic doesn't swing difficulty around.
 _DIFFICULTY_MIN_ATTEMPTS = 3
 _DIFFICULTY_STREAK_BONUS_AT = 5
+# A correct answer that still takes this long on average isn't fluent
+# yet, even if it's usually right — see get_effective_difficulty below.
+_SLOW_RESPONSE_MS = 12000
 
 
 def process_attempt(attempt: Attempt, bonus_xp: int = 0) -> dict:
@@ -127,6 +130,14 @@ def get_effective_difficulty(user_id: int, topic: Topic) -> int:
     if mastery.current_streak >= _DIFFICULTY_STREAK_BONUS_AT:
         delta += 1
 
+    # High mastery alone doesn't mean it's *easy* for this student — if
+    # correct answers are still taking a long time on average, an upward
+    # bump would be outrunning actual fluency. Cap the increase by one
+    # step instead of skipping it outright, so a slow-but-solid student
+    # still progresses, just more gradually than a fast one.
+    if delta > 0 and mastery.avg_response_time_ms >= _SLOW_RESPONSE_MS:
+        delta -= 1
+
     return max(1, min(5, topic.base_difficulty + delta))
 
 
@@ -161,6 +172,79 @@ def unmet_prerequisites(user_id: int, topic: Topic) -> list[Topic]:
         t for t in prereq_topics
         if masteries.get(t.id, 0.0) < _PREREQUISITE_MASTERY_THRESHOLD
     ]
+
+
+# Below this mastery score a topic is still worth focusing on even if it
+# never dropped low enough to trip needs_review — see
+# recommend_focus_topic below.
+_FOCUS_MASTERY_THRESHOLD = 0.85
+
+# Mirrors MIN_HITS_FOR_VICTORY in battle-arena.js: the battle arena won't
+# actually let a fight end before this many correct answers land, so
+# correct-attempt count // this threshold is a reasonable server-side
+# proxy for "how many fights this player has effectively finished" in a
+# subject — used to gate how many chronicle chapters are readable (see
+# chronicle_chapters_unlocked below), instead of the whole story being
+# available the instant the subject is merely discovered.
+_CHRONICLE_CHAPTER_WIN_THRESHOLD = 10
+
+
+def chronicle_chapters_unlocked(user_id: int, subject_id: int) -> int:
+    """How many chronicle chapters this player has earned in a subject —
+    always at least 1 once called (the opening chapter reads as soon as
+    the subject is discovered; the caller is responsible for not calling
+    this before that), climbing roughly one chapter per battle actually
+    finished. Not capped against the chronicle's real chapter count here
+    since this module has no idea how many chapters a chronicle has —
+    the caller (app/mathematics/routes.py, which does) clamps it."""
+    correct_count = (
+        db.session.query(func.count(Attempt.id))
+        .join(Topic, Attempt.topic_id == Topic.id)
+        .filter(
+            Attempt.user_id == user_id,
+            Topic.subject_id == subject_id,
+            Attempt.is_correct.is_(True),
+        )
+        .scalar()
+    ) or 0
+    return max(1, correct_count // _CHRONICLE_CHAPTER_WIN_THRESHOLD + 1)
+
+
+def recommend_focus_topic(user_id: int) -> Topic | None:
+    """The single topic this player would most benefit from practicing
+    right now — built entirely from their own recorded performance
+    (Mastery rows), not a fixed curriculum order. This is what "the
+    system learns from the player" means here: no separate model to
+    train, just reading the same mastery/review signals progression
+    already tracks and picking the one topic they'd get the most value
+    out of next.
+
+    Priority: (1) the worst topic already flagged needs_review, so a
+    real regression always wins; (2) failing that, the weakest topic
+    they've attempted at all, as long as it's not already solid; (3)
+    failing that (everything they've tried is solid), a brand-new topic
+    they haven't attempted yet, to keep the curriculum moving. Returns
+    None only if there's truly nothing left to recommend (no topics
+    exist, or everything is both mastered and attempted)."""
+    worst_needing_review = (
+        Mastery.query.filter_by(user_id=user_id, needs_review=True)
+        .order_by(Mastery.mastery_score.asc())
+        .first()
+    )
+    if worst_needing_review is not None:
+        return worst_needing_review.topic
+
+    masteries = Mastery.query.filter_by(user_id=user_id).all()
+    attempted_ids = {m.topic_id for m in masteries}
+    if masteries:
+        weakest = min(masteries, key=lambda m: m.mastery_score)
+        if weakest.mastery_score < _FOCUS_MASTERY_THRESHOLD:
+            return weakest.topic
+
+    query = Topic.query.filter(Topic.is_active.is_(True))
+    if attempted_ids:
+        query = query.filter(~Topic.id.in_(attempted_ids))
+    return query.order_by(Topic.subject_id, Topic.order).first()
 
 
 def _get_or_create_stats(user_id: int) -> PlayerStats:
