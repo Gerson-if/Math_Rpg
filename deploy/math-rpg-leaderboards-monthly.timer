@@ -1,0 +1,11 @@
+[Unit]
+Description=Recalcula o leaderboard mensal da Matematica RPG
+
+[Timer]
+# Todo dia 1 do mes a meia-noite.
+OnCalendar=*-*-01 00:20:00
+Persistent=true
+Unit=math-rpg-leaderboards@monthly.service
+
+[Install]
+WantedBy=timers.target

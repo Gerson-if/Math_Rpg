@@ -1,0 +1,11 @@
+[Unit]
+Description=Recalcula o leaderboard semanal da Matematica RPG
+
+[Timer]
+# Toda segunda-feira a meia-noite.
+OnCalendar=Mon *-*-* 00:10:00
+Persistent=true
+Unit=math-rpg-leaderboards@weekly.service
+
+[Install]
+WantedBy=timers.target

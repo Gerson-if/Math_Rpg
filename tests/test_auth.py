@@ -8,6 +8,24 @@ def test_health(client):
     assert resp.get_json() == {"status": "ok"}
 
 
+def test_root_redirects_to_login_when_logged_out(client):
+    resp = client.get("/")
+    assert resp.status_code == 302
+    assert "/auth/login" in resp.headers["Location"]
+
+
+def test_root_redirects_to_dashboard_when_logged_in(client, db):
+    user = User(email="raiz@example.com", username="raiz")
+    user.set_password("senhaforte123")
+    db.session.add(user)
+    db.session.commit()
+    client.post("/auth/login", data={"email": "raiz@example.com", "password": "senhaforte123"})
+
+    resp = client.get("/")
+    assert resp.status_code == 302
+    assert "/dashboard" in resp.headers["Location"]
+
+
 def test_codice_is_publicly_reachable_without_login(client):
     resp = client.get("/auth/codice")
     assert resp.status_code == 200

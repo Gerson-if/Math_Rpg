@@ -1,0 +1,17 @@
+[Unit]
+Description=Matematica RPG - backup do banco de dados
+After=network.target
+
+[Service]
+Type=oneshot
+User=math-rpg
+Group=math-rpg
+WorkingDirectory=/opt/math-rpg
+EnvironmentFile=/opt/math-rpg/.env
+ExecStart=/opt/math-rpg/.venv/bin/python scripts/backup_db.py --out /opt/math-rpg/backups
+
+# Same sandboxing as math-rpg.service.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/math-rpg/backups

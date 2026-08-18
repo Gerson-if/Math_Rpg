@@ -205,18 +205,26 @@ XP" — ver `app/services/loot_service.py`.
   `Referrer-Policy` em toda resposta (HSTS fica por conta do proxy).
 - `gunicorn.conf.py`, `Caddyfile` e `deploy/math-rpg.service` prontos
   para uso, com variáveis de ambiente para o que costuma variar por
-  host. `scripts/backup_db.py` cobre `pg_dump`/cópia de arquivo SQLite
-  com poda automática por retenção, pensado para rodar via cron.
+  host. `scripts/backup_db.py`/`restore_db.py` cobrem `pg_dump`/cópia de
+  arquivo SQLite com poda automática por retenção e restauração segura
+  (sempre snapshotando o banco atual antes de sobrescrever).
+- `deploy/install.sh` instala tudo isso num Ubuntu/Debian limpo (VM ou
+  VPS): pacotes, banco, Caddy com HTTPS automático (Let's Encrypt/
+  ZeroSSL com domínio, certificado autoassinado só com IP), systemd,
+  firewall e backups/leaderboards agendados — e depois vira uma
+  ferramenta de gerência com atualização segura (backup + rollback
+  automático se algo falhar), status dos serviços, reinício e
+  backup/restore sob demanda. Ver [DEPLOY.md](DEPLOY.md).
 - Validado contra um Postgres real local (registro, prática nas 9
   matérias, conquista via critério JSON, chat, ranking) antes de ser
-  considerado pronto para produção. Ver [DEPLOY.md](DEPLOY.md) para o
-  runbook completo — o deploy num servidor real depende apenas de
-  credenciais de um provedor de nuvem.
+  considerado pronto para produção. O deploy num servidor real depende
+  apenas de credenciais de um provedor de nuvem.
 
 ## Roadmap
 
-- Deploy em servidor real (domínio, TLS emitido de verdade) — artefatos
-  e runbook prontos em [DEPLOY.md](DEPLOY.md).
+- Publicar de fato num servidor real (falta apenas as credenciais de um
+  provedor de nuvem) — artefatos, instalador automatizado e runbook
+  prontos em [DEPLOY.md](DEPLOY.md).
 - Duelos ranqueados com troféus/placar histórico — os duelos em si já
   existem (ver acima); falta a camada de ranking sobre os resultados.
 - Sistema de amigos: doação de itens, presença online/offline, incursão
@@ -312,8 +320,11 @@ app/
 config/            classes de configuração (dev/test/produção)
 migrations/        Flask-Migrate/Alembic — já commitado, só rodar `flask db upgrade`
 scripts/seed.py    popula currículo, níveis, ranks, conquistas (upsert — roda de novo sem duplicar)
-tests/             pytest (249 testes)
-deploy/            unit systemd de exemplo para o Gunicorn
+scripts/backup_db.py / restore_db.py   backup e restauração do banco (Postgres/SQLite)
+tests/             pytest (251 testes)
+deploy/install.sh  instalador + gerenciador (instalar, atualizar com segurança,
+                   status, reiniciar, backup/restore) para VM/VPS Ubuntu/Debian
+deploy/*.service, *.timer   unidades systemd (app, backup diário, leaderboards)
 gunicorn.conf.py   config do servidor WSGI de produção
 Caddyfile          proxy reverso + HTTPS automático
 DEPLOY.md          runbook completo de deploy

@@ -153,7 +153,12 @@
 
                         <div>
                             <label class="block font-medieval font-bold mb-1 text-lg"><i class="fa-solid fa-lock mr-2 text-yellow-800"></i>{{ form.password.label.text }}</label>
-                            {{ form.password(class_="w-full bg-parchment-100 border-2 border-yellow-800/50 rounded p-3 font-sans text-stone-800 focus:outline-none focus:border-blood focus:ring-1 focus:ring-blood transition-colors shadow-inner", placeholder="••••••••") }}
+                            <div class="relative">
+                                {{ form.password(id="login-password", class_="w-full bg-parchment-100 border-2 border-yellow-800/50 rounded p-3 pr-11 font-sans text-stone-800 focus:outline-none focus:border-blood focus:ring-1 focus:ring-blood transition-colors shadow-inner", placeholder="••••••••") }}
+                                <button type="button" onclick="togglePasswordVisibility('login-password', this)" tabindex="-1" aria-label="Mostrar senha" class="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-800 hover:text-blood transition-colors">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="flex items-center justify-between font-sans text-sm font-semibold text-yellow-900">
@@ -180,5 +185,16 @@
 
         </div>
     </main>
+
+    <script>
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            const showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            icon.classList.toggle('fa-eye', showing);
+            icon.classList.toggle('fa-eye-slash', !showing);
+        }
+    </script>
 </body>
 </html>

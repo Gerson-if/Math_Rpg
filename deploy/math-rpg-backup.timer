@@ -1,0 +1,12 @@
+[Unit]
+Description=Roda o backup diario da Matematica RPG
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+# If the machine was off/rebooting at 03:15, run the missed backup as soon
+# as it's back up instead of silently skipping a day.
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

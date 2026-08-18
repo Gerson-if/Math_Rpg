@@ -7,7 +7,8 @@ Blueprint. This keeps the codebase modular from day one and matches the
 architecture described in the project spec.
 """
 import click
-from flask import Flask, render_template
+from flask import Flask, redirect, render_template, url_for
+from flask_login import current_user
 
 from app.extensions import db, migrate, login_manager, csrf, limiter, socketio
 from app.logging_config import configure_logging
@@ -127,6 +128,15 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         return response
+
+    @app.route("/")
+    def index():
+        # No content lives at "/" itself — it's just the front door.
+        # Without this route, hitting the bare domain 404s instead of
+        # landing on login (logged out) or the dashboard (logged in).
+        if current_user.is_authenticated:
+            return redirect(url_for("users.dashboard"))
+        return redirect(url_for("auth.login"))
 
     @app.route("/health")
     def health():

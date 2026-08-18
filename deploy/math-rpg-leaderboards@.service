@@ -1,0 +1,17 @@
+[Unit]
+Description=Matematica RPG - recalculo do leaderboard (%i)
+After=network.target
+
+[Service]
+Type=oneshot
+User=math-rpg
+Group=math-rpg
+WorkingDirectory=/opt/math-rpg
+EnvironmentFile=/opt/math-rpg/.env
+Environment=FLASK_APP=run.py
+ExecStart=/opt/math-rpg/.venv/bin/flask recompute-leaderboards --scope %i
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/math-rpg/instance

@@ -14,7 +14,108 @@ tenho é uma conta em nuvem ou servidor real para de fato publicar isto —
 os passos abaixo são o runbook para você (ou quem for fazer o deploy)
 seguir; eu não consigo executá-los por não ter acesso a essa infra.
 
-## 1. Provisionar o servidor
+## Instalação automatizada (recomendado)
+
+`deploy/install.sh` automatiza tudo que a instalação manual abaixo
+descreve — pacotes do sistema, PostgreSQL (ou SQLite), Caddy com HTTPS
+automático, usuário de sistema, migrações, o serviço systemd e as rotinas
+agendadas de backup/leaderboard — e depois de instalado vira uma
+ferramenta de gerência (atualizar com segurança, ver status, reiniciar,
+backup/restore). Requer um servidor Ubuntu/Debian limpo com acesso root.
+Se for usar domínio, aponte o DNS pro IP do servidor antes de instalar.
+
+```bash
+curl -fsSL -o install.sh https://raw.githubusercontent.com/Gerson-if/Math_Rpg/main/deploy/install.sh
+sudo bash install.sh
+```
+
+Baixe o script antes de rodar — nunca `curl | sudo bash` diretamente: sem
+um terminal de verdade o menu interativo não funciona (o stdin já está
+ocupado pelo próprio script), e você perde a chance de revisar o script
+antes de executar como root.
+
+O script pergunta:
+
+- **Domínio ou IP** — com domínio, emite um certificado TLS de verdade
+  (Let's Encrypt ou ZeroSSL, à sua escolha); só com o IP do servidor,
+  gera um certificado autoassinado localmente confiável (`tls internal`
+  do Caddy) — o navegador vai avisar na primeira visita, isso é esperado
+  sem um domínio de verdade.
+- **E-mail** — usado pela autoridade certificadora para avisos de
+  expiração do certificado.
+- **Banco de dados** — PostgreSQL (recomendado) ou SQLite (mais simples,
+  ok pra uso pequeno/teste).
+
+Ao final, a tela mostra — e salva em
+`/root/math-rpg-install-credentials.txt` (permissão 600, só root lê) — a
+`SECRET_KEY` e as credenciais do banco geradas **nessa** instalação
+(sempre novas a cada instalação, nunca reaproveitadas). Copie para um
+cofre de senhas e apague o arquivo depois.
+
+Uso não interativo (automação):
+
+```bash
+sudo bash install.sh --action=install --domain=math.seusite.com --email=voce@seusite.com --ssl=letsencrypt --db=postgres --yes
+sudo bash install.sh --action=install --ip --db=sqlite --yes   # sem domínio, certificado autoassinado
+```
+
+### Depois de instalado: gerenciar
+
+Rode `sudo bash /opt/math-rpg/deploy/install.sh` de novo (sem flags) para
+abrir o menu:
+
+1. **Instalar/reinstalar** — reconfigura por cima; gera `SECRET_KEY` e
+   senha do banco **novas** (avisa antes — isso encerra sessões ativas).
+   Os dados do banco em si são preservados.
+2. **Atualizar a aplicação** — rotina pensada pra não derrubar produção:
+   recusa rodar se houver alterações locais não commitadas; faz backup
+   do banco antes de tocar em qualquer coisa; só avança
+   (`git merge --ff-only`) se for um fast-forward de verdade; instala
+   dependências, roda as migrações, reinicia o serviço e espera
+   `/health` responder. **Se a migração ou o health check falhar depois,
+   reverte sozinho**: código volta pro commit anterior, o banco é
+   restaurado a partir do backup feito segundos antes, reinicia de novo
+   e confere a saúde mais uma vez. Só para sem resolver sozinho se o
+   próprio rollback falhar — nesse caso avisa exatamente o que checar
+   manualmente (`journalctl -u math-rpg`).
+3. **Ver status dos serviços** — `math-rpg`, `caddy`, `postgresql`,
+   timers de backup/leaderboard: ativo/habilitado, versão (commit) atual,
+   saúde da aplicação, último backup, próximas execuções agendadas.
+4. **Reiniciar a aplicação** — `systemctl restart math-rpg` e confere
+   `/health` depois.
+5. **Backup do banco agora** — chama `scripts/backup_db.py` sob demanda
+   (além do timer diário automático).
+6. **Restaurar um backup** — lista os backups disponíveis, pede
+   confirmação explícita (digitar `RESTAURAR`) e sempre salva uma cópia
+   de segurança do banco atual antes de sobrescrever
+   (`pre-restore-safety-*`).
+
+Cada ação também roda direto, sem menu: `--action=update`,
+`--action=status`, `--action=restart`, `--action=backup`.
+
+### O que o instalador configura
+
+- **Backups automáticos** — `deploy/math-rpg-backup.timer` roda
+  `scripts/backup_db.py` todo dia às 3h15 (Postgres: `pg_dump` gzipado;
+  SQLite: cópia do arquivo), com 14 dias de retenção por padrão
+  (`BACKUP_RETENTION_DAYS`). `scripts/restore_db.py` é o par — restaura
+  um backup, sempre snapshotando o banco atual antes de sobrescrever.
+- **Leaderboards** — `math-rpg-leaderboards-weekly.timer` e
+  `-monthly.timer` recalculam o ranking (substituem os cron jobs
+  descritos na seção manual abaixo por unidades systemd, mais fáceis de
+  inspecionar com `systemctl status`/`journalctl`).
+- **Firewall (ufw)** — libera a porta SSH detectada automaticamente (não
+  assume 22 fixo), 80 e 443; todo o resto fica bloqueado.
+- **systemd** — `math-rpg.service` roda a aplicação via Gunicorn (worker
+  `eventlet`, necessário para os duelos em tempo real).
+
+A seção abaixo documenta cada passo manualmente — útil pra entender o que
+o script faz por baixo dos panos, ou pra customizar algo que ele não
+cobre (outra distro, infra gerenciada, etc.).
+
+## Instalação manual (passo a passo)
+
+### 1. Provisionar o servidor
 
 Qualquer VM Linux (Ubuntu/Debian) com acesso root serve — droplet da
 DigitalOcean, instância EC2, Hetzner, etc. Requisitos mínimos: 1 vCPU,
@@ -22,7 +123,7 @@ DigitalOcean, instância EC2, Hetzner, etc. Requisitos mínimos: 1 vCPU,
 do servidor antes de configurar o Caddy (ele precisa disso pra emitir o
 certificado TLS automaticamente).
 
-## 2. Instalar dependências do sistema
+### 2. Instalar dependências do sistema
 
 ```bash
 sudo apt update
@@ -40,7 +141,7 @@ DigitalOcean Managed Databases, ...) — recomendado, evita ter que cuidar
 de backup/failover do banco você mesmo. Se preferir self-hosted:
 `sudo apt install -y postgresql`.
 
-## 3. Criar o banco e o usuário da aplicação
+### 3. Criar o banco e o usuário da aplicação
 
 ```bash
 sudo -u postgres createuser math_rpg
@@ -48,7 +149,7 @@ sudo -u postgres createdb math_rpg_production --owner=math_rpg
 sudo -u postgres psql -c "ALTER USER math_rpg WITH PASSWORD 'escolha-uma-senha-forte';"
 ```
 
-## 4. Colocar o código no servidor
+### 4. Colocar o código no servidor
 
 ```bash
 sudo useradd --system --create-home --home-dir /opt/math-rpg math-rpg
@@ -58,7 +159,7 @@ sudo -u math-rpg python3 -m venv .venv
 sudo -u math-rpg .venv/bin/pip install -r requirements.txt
 ```
 
-## 5. Configurar variáveis de ambiente
+### 5. Configurar variáveis de ambiente
 
 ```bash
 sudo -u math-rpg cp .env.example .env
@@ -69,6 +170,11 @@ No mínimo:
 
 ```bash
 FLASK_ENV=production
+# FLASK_APP diz ao CLI "flask" (usado nos passos 6 e 9 abaixo) onde achar
+# a aplicação — sem isso os comandos "flask db upgrade" / "flask
+# recompute-leaderboards" falham com "Could not locate a Flask
+# application" (não há app.py/wsgi.py no projeto, só run.py).
+FLASK_APP=run.py
 SECRET_KEY=<gere com: python -c "import secrets; print(secrets.token_hex(32))">
 DATABASE_URL=postgresql://math_rpg:escolha-uma-senha-forte@localhost:5432/math_rpg_production
 
@@ -89,7 +195,7 @@ RATELIMIT_STORAGE_URI=redis://localhost:6379
 # SOCKETIO_MESSAGE_QUEUE=redis://localhost:6379
 ```
 
-## 6. Migrações e seed
+### 6. Migrações e seed
 
 ```bash
 cd /opt/math-rpg
@@ -97,7 +203,7 @@ sudo -u math-rpg .venv/bin/flask db upgrade
 sudo -u math-rpg .venv/bin/python scripts/seed.py
 ```
 
-## 7. Gunicorn como serviço systemd
+### 7. Gunicorn como serviço systemd
 
 ```bash
 sudo cp deploy/math-rpg.service /etc/systemd/system/math-rpg.service
@@ -116,7 +222,7 @@ eventlet já lida bem com muitas conexões simultâneas via green threads,
 diferente de um worker `sync`. Só suba para mais de um worker depois de
 configurar `SOCKETIO_MESSAGE_QUEUE` (Redis) — ver seção 5.
 
-## 8. Caddy (proxy reverso + HTTPS automático)
+### 8. Caddy (proxy reverso + HTTPS automático)
 
 Edite `Caddyfile` na raiz do projeto: troque `math-rpg.example.com` pelo
 seu domínio de verdade.
@@ -132,11 +238,16 @@ sudo systemctl reload caddy
 Na primeira requisição HTTPS pro domínio, o Caddy emite o certificado
 Let's Encrypt sozinho — nada de certbot ou renovação manual.
 
-## 9. Agendar os jobs periódicos
+### 9. Agendar os jobs periódicos
 
 Nenhum scheduler roda dentro do processo da aplicação (ver comentários em
 `gunicorn.conf.py` e `app/__init__.py` — com múltiplos workers, um
-scheduler interno rodaria em duplicidade). Use cron:
+scheduler interno rodaria em duplicidade). `deploy/install.sh` resolve
+isso com unidades systemd (`math-rpg-backup.timer`,
+`math-rpg-leaderboards-weekly.timer`, `math-rpg-leaderboards-monthly.timer`
+— copie os `.service`/`.timer` de `deploy/` para
+`/etc/systemd/system/` e rode `systemctl enable --now <nome>.timer`).
+Se preferir cron em vez de systemd, o equivalente é:
 
 ```bash
 sudo -u math-rpg crontab -e
@@ -155,9 +266,11 @@ sudo -u math-rpg crontab -e
 
 Em produção, prefira copiar os backups pra fora do servidor (S3, backup
 gerenciado do provedor do Postgres, etc.) — um backup que vive só no
-mesmo disco do banco não sobrevive a uma falha de disco.
+mesmo disco do banco não sobrevive a uma falha de disco. Para restaurar
+um backup gerado por qualquer um dos dois caminhos, use
+`scripts/restore_db.py --latest` (veja `--help`).
 
-## 10. Checagem final
+### 10. Checagem final
 
 ```bash
 curl -sf https://seu-dominio.com/health
@@ -169,7 +282,7 @@ aplicação (um objeto por linha — `timestamp`, `level`, `message`, e pra
 cada requisição `method`/`path`/`status`/`user_id`), e
 `journalctl -u caddy -f` para os logs de acesso do proxy.
 
-## Rollback
+### Rollback
 
 ```bash
 cd /opt/math-rpg
