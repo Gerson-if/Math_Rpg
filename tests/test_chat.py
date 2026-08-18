@@ -123,3 +123,53 @@ def test_chat_message_username_links_to_public_profile(client, db):
 
     resp = client.get("/chat/")
     assert "/jogador/autor4" in resp.data.decode()
+
+
+def test_unread_count_is_zero_before_anything_was_ever_posted(app, db):
+    user = _create_user(db)
+    assert chat_service.unread_count(user.id) == 0
+
+
+def test_unread_count_ignores_the_users_own_messages(app, db):
+    user = _create_user(db)
+    chat_service.send_message(user.id, "minha propria mensagem")
+    assert chat_service.unread_count(user.id) == 0
+
+
+def test_unread_count_counts_others_messages_posted_after_last_seen(app, db):
+    author = _create_user(db, email="autor5@example.com", username="autor5")
+    reader = _create_user(db, email="leitor@example.com", username="leitor")
+
+    chat_service.mark_seen(reader.id)
+    chat_service.send_message(author.id, "mensagem nova")
+
+    assert chat_service.unread_count(reader.id) == 1
+
+
+def test_mark_seen_resets_the_unread_count_back_to_zero(app, db):
+    author = _create_user(db, email="autor6@example.com", username="autor6")
+    reader = _create_user(db, email="leitor2@example.com", username="leitor2")
+
+    chat_service.send_message(author.id, "primeira mensagem")
+    assert chat_service.unread_count(reader.id) == 1
+
+    chat_service.mark_seen(reader.id)
+    assert chat_service.unread_count(reader.id) == 0
+
+
+def test_navbar_shows_a_chat_badge_for_unread_messages(client, db):
+    author = _create_user(db, email="autor7@example.com", username="autor7")
+    chat_service.send_message(author.id, "alguma novidade")
+    _create_and_login(client, db, email="viewer2@example.com", username="viewer2")
+
+    # Login itself doesn't mark chat as seen — a fresh page load elsewhere
+    # in the app should still show the badge for this unread message.
+    resp = client.get("/math/")
+    assert "bg-blood text-white text-[0.6rem] rounded-full" in resp.data.decode()
+
+    # Visiting the chat page itself marks it seen; the badge should be
+    # gone on the very next page load.
+    client.get("/chat/")
+    resp2 = client.get("/math/")
+    body2 = resp2.data.decode()
+    assert body2.count("bg-blood text-white text-[0.6rem] rounded-full") == 0

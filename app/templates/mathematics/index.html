@@ -93,6 +93,23 @@
     transform: rotate(8deg); font-family: 'Cinzel', serif; z-index: 2; white-space: nowrap;
   }
 
+  /* Overlay badge on the guardian landmark itself, telling the player at
+     a glance whether clicking it drops them straight into the boss fight
+     or just explains what's still missing. */
+  .boss-action-badge {
+    position: absolute; bottom: -6px; right: -6px; z-index: 2;
+    width: 1.35rem; height: 1.35rem; border-radius: 9999px; border: 1.5px solid;
+    display: flex; align-items: center; justify-content: center; font-size: 0.6rem;
+  }
+  .boss-action-badge.ready {
+    background: #422006; border-color: #fbbf24; color: #fde68a;
+    box-shadow: 0 0 8px rgba(251,191,36,0.7); animation: bossReadyPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes bossReadyPulse { 0%, 100% { box-shadow: 0 0 6px rgba(251,191,36,0.5); } 50% { box-shadow: 0 0 12px rgba(251,191,36,0.9); } }
+  .boss-action-badge.locked { background: rgba(10,8,4,0.92); border-color: #57534e; color: #a8a29e; }
+  .map-landmark.boss-locked { opacity: 0.55; filter: grayscale(0.4); }
+  .boss-status-line { font-size: 0.55rem; font-family: sans-serif; margin-top: 0.15rem; }
+
   .map-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; font-family: 'Cinzel', serif; font-size: 0.68rem; color: #e0c99a; }
 </style>
 {% endblock %}
@@ -108,7 +125,7 @@
   </a>
 </div>
 <p class="text-stone-400 font-sans text-sm mb-6">
-  Cada trilha termina num guardião. Siga o caminho — ou pule à frente, se se sentir corajoso.
+  Cada trilha termina num guardião. Clique nele no mapa para enfrentá-lo direto — libera assim que a trilha até ele estiver dominada.
 </p>
 
 <div class="map-frame p-2 sm:p-4 mb-8">
@@ -131,13 +148,28 @@
 
     {% for subject in subjects %}
       {% set g = guardians[subject.slug] %}
+      {% set boss_topic = boss_topics.get(subject.id) %}
+      {% set unmet_boss = boss_unmet.get(subject.id, []) %}
+      {% set boss_ready = boss_topic and not unmet_boss %}
       <div class="map-waypoint {{ 'up' if loop.index0 % 2 == 0 else 'down' }}">
         <div class="stem"></div>
-        <a href="#trilha-{{ subject.slug }}" class="relative" title="{{ subject.name }} — guardado por {{ g.name }}">
+        <a href="{{ url_for('mathematics.practice', topic_slug=boss_topic.slug) if boss_ready else ('#trilha-' ~ subject.slug) }}"
+           class="relative"
+           title="{% if boss_ready %}Enfrentar {{ g.name }}{% elif boss_topic %}Complete {{ unmet_boss | map(attribute='name') | join(', ') }} antes de enfrentar {{ g.name }}{% else %}{{ subject.name }} — guardado por {{ g.name }}{% endif %}">
           {% if subject.slug in new_subjects %}<span class="new-badge">Novo!</span>{% endif %}
-          <div class="map-landmark border-{{ g.color }} text-{{ g.color }}"><i class="fa-solid {{ g.icon }}"></i></div>
+          <div class="map-landmark border-{{ g.color }} text-{{ g.color }} {{ 'boss-locked' if boss_topic and not boss_ready else '' }}"><i class="fa-solid {{ g.icon }}"></i></div>
+          {% if boss_ready %}
+            <span class="boss-action-badge ready"><i class="fa-solid fa-khanda"></i></span>
+          {% elif boss_topic %}
+            <span class="boss-action-badge locked"><i class="fa-solid fa-lock"></i></span>
+          {% endif %}
         </a>
         <span class="map-label text-{{ g.color }}">{{ subject.name }}</span>
+        {% if boss_ready %}
+          <span class="boss-status-line text-yellow-400/90"><i class="fa-solid fa-khanda"></i> Chefe liberado</span>
+        {% elif boss_topic %}
+          <span class="boss-status-line text-stone-500"><i class="fa-solid fa-lock"></i> complete a trilha</span>
+        {% endif %}
         <div class="map-topics">
           {% for topic in subject.topics %}
             {% set unmet = recommend_first.get(topic.id, []) %}

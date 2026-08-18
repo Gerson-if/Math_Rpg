@@ -33,31 +33,56 @@ GUARDIANS: dict[str, Guardian] = {
 # three tiers on the way up (minion -> elite minion -> the real guardian)
 # and, once the guardian itself has already been beaten at least once,
 # a fourth: it comes back stronger.
-MINION_NAMES: dict[str, str] = {
-    "fundamentos": "Fragmento de Pedra",
-    "tabuada": "Cria da Hidra",
-    "operacoes-fundamentais": "Servo da Forja",
-    "potenciacao": "Faísca da Fênix",
-    "radiciacao": "Eco do Espelho",
-    "fracoes": "Filhote do Labirinto",
-    "numeros-decimais": "Fragmento de Cristal",
-    "porcentagem": "Batedor das Sombras",
-    "algebra": "Sentinela do Castelo",
+#
+# Subjects with several topics in the same tier (tabuada has 11; a flat
+# single name repeated on every one of them read as fighting the exact
+# same monster over and over) get a pool of variant names instead of one
+# — _variant_name() cycles through the pool and, if a subject somehow has
+# more topics in a tier than the pool has names, appends a roman-numeral
+# "wave" suffix rather than looping back to an identical name.
+MINION_NAME_POOLS: dict[str, list[str]] = {
+    "fundamentos": ["Fragmento de Pedra"],
+    "tabuada": [
+        "Cria da Hidra", "Serpente Jovem", "Presa da Hidra",
+        "Escama Errante", "Sibilo das Sombras", "Filhote Guardião",
+    ],
+    "operacoes-fundamentais": ["Servo da Forja", "Faísca Errante"],
+    "potenciacao": ["Faísca da Fênix"],
+    "radiciacao": ["Eco do Espelho"],
+    "fracoes": ["Filhote do Labirinto"],
+    "numeros-decimais": ["Fragmento de Cristal"],
+    "porcentagem": ["Batedor das Sombras"],
+    "algebra": ["Sentinela do Castelo"],
 }
 _MINION_FALLBACK = "Servo do Guardião"
 
-ELITE_MINION_NAMES: dict[str, str] = {
-    "fundamentos": "Guardião de Pedra",
-    "tabuada": "Serpente da Hidra",
-    "operacoes-fundamentais": "Mestre-Forjador",
-    "potenciacao": "Chama da Fênix",
-    "radiciacao": "Reflexo Sombrio",
-    "fracoes": "Tecelão do Labirinto",
-    "numeros-decimais": "Lâmina de Cristal",
-    "porcentagem": "Emissário das Sombras",
-    "algebra": "Guarda-Costas do Castelo",
+ELITE_MINION_NAME_POOLS: dict[str, list[str]] = {
+    "fundamentos": ["Guardião de Pedra"],
+    "tabuada": [
+        "Serpente da Hidra", "Guardiã de Escamas",
+        "Fúria Ancestral", "Sentinela Serpentina",
+    ],
+    "operacoes-fundamentais": ["Mestre-Forjador"],
+    "potenciacao": ["Chama da Fênix"],
+    "radiciacao": ["Reflexo Sombrio"],
+    "fracoes": ["Tecelão do Labirinto"],
+    "numeros-decimais": ["Lâmina de Cristal"],
+    "porcentagem": ["Emissário das Sombras"],
+    "algebra": ["Guarda-Costas do Castelo"],
 }
 _ELITE_FALLBACK = "Servo Veterano"
+
+_ROMAN_WAVES = ["", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+
+
+def _variant_name(pool: list[str], fallback: str, idx: int) -> str:
+    names = pool or [fallback]
+    base = names[idx % len(names)]
+    wave = idx // len(names)
+    if wave == 0:
+        return base
+    suffix = _ROMAN_WAVES[wave] if wave < len(_ROMAN_WAVES) else str(wave + 1)
+    return f"{base} {suffix}"
 
 # Shown instead of the plain guardian name once the player has already
 # beaten that guardian at least once before — see practice() in
@@ -105,9 +130,9 @@ def for_topic(topic) -> tuple[Guardian, str]:
 
     half = max(1, -(-n // 2))  # ceil(n / 2): early topics are minions, later ones elite
     if idx < half:
-        name = MINION_NAMES.get(topic.subject.slug, _MINION_FALLBACK)
+        name = _variant_name(MINION_NAME_POOLS.get(topic.subject.slug, []), _MINION_FALLBACK, idx)
         tier = "minion"
     else:
-        name = ELITE_MINION_NAMES.get(topic.subject.slug, _ELITE_FALLBACK)
+        name = _variant_name(ELITE_MINION_NAME_POOLS.get(topic.subject.slug, []), _ELITE_FALLBACK, idx - half)
         tier = "elite"
     return {"name": name, "icon": base["icon"], "color": base["color"]}, tier

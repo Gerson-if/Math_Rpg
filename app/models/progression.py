@@ -48,6 +48,10 @@ class PlayerStats(db.Model, TimestampMixin):
     total_correct = db.Column(db.Integer, default=0, nullable=False)
     total_wrong = db.Column(db.Integer, default=0, nullable=False)
     last_active_at = db.Column(db.DateTime, nullable=True)
+    # Timestamp of the last time this user opened the global chat — the
+    # "new messages" badge in the navbar counts anything posted after this
+    # (by someone else) as unread. Null just means "never opened it yet".
+    last_seen_chat_at = db.Column(db.DateTime, nullable=True)
 
     user = db.relationship("User", back_populates="stats")
     level = db.relationship("Level")

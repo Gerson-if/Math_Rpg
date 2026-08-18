@@ -60,9 +60,13 @@
           <a href="{{ url_for('mathematics.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-map-location-dot"></i> Mapa de Aventura</a>
           <a href="{{ url_for('ranking.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-ranking-star"></i> Ranking</a>
           <a href="{{ url_for('achievements.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-trophy"></i> Conquistas</a>
-          <a href="{{ url_for('character.equipamentos') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-khanda"></i> Equipamentos</a>
           <a href="{{ url_for('market.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-coins"></i> Mercado</a>
-          <a href="{{ url_for('chat.index') }}" class="hover:text-gold transition-colors"><i class="fa-solid fa-comments"></i> Chat</a>
+          <a href="{{ url_for('chat.index') }}" class="hover:text-gold transition-colors relative">
+            <i class="fa-solid fa-comments"></i> Chat
+            {% if chat_unread_count %}
+              <span class="absolute -top-2 -right-3 bg-blood text-white text-[0.6rem] rounded-full w-4 h-4 flex items-center justify-center">{{ "9+" if chat_unread_count > 9 else chat_unread_count }}</span>
+            {% endif %}
+          </a>
           <a href="{{ url_for('friends.index') }}" class="hover:text-gold transition-colors relative">
             <i class="fa-solid fa-people-group"></i> Amigos
             {% if pending_invites_count %}

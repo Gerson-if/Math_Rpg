@@ -35,6 +35,24 @@ mathematics_bp = Blueprint("mathematics", __name__, url_prefix="/math")
 NEW_SUBJECT_SLUGS = {"algebra"}
 
 
+# Purely cosmetic response-time rating shown per answer — never affects
+# XP/mastery (those are already fully decided by process_attempt before
+# this even runs). A slow-but-correct answer still counts fully for real
+# progression; it just earns fewer stars on screen.
+STAR_TIME_THRESHOLDS_MS = (3000, 7000)  # <=3s: 3 stars, <=7s: 2 stars, else: 1
+
+
+def _stars_for(is_correct: bool, elapsed_ms: int) -> int:
+    if not is_correct:
+        return 0
+    fast, medium = STAR_TIME_THRESHOLDS_MS
+    if elapsed_ms <= fast:
+        return 3
+    if elapsed_ms <= medium:
+        return 2
+    return 1
+
+
 def _normalize(value: str) -> str:
     """Numeric-aware comparison: '007' == '7', '0,3' == '0.3' (pt-BR decimal
     comma) == '0.30', and whole-valued floats collapse to plain ints ('3.0'
@@ -68,12 +86,29 @@ def index():
         for topic in subject.topics
     }
     subject_guardians = {subject.slug: guardians.for_subject(subject.slug) for subject in subjects}
+
+    # The map's guardian landmark is now a real "fight the boss" shortcut,
+    # not just an anchor scroll — but only once the topic right before it
+    # (its chain prerequisite, same rule as everywhere else) is reasonably
+    # mastered. boss_unmet[subject.id] being non-empty is what locks it.
+    boss_topics = {}
+    boss_unmet = {}
+    for subject in subjects:
+        topics_sorted = sorted(subject.topics, key=lambda t: t.order)
+        if not topics_sorted:
+            continue
+        boss_topic = topics_sorted[-1]
+        boss_topics[subject.id] = boss_topic
+        boss_unmet[subject.id] = progression_service.unmet_prerequisites(current_user.id, boss_topic)
+
     return render_template(
         "mathematics/index.html",
         subjects=subjects,
         recommend_first=recommend_first,
         guardians=subject_guardians,
         new_subjects=NEW_SUBJECT_SLUGS,
+        boss_topics=boss_topics,
+        boss_unmet=boss_unmet,
     )
 
 
@@ -206,6 +241,7 @@ def answer_question(topic_slug):
             "new_achievements": progress["new_achievements"],
             "is_crit": is_crit,
             "crit_item": crit_item,
+            "stars": _stars_for(is_correct, elapsed_ms),
         },
     )
 

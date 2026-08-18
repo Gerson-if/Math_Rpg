@@ -26,11 +26,18 @@ const MathBattle = (() => {
   // elite minion, then the guardian itself, then (once already beaten
   // once) its resurrected supreme form.
   const BOSS_HP_BY_TIER = { minion: 90, elite: 120, boss: 150, supreme: 190 };
+  // A lucky combo/crit/ultimate streak used to be able to end a fight in
+  // 4-5 correct answers — barely any practice at all. Boss HP can no
+  // longer actually hit 0 (see applyBossDamage) until at least this many
+  // correct answers have landed, regardless of how much damage is dealt;
+  // it just sits at a sliver of HP until the player gets there.
+  const MIN_HITS_FOR_VICTORY = 10;
 
   let cfg = { topicSlug: "", indexUrl: "/math/", buffs: {} };
   let maxHP = BASE_MAX_HP, playerHP = maxHP;
   let bossMaxHP = BOSS_HP_BY_TIER.boss, bossHP = bossMaxHP;
   let combo = 0, fury = 0, lastPhase = 1;
+  let hitsLanded = 0;
   let potions = CONFIG.potionsStart, furyScrolls = CONFIG.furyScrollsStart;
   let claimingVictory = false;
   let victoryTriggered = false;
@@ -164,6 +171,7 @@ const MathBattle = (() => {
     bossMaxHP = BOSS_HP_BY_TIER[cfg.bossTier] || BOSS_HP_BY_TIER.boss;
     playerHP = maxHP; bossHP = bossMaxHP;
     combo = 0; fury = 0; lastPhase = 1;
+    hitsLanded = 0;
     furyWasReady = false; comboAlertedTier = 0;
     victoryTriggered = false;
     potions = CONFIG.potionsStart; furyScrolls = CONFIG.furyScrollsStart;
@@ -179,6 +187,20 @@ const MathBattle = (() => {
     $("speech-bubble-container") && ($("speech-bubble-container").innerHTML = "");
     $("battle-alert-container") && ($("battle-alert-container").innerHTML = "");
     $("loot-toast-container") && ($("loot-toast-container").innerHTML = "");
+    renderHitsProgress();
+  }
+
+  /* Ten dots tracking real progress toward MIN_HITS_FOR_VICTORY — lets the
+     player see "how much further" instead of just watching an HP bar that
+     mysteriously refuses to hit zero once it's down to a sliver. */
+  function renderHitsProgress() {
+    const track = $("hits-progress");
+    if (!track) return;
+    let html = "";
+    for (let i = 0; i < MIN_HITS_FOR_VICTORY; i++) {
+      html += `<span class="hit-dot${i < hitsLanded ? " filled" : ""}"></span>`;
+    }
+    track.innerHTML = html;
   }
 
   function spawnDust() {
@@ -223,6 +245,19 @@ const MathBattle = (() => {
     setTimeout(() => el.remove(), 3400);
   }
 
+  /* Response-time star rating (0-3, server-decided — see
+     STAR_TIME_THRESHOLDS_MS in app/mathematics/routes.py) shown next to
+     the correct-answer bubble. Purely cosmetic: a slow-but-correct answer
+     still counts fully for real XP/mastery, it just earns fewer stars. */
+  function starsHtml(rawStars) {
+    const n = Math.max(0, Math.min(3, parseInt(rawStars || "0", 10) || 0));
+    let html = "";
+    for (let i = 0; i < 3; i++) {
+      html += `<i class="fa-solid fa-star" style="color:${i < n ? "#fbbf24" : "rgba(255,255,255,0.2)"}; font-size:0.7em;"></i>`;
+    }
+    return html;
+  }
+
   document.body.addEventListener("htmx:afterSwap", (evt) => {
     if (evt.target.id !== "question-slot") return;
     const d = evt.target.dataset;
@@ -231,7 +266,7 @@ const MathBattle = (() => {
         name: d.lootName, icon_key: d.lootIcon, rarity: d.lootRarity,
         passive_type: d.lootPassive, passive_value: parseFloat(d.lootValue || "0"),
       });
-      let msg = `<i class="fa-solid fa-check"></i> Correto! +${escapeHtml(d.xp || "0")} XP`;
+      let msg = `<i class="fa-solid fa-check"></i> Correto! +${escapeHtml(d.xp || "0")} XP <span class="ml-1">${starsHtml(d.stars)}</span>`;
       if (d.bonusXp) msg += ` <span style="color:#c084fc">(+${escapeHtml(d.bonusXp)} dupla c/ ${escapeHtml(d.allyName)})</span>`;
       if (d.levelup === "true") msg += ` · <i class="fa-solid fa-star"></i> Nível ${escapeHtml(d.level)}!`;
       showSpeechBubble(msg, "correct");
@@ -273,6 +308,8 @@ const MathBattle = (() => {
 
   function onHit(isCrit, lootItem) {
     combo++;
+    hitsLanded++;
+    renderHitsProgress();
     fury = Math.min(100, fury + (isCrit ? CONFIG.furyPerCrit : CONFIG.furyPerHit) + (cfg.buffs.furiaBonus || 0));
     updateFuryUi();
     updateComboUi();
@@ -290,7 +327,10 @@ const MathBattle = (() => {
   }
 
   function applyBossDamage(dmg, isCrit, lootItem) {
-    bossHP = Math.max(0, bossHP - dmg);
+    // Boss can't actually fall below 1 HP until MIN_HITS_FOR_VICTORY
+    // correct answers have landed — see the constant's comment above.
+    const floor = hitsLanded >= MIN_HITS_FOR_VICTORY ? 0 : 1;
+    bossHP = Math.max(floor, bossHP - dmg);
     const boss = $("boss-sprite");
 
     BattleFx.showFloatingDamage("boss-sprite", "-" + dmg, isCrit ? "#fbbf24" : "#22c55e", isCrit);
@@ -486,6 +526,20 @@ const MathBattle = (() => {
 
   /* ---------------- victory / defeat / revive / next-challenge ---------------- */
 
+  // The chapter-reveal overlay still waits for a manual "Continuar" — that
+  // one has actual reading on it. The victory-screen box that follows
+  // (loot summary, nothing to read) used to also require a manual click on
+  // "Novo desafio" before the next fight would start; it now advances on
+  // its own after a few seconds so the loop keeps moving, while both
+  // buttons stay live for anyone who wants to jump ahead or leave instead.
+  const AUTO_ADVANCE_DELAY_MS = 3600;
+  let autoAdvanceTimer = null;
+  let advancingChallenge = false;
+
+  function clearAutoAdvance() {
+    if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
+  }
+
   function victory() {
     // A hit that lands just as the boss reaches 0 HP can overlap with
     // another already-in-flight hit (combo tail, ultimate) that also
@@ -498,8 +552,14 @@ const MathBattle = (() => {
     // The chapter-reveal overlay below IS the victory transition now — no
     // need for the small in-arena gate-rift portal underneath it too.
     // The victory-screen box (with loot) only appears once the player has
-    // dismissed the chapter-reveal overlay themselves — no fixed timer.
-    showVictoryReveal(() => $("victory-screen").classList.remove("hidden"));
+    // dismissed the chapter-reveal overlay themselves — no fixed timer for
+    // that part. Once it's showing, though, the next fight starts on its
+    // own (see AUTO_ADVANCE_DELAY_MS) unless the player acts first.
+    showVictoryReveal(() => {
+      $("victory-screen").classList.remove("hidden");
+      clearAutoAdvance();
+      autoAdvanceTimer = setTimeout(() => { autoAdvanceTimer = null; nextChallenge(); }, AUTO_ADVANCE_DELAY_MS);
+    });
 
     if (claimingVictory) return;
     claimingVictory = true;
@@ -549,6 +609,13 @@ const MathBattle = (() => {
   }
 
   function nextChallenge() {
+    // Reachable both from the "Novo desafio" button and the auto-advance
+    // timer above — without this guard, a manual click right as the timer
+    // fires (or vice versa) could run the whole transition twice.
+    if (advancingChallenge) return;
+    advancingChallenge = true;
+    clearAutoAdvance();
+
     const ring = $("next-portal-ring");
     const content = $("arena-content");
 
@@ -563,12 +630,16 @@ const MathBattle = (() => {
       content.classList.add("arena-portal-reveal");
       spawnDust();
       focusAnswer();
+      advancingChallenge = false;
     }, 1200);
 
     setTimeout(() => { ring.className = "portal-ring"; }, 1800);
   }
 
-  function flee() { window.location.href = cfg.indexUrl; }
+  function flee() {
+    clearAutoAdvance();
+    window.location.href = cfg.indexUrl;
+  }
 
   return {
     init, start, revive, nextChallenge, flee,

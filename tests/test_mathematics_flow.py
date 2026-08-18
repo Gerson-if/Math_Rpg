@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from app.models import User, Subject, Topic, Attempt
+from app.models import User, Subject, Topic, Attempt, Mastery
 from app.services import question_token
 
 
@@ -296,3 +296,41 @@ def test_fundamentos_topic_is_reachable_through_the_real_flow(client, db, app, s
     )
     assert resp2.status_code == 200
     assert 'data-correct="true"' in resp2.data.decode()
+
+
+def test_map_boss_landmark_is_locked_until_its_prerequisite_topic_is_mastered(client, db, app):
+    """The adventure map's guardian landmark used to just scroll down to
+    the subject section and do nothing else -- now it's a real "fight the
+    boss" shortcut, but only once the topic that leads to it is mastered
+    (same prerequisite chain used everywhere else, see
+    progression_service.unmet_prerequisites)."""
+    user = _create_and_login(client, db, email="mapboss@example.com")
+    with app.app_context():
+        subject = Subject(slug="operacoes-fundamentais", name="Operacoes Fundamentais", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        minion = Topic(slug="soma-mapboss", name="Soma", subject_id=subject.id, order=0, base_difficulty=1)
+        boss = Topic(
+            slug="chefe-mapboss", name="Chefe Final", subject_id=subject.id, order=1,
+            base_difficulty=1, prerequisite_slugs=["soma-mapboss"],
+        )
+        db.session.add_all([minion, boss])
+        db.session.commit()
+        minion_id = minion.id
+
+    # The boss topic's own dot in the per-subject listing is always a link
+    # (advisory-only, unaffected by this gate) -- what's being asserted
+    # here is the *landmark* badge/status specific to the map shortcut.
+    resp = client.get("/math/")
+    body = resp.data.decode()
+    assert "boss-action-badge ready" not in body
+    assert "complete a trilha" in body
+
+    with app.app_context():
+        db.session.add(Mastery(user_id=user.id, topic_id=minion_id, mastery_score=0.9, correct_count=10))
+        db.session.commit()
+
+    resp2 = client.get("/math/")
+    body2 = resp2.data.decode()
+    assert "boss-action-badge ready" in body2
+    assert "Chefe liberado" in body2

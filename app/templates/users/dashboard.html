@@ -11,6 +11,7 @@
   .hall-card.d3 { animation-delay: 0.19s; }
   .hall-card.d4 { animation-delay: 0.26s; }
   .hall-card.d5 { animation-delay: 0.33s; }
+  .hall-card.d6 { animation-delay: 0.40s; }
 
   .xp-track { width: 100%; height: 10px; background: #1c1917; border: 1px solid #57534e; border-radius: 9999px; overflow: hidden; }
   .xp-fill {
@@ -101,8 +102,21 @@
   </div>
 </div>
 
+  <div class="hall-card d3 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg flex items-center gap-3 flex-wrap">
+    <i class="fa-solid fa-khanda text-purple-400 text-xl"></i>
+    <p class="font-sans text-stone-400 flex-1 min-w-[200px]">Prepare seu equipamento e veja os espólios conquistados em batalha.</p>
+    <a href="{{ url_for('character.equipamentos') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medieval text-sm text-purple-200 border-2 border-purple-500/60 bg-purple-950/30 hover:border-purple-400 hover:text-white hover:bg-purple-900/40 transition-colors">
+      <i class="fa-solid fa-khanda"></i> Equipamentos
+    </a>
+    <a href="{{ url_for('character.espolios') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medieval text-sm text-gold border-2 border-gold/50 bg-yellow-950/20 hover:border-gold hover:bg-yellow-900/30 transition-colors">
+      <i class="fa-solid fa-sack-dollar"></i> Espólios de Guerra
+    </a>
+  </div>
+
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-  <div class="hall-card d3 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+  <div class="hall-card d4 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
     <h2 class="text-lg font-medieval text-stone-100 mb-3"><i class="fa-solid fa-chart-line text-emerald-400 mr-2"></i>Sua jornada</h2>
     <ul class="font-sans text-stone-300 space-y-1.5 text-sm">
       <li><i class="fa-solid fa-check text-green-400 mr-2 w-4"></i>Acertos: {{ user.stats.total_correct if user.stats else 0 }}</li>
@@ -113,7 +127,7 @@
     </ul>
   </div>
 
-  <div class="hall-card d4 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+  <div class="hall-card d5 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
     <h2 class="text-lg font-medieval text-stone-100 mb-3"><i class="fa-solid fa-feather-pointed text-gold mr-2"></i>Dica do Mentor</h2>
     <div class="flex items-start gap-3">
       <span class="mentor-owl text-2xl shrink-0" aria-hidden="true">🦉</span>
@@ -141,7 +155,7 @@
 })();
 </script>
 
-<div class="hall-card d5 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
+<div class="hall-card d6 bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 mt-4 shadow-lg">
   <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
     <h2 class="text-lg font-medieval text-stone-100"><i class="fa-solid fa-users-rays text-purple-400 mr-2"></i>Heróis e Crônicas do Reino</h2>
     <a href="{{ url_for('mathematics.chronicles') }}"

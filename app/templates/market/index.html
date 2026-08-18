@@ -32,6 +32,20 @@
   .item-detail-content:target ~ .item-detail-placeholder,
   .item-detail-panel:has(.item-detail-content:target) .item-detail-placeholder { display: none; }
   .reason-text { color: #fca5a5; font-size: 0.7rem; }
+
+  /* A bare flat icon read as generic/placeholder-ish — a round badge with
+     a rarity-tinted glow (same color-mix language used across the rest of
+     the app's rarity UI) makes each item read as a real piece of gear at
+     a glance instead of a small floating glyph. */
+  .market-icon-badge {
+    width: 2.75rem; height: 2.75rem; border-radius: 9999px; font-size: 1.15rem;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle, color-mix(in srgb, var(--rc) 30%, transparent) 0%, transparent 72%);
+    border: 1.5px solid color-mix(in srgb, var(--rc) 60%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--rc) 35%, transparent);
+  }
+  .market-icon-badge.lg { width: 5.5rem; height: 5.5rem; font-size: 2.4rem; }
+  .market-thumb:hover .market-icon-badge { transform: scale(1.08); }
 </style>
 {% endblock %}
 
@@ -47,6 +61,16 @@
     <span class="inline-flex items-center gap-1.5 bg-stone-900/70 border border-gold/50 rounded-full px-3 py-1.5 text-gold">
       <i class="fa-solid fa-coins"></i> {{ gold }} Ouro
     </span>
+  </div>
+</div>
+
+<div class="bg-stone-900/70 border border-stone-700 rounded-lg p-4 mb-5 flex items-start gap-3">
+  <i class="fa-solid fa-circle-info text-gold text-lg mt-0.5 shrink-0"></i>
+  <div class="font-sans text-sm text-stone-300 space-y-1">
+    <p><strong class="text-gold">Loja do Reino</strong> — estoque do próprio reino, renovado a cada 24h. Compre com Ouro na hora, sem depender de sorte de drop.</p>
+    <p><strong class="text-purple-300">Loja dos Jogadores</strong> — espólios anunciados por outros aventureiros, disponíveis por tempo limitado até serem vendidos ou expirarem.</p>
+    <p><strong class="text-stone-200">Meus Anúncios</strong> — acompanhe o que você colocou à venda e cancele quando quiser.</p>
+    <p class="text-stone-500">Sem Ouro? Venda espólios que não usa mais na tela de <a href="{{ url_for('character.espolios') }}" class="underline hover:text-gold">Espólios</a>.</p>
   </div>
 </div>
 
@@ -74,7 +98,9 @@
           {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(offer.rarity, '#57534e') %}
           <a href="#offer-{{ offer.id }}" class="market-thumb border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
              style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
-            <i class="fa-solid {{ offer.icon_key }} text-2xl mb-1" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
+            <div class="market-icon-badge mx-auto mb-1" style="--rc: {{ rc }};">
+              <i class="fa-solid {{ offer.icon_key }}" style="color: {{ rc }};"></i>
+            </div>
             <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ offer.name }}</p>
             <p class="text-gold font-sans text-[0.6rem]"><i class="fa-solid fa-coins"></i> {{ offer.price }}</p>
           </a>
@@ -90,7 +116,9 @@
           {% set min_level = min_level_by_rarity.get(offer.rarity, 1) %}
           {% set affordable = gold >= offer.price %}
           <div id="offer-{{ offer.id }}" class="item-detail-content text-center">
-            <i class="fa-solid {{ offer.icon_key }} text-6xl mb-3" style="color: {{ rc }}; filter: drop-shadow(0 0 12px {{ rc }});"></i>
+            <div class="market-icon-badge lg mx-auto mb-3" style="--rc: {{ rc }};">
+              <i class="fa-solid {{ offer.icon_key }}" style="color: {{ rc }};"></i>
+            </div>
             <p class="font-medieval text-white text-lg">{{ offer.name }}</p>
             <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ offer.rarity | capitalize }}</p>
             <p class="font-sans text-stone-300 text-sm">{{ ui.passive_label(offer) }}</p>
@@ -128,7 +156,9 @@
           {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
           <a href="#listing-{{ item.id }}" class="market-thumb border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
              style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
-            <i class="fa-solid {{ item.icon_key }} text-2xl mb-1" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
+            <div class="market-icon-badge mx-auto mb-1" style="--rc: {{ rc }};">
+              <i class="fa-solid {{ item.icon_key }}" style="color: {{ rc }};"></i>
+            </div>
             <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ item.name }}</p>
             <p class="text-gold font-sans text-[0.6rem]"><i class="fa-solid fa-coins"></i> {{ item.list_price }}</p>
           </a>
@@ -143,7 +173,9 @@
           {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
           {% set affordable = gold >= item.list_price %}
           <div id="listing-{{ item.id }}" class="item-detail-content text-center">
-            <i class="fa-solid {{ item.icon_key }} text-6xl mb-3" style="color: {{ rc }}; filter: drop-shadow(0 0 12px {{ rc }});"></i>
+            <div class="market-icon-badge lg mx-auto mb-3" style="--rc: {{ rc }};">
+              <i class="fa-solid {{ item.icon_key }}" style="color: {{ rc }};"></i>
+            </div>
             <p class="font-medieval text-white text-lg">{{ item.name }}</p>
             <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ item.rarity | capitalize }}</p>
             <p class="font-sans text-stone-300 text-sm">{{ ui.passive_label(item) }}</p>
@@ -182,7 +214,9 @@
         {% for item in my_listings %}
           {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
           <div class="border-2 rounded-lg p-3 text-center" style="border-color: {{ rc }};">
-            <i class="fa-solid {{ item.icon_key }} text-3xl mb-2" style="color: {{ rc }};"></i>
+            <div class="market-icon-badge mx-auto mb-2" style="--rc: {{ rc }};">
+              <i class="fa-solid {{ item.icon_key }}" style="color: {{ rc }};"></i>
+            </div>
             <p class="font-sans font-bold text-white text-xs">{{ item.name }}</p>
             <p class="font-sans text-[0.65rem] mt-1 text-gold">{{ item.list_price }} Ouro</p>
             <form method="POST" action="{{ url_for('market.cancelar_anuncio', item_id=item.id) }}" class="mt-2">

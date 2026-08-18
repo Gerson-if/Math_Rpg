@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from app.extensions import db
-from app.models import ChatMessage
+from app.models import ChatMessage, PlayerStats
 
 MAX_LENGTH = 500
 COOLDOWN_SECONDS = 3
@@ -53,6 +53,30 @@ def send_message(user_id: int, content: str, room: str = DEFAULT_ROOM) -> ChatMe
     db.session.add(message)
     db.session.commit()
     return message
+
+
+def unread_count(user_id: int, room: str = DEFAULT_ROOM, cap: int = 99) -> int:
+    """How many messages from *other* players landed since this user last
+    opened the chat — the navbar badge's count. Capped so a player who
+    never once opened chat doesn't see a scary triple-digit number; the
+    badge itself renders "9+" past a much lower visual cap anyway."""
+    stats = PlayerStats.query.filter_by(user_id=user_id).first()
+    last_seen = stats.last_seen_chat_at if stats else None
+    q = ChatMessage.query.filter(ChatMessage.room == room, ChatMessage.user_id != user_id)
+    if last_seen is not None:
+        q = q.filter(ChatMessage.created_at > last_seen)
+    return q.limit(cap).count()
+
+
+def mark_seen(user_id: int, room: str = DEFAULT_ROOM) -> None:
+    """Called when the user opens the chat page — resets their unread
+    badge back to zero going forward."""
+    stats = PlayerStats.query.filter_by(user_id=user_id).first()
+    if stats is None:
+        stats = PlayerStats(user_id=user_id)
+        db.session.add(stats)
+    stats.last_seen_chat_at = datetime.utcnow()
+    db.session.commit()
 
 
 def report_message(message_id: int, reporter_id: int) -> None:

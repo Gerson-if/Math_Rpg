@@ -13,6 +13,7 @@ chat_bp = Blueprint("chat", __name__, url_prefix="/chat")
 @login_required
 def index():
     messages = chat_service.get_recent_messages()
+    chat_service.mark_seen(current_user.id)
     return render_template("chat/index.html", messages=messages)
 
 
@@ -20,6 +21,11 @@ def index():
 @login_required
 def messages():
     messages = chat_service.get_recent_messages()
+    # This is also the 4s auto-refresh poll while the chat page stays
+    # open — marking seen here (not just on the initial page load) keeps
+    # the navbar badge from claiming "unread" messages the player is
+    # actively watching arrive in real time.
+    chat_service.mark_seen(current_user.id)
     return render_template("chat/_messages.html", messages=messages)
 
 

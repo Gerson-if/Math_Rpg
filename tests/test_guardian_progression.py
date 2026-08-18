@@ -79,9 +79,38 @@ def test_every_seeded_subject_has_minion_elite_and_supreme_names():
         "radiciacao", "fracoes", "numeros-decimais", "porcentagem", "algebra",
     ]
     for slug in seeded_subjects:
-        assert slug in guardians.MINION_NAMES, f"missing minion name for {slug}"
-        assert slug in guardians.ELITE_MINION_NAMES, f"missing elite name for {slug}"
+        assert slug in guardians.MINION_NAME_POOLS, f"missing minion pool for {slug}"
+        assert slug in guardians.ELITE_MINION_NAME_POOLS, f"missing elite pool for {slug}"
         assert slug in guardians.SUPREME_NAMES, f"missing supreme name for {slug}"
+
+
+def test_minion_names_do_not_repeat_across_many_topics_of_the_same_subject(app, db):
+    with app.app_context():
+        # tabuada has a 6-name minion pool — fewer than 6 topics should
+        # never show the same minion name twice.
+        slugs = [f"t{i}" for i in range(6)]
+        subject, topics = _make_subject_with_topics(slugs, subject_slug="tabuada")
+        db.session.commit()
+
+        names = [guardians.for_topic(t)[0]["name"] for t in topics[:-1]]  # exclude the boss
+        assert len(names) == len(set(names))
+
+
+def test_minion_names_add_a_wave_suffix_instead_of_looping_back_identically(app, db):
+    with app.app_context():
+        # 13 topics -> ceil(13/2) = 7 minions, one more than the 6-name
+        # pool: the 7th (index 6) must wrap to index-0's name with a
+        # roman-numeral wave suffix instead of a bare identical repeat.
+        slugs = [f"t{i}" for i in range(13)]
+        subject, topics = _make_subject_with_topics(slugs, subject_slug="tabuada")
+        db.session.commit()
+
+        first_guardian, first_tier = guardians.for_topic(topics[0])
+        wrapped_guardian, wrapped_tier = guardians.for_topic(topics[6])
+        assert first_tier == "minion"
+        assert wrapped_tier == "minion"
+        assert wrapped_guardian["name"] != first_guardian["name"]
+        assert wrapped_guardian["name"].startswith(first_guardian["name"])
 
 
 def test_practice_route_shows_a_lesser_variant_for_a_non_final_topic(client, db, app):

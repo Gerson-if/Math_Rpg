@@ -538,6 +538,17 @@
     100% { opacity: 0; transform: translateY(-6px) scale(0.96); }
   }
 
+  /* ---- ten dots tracking real progress toward the minimum number of
+     correct answers needed before the boss can actually fall (see
+     MIN_HITS_FOR_VICTORY in battle-arena.js) ---- */
+  .hits-progress-track { display: inline-flex; flex-wrap: wrap; gap: 3px; max-width: 150px; justify-content: flex-end; }
+  .hit-dot {
+    width: 7px; height: 7px; border-radius: 9999px; flex-shrink: 0;
+    background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.3);
+    transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .hit-dot.filled { background: #d4af37; border-color: #d4af37; box-shadow: 0 0 6px #d4af37; transform: scale(1.15); }
+
   /* ---- quick inventory shortcut, right under the fury bar ---- */
   .fury-inventory-btn {
     display: inline-flex; align-items: center; gap: 4px;
@@ -691,6 +702,7 @@
               <div id="boss-hp" class="bg-gradient-to-r from-purple-700 to-fuchsia-500 h-full rounded-full absolute inset-y-0 right-0 transition-all duration-200" style="width:100%"></div>
               <span id="boss-hp-text" class="hp-text">150/150</span>
             </div>
+            <div id="hits-progress" class="hits-progress-track mt-1" title="Progresso rumo à vitória"></div>
           </div>
         </div>
       </div>
@@ -764,6 +776,7 @@
         <h2 class="text-2xl sm:text-3xl font-medieval text-white">{{ guardian.name }} derrotado!</h2>
         <p class="text-stone-300 font-serif italic text-sm sm:text-base">Sua sabedoria prevaleceu. Continue avançando pela trilha.</p>
         <p id="victory-loot" class="text-xs sm:text-sm font-sans text-stone-300"></p>
+        <p class="text-stone-500 font-sans text-[0.68rem]"><i class="fa-solid fa-hourglass-half mr-1"></i>Seguindo para o próximo desafio em instantes...</p>
         <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
           <button type="button" onclick="MathBattle.nextChallenge()"
                   class="px-5 py-2.5 bg-mystic border-2 border-purple-400 text-white rounded font-medieval hover:scale-105 transition-transform cursor-pointer">

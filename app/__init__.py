@@ -73,6 +73,19 @@ def create_app(config_object: str = "config.config.DevelopmentConfig") -> Flask:
         )
         return {"pending_invites_count": count}
 
+    @app.context_processor
+    def _inject_chat_unread_count():
+        """Small badge count for the navbar's "Chat" link — same pattern as
+        the friends/invites badge above, just for unseen global chat
+        messages (see chat_service.unread_count)."""
+        from flask_login import current_user
+
+        if not current_user.is_authenticated:
+            return {}
+        from app.services import chat_service
+
+        return {"chat_unread_count": chat_service.unread_count(current_user.id)}
+
     @app.after_request
     def _apply_security_headers(response):
         # HSTS is left to Caddy (it sets it automatically for HTTPS sites)
