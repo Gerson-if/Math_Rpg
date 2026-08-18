@@ -79,6 +79,7 @@ const MathBattle = (() => {
   let potions = CONFIG.potionsStart, furyScrolls = CONFIG.furyScrollsStart;
   let claimingVictory = false;
   let victoryTriggered = false;
+  let defeatTriggered = false;
   let furyWasReady = false, comboAlertedTier = 0;
 
   function $(id) { return document.getElementById(id); }
@@ -252,6 +253,7 @@ const MathBattle = (() => {
     totalStars = 0; starRatingsCount = 0;
     furyWasReady = false; comboAlertedTier = 0;
     victoryTriggered = false;
+    defeatTriggered = false;
     potions = CONFIG.potionsStart; furyScrolls = CONFIG.furyScrollsStart;
     $("arena-content").classList.remove("player-dead");
     $("boss-sprite").classList.remove("boss-dead");
@@ -563,6 +565,7 @@ const MathBattle = (() => {
   }
 
   function applyPlayerDamage(dmg, isSpecial) {
+    if (defeatTriggered) return;
     playerHP = Math.max(0, playerHP - dmg);
     BattleFx.showFloatingDamage("hero-avatar", "-" + dmg, "#ef4444", !!isSpecial);
     updateHpBar("player-hp", playerHP, maxHP);
@@ -749,6 +752,14 @@ const MathBattle = (() => {
   }
 
   function defeat() {
+    // Same race as victory() above, mirrored: a wrong answer landing while
+    // HP is already ~0 (rapid-fire or blank submits queue up several
+    // in-flight misses) can call applyPlayerDamage more than once before
+    // the first setTimeout(defeat, 800) fires — without this guard, each
+    // one restacked its own defeat sound/screen.
+    if (defeatTriggered) return;
+    defeatTriggered = true;
+
     BattleAudio.sfx.defeat();
     $("defeat-screen").classList.remove("hidden");
   }
