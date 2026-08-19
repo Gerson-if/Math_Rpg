@@ -46,6 +46,15 @@ const MathBattle = (() => {
     "Sinta o verdadeiro poder do guardião!",
   ];
 
+  // One last line as the boss goes down — the "epic exit" beat, before
+  // the disintegrate animation finishes and victory() takes over.
+  const DEFEAT_TAUNTS = [
+    "Isso... isso ainda não acabou!",
+    "Vocês vão se arrepender disso!",
+    "Esta não é a minha forma final!",
+    "Retornarei mais forte, aprendiz!",
+  ];
+
   // A wrong answer already counters with a normal hit (see onMiss) — this
   // gives the boss a chance to throw a named, harder-hitting special
   // attack instead, with its own callout and bigger impact fx. Names come
@@ -71,7 +80,6 @@ const MathBattle = (() => {
     specialAttacks: SPECIAL_ATTACK_NAMES_FALLBACK, battleTaunts: BATTLE_TAUNT_FALLBACK,
     masteryThreshold: 0.5, nextTopicSlug: null, nextTopicName: null, nextTopicUrl: null,
   };
-  let advancedToNextTopic = false;
   let maxHP = BASE_MAX_HP, playerHP = maxHP;
   let bossMaxHP = BOSS_HP_BY_TIER.boss, bossHP = bossMaxHP;
   let combo = 0, fury = 0, lastPhase = 1;
@@ -215,7 +223,14 @@ const MathBattle = (() => {
     if (lore) {
       html += `<div class="victory-snippet"><strong>${escapeHtml(lore.title)} — Capítulo ${lore.stageNumber}</strong><br>${escapeHtml(lore.snippet)}${lore.isComplete ? " <em>(crônica completa — reveja em Crônicas do Reino)</em>" : ""}</div>`;
     }
-    html += '<button type="button" class="victory-continue-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Continuar</button>';
+    // If a next topic in the trail is already unlocked, the win itself
+    // is the hand-off — no reason to make the player go back to the map
+    // and pick "tabuada do 2" manually when the game already knows
+    // that's next.
+    const continueLabel = cfg.nextTopicUrl
+      ? `Avançar para ${escapeHtml(cfg.nextTopicName)}`
+      : "Continuar";
+    html += `<button type="button" class="victory-continue-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> ${continueLabel}</button>`;
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
 
@@ -317,15 +332,21 @@ const MathBattle = (() => {
 
   /* Answer/achievement/mastery-review feedback as floating speech bubbles
      near the hero — never inline blocks, so the challenge box below never
-     shifts position between questions. */
-  function showSpeechBubble(html, variant) {
+     shifts position between questions. Optional `delay` lets several
+     bubbles from the same event queue up in sequence instead of all
+     popping in at once (see the htmx:afterSwap handler below). */
+  function showSpeechBubble(html, variant, delay) {
     const container = $("speech-bubble-container");
     if (!container) return;
-    const el = document.createElement("div");
-    el.className = "speech-bubble" + (variant ? " bubble-" + variant : "");
-    el.innerHTML = html;
-    container.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
+    const spawn = () => {
+      const el = document.createElement("div");
+      el.className = "speech-bubble" + (variant ? " bubble-" + variant : "");
+      el.innerHTML = html;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 3400);
+    };
+    if (delay) setTimeout(spawn, delay);
+    else spawn();
   }
 
   /* Response-time star rating (0-3, server-decided — see
@@ -344,6 +365,20 @@ const MathBattle = (() => {
   document.body.addEventListener("htmx:afterSwap", (evt) => {
     if (evt.target.id !== "question-slot") return;
     const d = evt.target.dataset;
+
+    // Bubbles queue up in sequence instead of all firing at once — a
+    // correct answer with a duo bonus AND a level-up used to get crammed
+    // into one long wrapped line (or several bubbles landing on top of
+    // each other), both hard to read in the ~3s they're on screen. Each
+    // fact now gets its own short bubble, staggered so the eye can
+    // actually track them one at a time.
+    let queueDelay = 0;
+    const STAGGER_MS = 500;
+    const queueBubble = (html, variant) => {
+      showSpeechBubble(html, variant, queueDelay);
+      queueDelay += STAGGER_MS;
+    };
+
     if (d.correct === "true") {
       onHit(d.crit === "true", {
         name: d.lootName, icon_key: d.lootIcon, rarity: d.lootRarity,
@@ -354,24 +389,27 @@ const MathBattle = (() => {
       // ones landed after the boss is already low on HP.
       totalStars += parseInt(d.stars || "0", 10) || 0;
       starRatingsCount++;
-      let msg = `<i class="fa-solid fa-check"></i> Correto! +${escapeHtml(d.xp || "0")} XP <span class="ml-1">${starsHtml(d.stars)}</span>`;
-      if (d.bonusXp) msg += ` <span style="color:#c084fc">(+${escapeHtml(d.bonusXp)} dupla c/ ${escapeHtml(d.allyName)})</span>`;
-      if (d.levelup === "true") msg += ` · <i class="fa-solid fa-star"></i> Nível ${escapeHtml(d.level)}!`;
-      showSpeechBubble(msg, "correct");
+      queueBubble(`<i class="fa-solid fa-check"></i> Correto! +${escapeHtml(d.xp || "0")} XP <span class="ml-1">${starsHtml(d.stars)}</span>`, "correct");
+      if (d.bonusXp) {
+        queueBubble(`<i class="fa-solid fa-people-arrows"></i> +${escapeHtml(d.bonusXp)} XP de dupla com ${escapeHtml(d.allyName)}`, "correct");
+      }
+      if (d.levelup === "true") {
+        queueBubble(`<i class="fa-solid fa-star"></i> Subiu para o Nível ${escapeHtml(d.level)}!`, "achievement");
+      }
     } else if (d.correct === "false") {
       onMiss();
-      showSpeechBubble(`<i class="fa-solid fa-xmark"></i> Quase — era <strong>${escapeHtml(d.correctAnswer)}</strong>`, "wrong");
+      queueBubble(`<i class="fa-solid fa-xmark"></i> Quase — era <strong>${escapeHtml(d.correctAnswer)}</strong>`, "wrong");
     }
     if (d.achievements) {
       d.achievements.split("||").forEach((name) => {
-        showSpeechBubble(`<i class="fa-solid fa-trophy"></i> Nova conquista: <strong>${escapeHtml(name)}</strong>`, "achievement");
+        queueBubble(`<i class="fa-solid fa-trophy"></i> Nova conquista: <strong>${escapeHtml(name)}</strong>`, "achievement");
       });
     }
     if (d.needsReview === "true") {
-      showSpeechBubble(`<i class="fa-solid fa-book-bookmark"></i> Domínio caiu — vale revisar em breve.`, "review");
+      queueBubble(`<i class="fa-solid fa-book-bookmark"></i> Domínio caiu — vale revisar em breve.`, "review");
     }
     if (d.masteryRecovered === "true") {
-      showSpeechBubble(`<i class="fa-solid fa-arrow-trend-up"></i> Domínio recuperado!`, "recovered");
+      queueBubble(`<i class="fa-solid fa-arrow-trend-up"></i> Domínio recuperado!`, "recovered");
     }
     if (d.masteryScore !== undefined && d.masteryScore !== "") {
       updateNextTopicProgress(parseFloat(d.masteryScore));
@@ -392,12 +430,14 @@ const MathBattle = (() => {
     const ratio = Math.max(0, Math.min(100, Math.round((masteryScore / cfg.masteryThreshold) * 100)));
     if (fill) fill.style.width = ratio + "%";
     if (pct) pct.textContent = ratio + "%";
-
-    if (!advancedToNextTopic && cfg.nextTopicUrl && masteryScore >= cfg.masteryThreshold) {
-      advancedToNextTopic = true;
-      showBattleAlert("🎉 Domínio alcançado! Avançando para " + cfg.nextTopicName + "...", "crit");
-      setTimeout(() => { window.location.href = cfg.nextTopicUrl; }, 2400);
-    }
+    // Purely informational — this used to also redirect the page the
+    // instant mastery crossed the threshold, *mid-fight*, with no boss
+    // defeated and no victory screen: from the player's side that read
+    // as "the game randomly leaves and jumps to something else" (real
+    // bug report). Advancing to the next topic now only ever happens
+    // through an actual victory (see victory() below), after the full
+    // defeat sequence and a deliberate "Avançar" click — this bar is
+    // just a preview of where that's heading.
   }
 
   /* A question's signed token expires (30min — see question_token.py) or a
@@ -491,43 +531,88 @@ const MathBattle = (() => {
 
     checkPhaseTransition();
     if (bossHP <= 0) {
-      boss.classList.add("boss-dead");
-      setTimeout(victory, 800);
+      // Epic exit instead of cutting straight to the victory screen: a
+      // bigger burst/shockwave than a normal hit, a last defiant line
+      // from the boss (manga bubble, same "shout" style as the enrage
+      // taunt), *then* the 1.5s disintegrate animation — and victory()
+      // only fires once that's actually finished playing, not 700ms into
+      // it like before (which cut the death animation off early).
+      BattleFx.triggerCritFlash("crit-flash", true);
+      BattleFx.spawnShockwave(boss, "#f87171");
+      BattleFx.spawnBurst(boss, "#f87171", 46);
+      showEnemyBubble(DEFEAT_TAUNTS[rand(0, DEFEAT_TAUNTS.length - 1)], true);
+      setTimeout(() => boss.classList.add("boss-dead"), 250);
+      setTimeout(victory, 1900);
     }
   }
 
   /* Boss "levels up" once per fight instead of just quietly losing: taunts,
      refills its own bar, and hits harder for the remainder of the fight
      (see ENRAGE_DMG_MULT in onMiss). Purely a mid-fight twist — it never
-     changes what a correct/wrong answer means for real XP/mastery. */
+     changes what a correct/wrong answer means for real XP/mastery.
+
+     Sequenced in three beats instead of firing everything on the same
+     frame, so each is actually perceivable instead of blurring into one
+     instant:
+       1. immediate impact (shockwave/shake) — same language as any hit.
+       2. ~400ms later, the actual surge: dedicated sound, a close-up
+          pulse on the sprite, and the HP bar refilling with a slow,
+          visible sweep instead of the ~0.2s snap a normal hit uses.
+       3. once the bar has visibly filled, the boss "laughs" about it —
+          a real manga-style speech bubble, the same dialogue system as
+          its normal battle taunts. */
   function triggerBossEnrage() {
     bossEnraged = true;
     const boss = $("boss-sprite");
+    const arena = $("battle-arena");
+    const hpFill = $("boss-hp");
+    const hpWrap = $("boss-hp-bar-wrap");
 
-    BattleAudio.sfx.ultimate();
     BattleFx.triggerCritFlash("crit-flash", true);
     BattleFx.spawnShockwave(boss, "#ef4444");
     boss.classList.remove("crit-shake"); void boss.offsetWidth; boss.classList.add("crit-shake");
 
-    bossHP = bossMaxHP;
-    updateHpBar("boss-hp", bossHP, bossMaxHP);
     lastPhase = 3;
     updateBossPhaseUi(3);
     const aura = $("boss-aura");
     aura.classList.add("aura-active", "aura-intense");
+    showEnrageBanner();
 
-    const taunt = ENRAGE_TAUNTS[rand(0, ENRAGE_TAUNTS.length - 1)];
-    showEnrageBanner(taunt);
+    setTimeout(() => {
+      BattleAudio.sfx.enrage();
+      boss.classList.remove("boss-power-surge"); void boss.offsetWidth; boss.classList.add("boss-power-surge");
+      arena.classList.remove("arena-zoom-punch"); void arena.offsetWidth; arena.classList.add("arena-zoom-punch");
+      hpWrap.classList.add("hp-bar-surge-wrap");
+      hpFill.classList.add("hp-bar-surge-fill");
+
+      bossHP = bossMaxHP;
+      updateHpBar("boss-hp", bossHP, bossMaxHP);
+
+      setTimeout(() => {
+        boss.classList.remove("boss-power-surge");
+        arena.classList.remove("arena-zoom-punch");
+        hpWrap.classList.remove("hp-bar-surge-wrap");
+        hpFill.classList.remove("hp-bar-surge-fill");
+      }, 1700);
+    }, 400);
+
+    setTimeout(() => {
+      const taunt = ENRAGE_TAUNTS[rand(0, ENRAGE_TAUNTS.length - 1)];
+      showEnemyBubble(taunt, true);
+    }, 1550);
   }
 
-  function showEnrageBanner(taunt) {
+  function showEnrageBanner() {
     const banner = document.createElement("div");
     banner.className = "phase-banner enrage-banner";
-    banner.innerHTML =
-      `<div>💢 ${escapeHtml(cfg.bossName)} desperta com fúria renovada!</div>` +
-      `<div class="enrage-taunt">"${escapeHtml(taunt)}"</div>`;
-    document.body.appendChild(banner);
-    setTimeout(() => banner.remove(), 3200);
+    banner.innerText = `💢 ${cfg.bossName} desperta com fúria renovada!`;
+    // Anchored inside the arena card (position:absolute against
+    // #battle-arena's position:relative), not document.body — this used
+    // to be a position:fixed; inset:0 overlay that blotted out the whole
+    // screen; now it's contained the same way the other battle toasts
+    // (speech bubbles, battle alerts) are.
+    $("battle-arena").appendChild(banner);
+    setTimeout(() => banner.remove(), 2600);
   }
 
   function randomFrom(arr, fallback) {
@@ -538,18 +623,18 @@ const MathBattle = (() => {
   /* Enemy "speech" floating above its own sprite — same technique as
      BattleFx.showFloatingDamage (positioned from the live target rect),
      just longer-lived and styled like a taunt instead of a number. */
-  function showEnemyBubble(text) {
+  function showEnemyBubble(text, shout) {
     if (!text) return;
     const boss = $("boss-sprite");
     if (!boss) return;
     const rect = boss.getBoundingClientRect();
     const el = document.createElement("div");
-    el.className = "enemy-bubble";
+    el.className = "enemy-bubble" + (shout ? " shout" : "");
     el.innerText = text;
     el.style.left = (rect.left + rect.width / 2) + "px";
     el.style.top = (rect.top - 14) + "px";
     document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2800);
+    setTimeout(() => el.remove(), shout ? 3400 : 2800);
   }
 
   function onMiss() {
@@ -718,8 +803,10 @@ const MathBattle = (() => {
     const banner = document.createElement("div");
     banner.className = "phase-banner";
     banner.innerText = textos[phase];
-    document.body.appendChild(banner);
-    setTimeout(() => banner.remove(), 2600);
+    // See showEnrageBanner — anchored inside the arena card, not
+    // document.body, so it no longer takes over the whole screen.
+    $("battle-arena").appendChild(banner);
+    setTimeout(() => banner.remove(), 2800);
   }
 
   /* ---------------- small floating battle alerts (combo/fury/crit) ----------------
@@ -761,7 +848,19 @@ const MathBattle = (() => {
     // won read as a leftover decision gate, not a smooth transition,
     // so it's gone; "Fugir" in the arena footer is the one bail-out now,
     // same as during any other fight.
-    showVictoryReveal(() => nextChallenge());
+    //
+    // If defeating this boss already unlocked the next topic in the
+    // trail (same next_topic_for the mid-fight mastery bar tracks), go
+    // straight there instead of rematching the one just won — no reason
+    // to send the player back to the map to pick "tabuada do 2" by hand
+    // when the game already knows that's next.
+    showVictoryReveal(() => {
+      if (cfg.nextTopicUrl) {
+        window.location.href = cfg.nextTopicUrl;
+      } else {
+        nextChallenge();
+      }
+    });
 
     if (claimingVictory) return;
     claimingVictory = true;

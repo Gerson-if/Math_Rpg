@@ -412,24 +412,58 @@
     display: flex; align-items: center; justify-content: center;
   }
 
-  /* Bigger, more intense than a normal phase banner — the boss's own
-     "second wind" moment gets a taunt line styled like actual speech. */
-  .enrage-banner { font-size: 1.9rem; color: #fca5a5; }
-  .enrage-taunt {
-    margin-top: 0.5rem; font-family: 'Cinzel', serif; font-style: italic;
-    font-size: 1.1rem; color: #fecaca;
+  /* Slightly louder than a normal phase banner — just the "second wind"
+     announcement now; the boss's actual taunt line moved to a real
+     manga-style speech bubble (see showEnemyBubble's `shout` variant)
+     instead of being crammed in as a second line here. */
+  .enrage-banner { font-size: clamp(0.95rem, 3.8vw, 1.3rem); color: #fca5a5; border-color: rgba(239,68,68,0.8); }
+
+  /* ---- boss "second wind" close-up: refilling to full HP used to just
+     snap the bar back up in the same ~0.2s transition every normal hit
+     uses, which read as a glitch, not a story beat. This slows the
+     specific refill, adds a bright sweep across the bar, and gives the
+     sprite itself a punch-in "getting stronger" pulse so the moment is
+     unmistakable even if the banner text is skimmed past. ---- */
+  @keyframes bossPowerSurge {
+    0% { transform: scale(1) rotate(0deg); filter: brightness(1) saturate(1) drop-shadow(0 0 0 transparent); }
+    22% { transform: scale(1.4) rotate(-3deg); filter: brightness(1.7) saturate(1.7) drop-shadow(0 0 20px #ef4444); }
+    45% { transform: scale(1.12) rotate(3deg); filter: brightness(1.3) saturate(1.4) drop-shadow(0 0 14px #ef4444); }
+    70% { transform: scale(1.25) rotate(-1deg); filter: brightness(1.45) saturate(1.5) drop-shadow(0 0 18px #ef4444); }
+    100% { transform: scale(1) rotate(0deg); filter: brightness(1) saturate(1) drop-shadow(0 0 0 transparent); }
+  }
+  .boss-power-surge { animation: bossPowerSurge 1.9s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  @keyframes arenaZoomPunch {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.035); }
+    100% { transform: scale(1); }
+  }
+  .arena-zoom-punch { animation: arenaZoomPunch 0.7s ease-out; }
+
+  .hp-bar-surge-fill { transition: width 1.15s cubic-bezier(0.22, 1, 0.36, 1) !important; }
+  @keyframes hpBarSurgeSweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+  .hp-bar-surge-wrap { position: relative; overflow: hidden; }
+  .hp-bar-surge-wrap::after {
+    content: ""; position: absolute; inset: 0; z-index: 6; pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.9) 50%, transparent 70%);
+    animation: hpBarSurgeSweep 1.15s ease-in-out;
   }
 
-  /* Enemy dialogue: a comic bubble floating above the enemy's own sprite
-     (position: fixed, computed from its live bounding rect — same trick
-     as floating damage numbers), not anchored inside the arena's own
-     speech-bubble containers which are reserved for player-side feedback. */
+  /* Enemy dialogue: a real manga-style speech balloon floating above the
+     enemy's own sprite (position: fixed, computed from its live bounding
+     rect — same trick as floating damage numbers), not anchored inside
+     the arena's own speech-bubble containers which are reserved for
+     player-side feedback. Cream paper + bold black outline reads as
+     actual dialogue at a glance — the old dark-red-on-red version blended
+     into the rest of the danger-colored UI and was easy to miss/skim
+     past, which was part of what made the battle feel noisy to read. */
   .enemy-bubble {
     position: fixed;
-    background: rgba(20,4,4,0.95); border: 2px solid #ef4444; border-radius: 12px;
-    padding: 6px 12px; font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.72rem;
-    color: #fecaca; max-width: 220px; text-align: center; z-index: 9997;
-    box-shadow: 0 0 14px rgba(239,68,68,0.5); pointer-events: none;
+    background: #f7f1e3; border: 3px solid #1c1917; border-radius: 18px;
+    padding: 7px 14px; font-family: 'Cinzel', serif; font-weight: 800; font-size: 0.78rem;
+    color: #1c1917; max-width: 220px; text-align: center; z-index: 9997;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.4), 0 0 10px rgba(0,0,0,0.35);
+    pointer-events: none;
     animation: enemyBubbleInOut 2.8s ease-in-out forwards;
   }
   /* The -50%,-100% offset (centered above the sprite) has to live inside
@@ -443,11 +477,28 @@
     85% { opacity: 1; transform: translate(-50%, -100%) translateY(0) scale(1); }
     100% { opacity: 0; transform: translate(-50%, -100%) translateY(-6px) scale(0.96); }
   }
+  /* Two-layer tail (black outline behind, cream fill on top) — the
+     classic manga speech-balloon "pointer" back to whoever's talking. */
+  .enemy-bubble::before {
+    content: ""; position: absolute; left: 50%; bottom: -13px; transform: translateX(-50%);
+    border-width: 11px 9px 0 9px; border-style: solid;
+    border-color: #1c1917 transparent transparent transparent;
+  }
   .enemy-bubble::after {
     content: ""; position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%);
-    border-width: 8px 8px 0 8px; border-style: solid;
-    border-color: #ef4444 transparent transparent transparent;
+    border-width: 8px 6px 0 6px; border-style: solid;
+    border-color: #f7f1e3 transparent transparent transparent;
   }
+  /* Louder variant for the boss's "second wind" taunt — same balloon,
+     just with a red-hot outline/glow instead of a pulsing transform (a
+     second animation on the same transform property would just fight
+     the entrance/exit one above instead of combining with it). */
+  .enemy-bubble.shout {
+    border-color: #7f1d1d;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.4), 0 0 20px rgba(239,68,68,0.75);
+    font-size: 0.85rem;
+  }
+  .enemy-bubble.shout::before { border-color: #7f1d1d transparent transparent transparent; }
 
   /* ---- boss phases ---- */
   #boss-sprite.boss-phase-2 { filter: hue-rotate(280deg) saturate(1.3) brightness(1.1); }
@@ -471,15 +522,33 @@
     85% { opacity: 1; }
     100% { opacity: 0; transform: scale(1.05) translateY(-10px); }
   }
+  /* A "Fase 2" or enrage announcement used to be position:fixed; inset:0
+     — a full-viewport takeover that blotted out the entire screen (arena,
+     HP bars, everything) for its whole 2.6-3s run, on top of whatever
+     else was already animating (crit flash, zoom punch, speech bubbles).
+     That's what read as "muito grande"/"toma toda a tela": not just the
+     font size, the banner itself was the size of the screen. Now it's a
+     contained card anchored inside the arena (#battle-arena is already
+     position:relative) — same spot every time, same footprint as the
+     other battle toasts (speech bubbles, battle alerts), so it reads as
+     one more piece of arena UI instead of an interruption. */
   .phase-banner {
-    position: fixed; inset: 0; z-index: 9998;
+    position: absolute; top: 12%; left: 50%; transform: translateX(-50%);
+    z-index: 72;
     display: flex; align-items: center; justify-content: center;
     pointer-events: none;
     font-family: 'MedievalSharp', cursive;
-    font-size: 1.6rem; color: #fca5a5;
-    text-shadow: 0 0 15px #ef4444, 0 0 30px #7f1d1d;
-    animation: phaseBannerAnim 2.6s ease-in-out forwards;
-    text-align: center; padding: 0 1rem;
+    font-size: clamp(0.85rem, 3.4vw, 1.15rem);
+    line-height: 1.3;
+    color: #fca5a5;
+    text-shadow: 0 0 10px #ef4444, 0 0 18px #7f1d1d;
+    background: rgba(8,4,4,0.88);
+    border: 1px solid rgba(239,68,68,0.55);
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    animation: phaseBannerAnim 2.8s ease-in-out forwards;
+    text-align: center; padding: 8px 16px;
+    max-width: min(88%, 24rem);
   }
 
   /* ---- canvas fx / crit flash / floating damage ---- */
