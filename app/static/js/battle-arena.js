@@ -98,6 +98,19 @@ const MathBattle = (() => {
 
   function init(config) {
     cfg = Object.assign(cfg, config);
+
+    // Arriving here via a confirmed "Avançar" from the previous fight's
+    // victory screen (see victory() below) — the player already said yes
+    // once; landing on a fresh story screen that then requires a
+    // *second* "Enfrentar" click to actually begin asked the same
+    // question twice. The story screen still shows briefly (same
+    // guardian/mastery/mentor-tip info it always has — that's the "dados
+    // que iria mostrar" the transition is supposed to carry over), just
+    // without waiting on a click: a short beat to read it, then straight
+    // into the same epic invocation start() already plays manually.
+    if (new URLSearchParams(window.location.search).get("autoentrar") === "1") {
+      setTimeout(() => start(), 1400);
+    }
   }
 
   /* ---------------- full-viewport invocation / rebirth overlays ---------------- */
@@ -246,6 +259,12 @@ const MathBattle = (() => {
   /* ---------------- screen flow (story -> arena -> victory/defeat) ---------------- */
 
   function start() {
+    // unlock() needs a real user gesture to actually resume the audio
+    // context — true for the normal "Enfrentar" click, not guaranteed
+    // when this fires on a timer via the ?autoentrar=1 auto-transition
+    // (see init() above). Harmless either way: it just stays silently
+    // suspended until some later click/tap resumes it, no error, no
+    // broken battle — sound is the only thing that can be missing.
     BattleAudio.unlock();
     showInvocation();
 
@@ -856,7 +875,14 @@ const MathBattle = (() => {
     // when the game already knows that's next.
     showVictoryReveal(() => {
       if (cfg.nextTopicUrl) {
-        window.location.href = cfg.nextTopicUrl;
+        // "Avançar" already IS the confirmation — the next page used to
+        // still gate the fight behind its own separate "Enfrentar"
+        // button, effectively asking the same question twice. The
+        // ?autoentrar=1 flag tells that page's bootstrap script (see the
+        // inline <script> at the bottom of practice.html) to skip the
+        // click and animate straight into battle instead.
+        const sep = cfg.nextTopicUrl.includes("?") ? "&" : "?";
+        window.location.href = cfg.nextTopicUrl + sep + "autoentrar=1";
       } else {
         nextChallenge();
       }
