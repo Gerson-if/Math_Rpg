@@ -18,6 +18,27 @@ def test_tabuada_missing_factor_variant_at_high_difficulty():
     assert "?" in q["prompt"]
 
 
+def test_tabuada_difficulty_1_always_keeps_the_base_first():
+    for _ in range(40):
+        q = generate_question("tabuada-do-7", 1)
+        assert q["prompt"].startswith("7 ×")
+
+
+def test_tabuada_difficulty_2_sometimes_inverts_the_operand_order():
+    prompts = {generate_question("tabuada-do-7", 2)["prompt"] for _ in range(80)}
+    assert any(not p.startswith("7 ×") for p in prompts), "expected at least one inverted 'N × 7' prompt"
+    assert any(p.startswith("7 ×") for p in prompts), "expected the natural order to still show up too"
+
+
+@pytest.mark.parametrize("difficulty", [2, 3])
+def test_tabuada_answer_is_correct_regardless_of_printed_order(difficulty):
+    for _ in range(40):
+        q = generate_question("tabuada-do-6", difficulty)
+        a, _, b = q["prompt"].partition(" × ")
+        b = b.split(" =")[0]
+        assert int(a) * int(b) == int(q["answer"])
+
+
 # --- "Tabuada mista": the mixed-review topic covering every base 1..10 ----
 
 def test_tabuada_mista_covers_the_full_base_range():
@@ -33,8 +54,13 @@ def test_tabuada_mista_answer_is_correct(difficulty):
         base = q["meta"]["base"]
         assert 1 <= base <= 10
         if q["prompt"].endswith("= ?"):
-            factor = int(q["prompt"].split(" × ")[1].split(" =")[0])
-            assert int(q["answer"]) == base * factor
+            # Order isn't fixed (base-first vs inverted, see
+            # _gen_tabuada) from difficulty 2 onward — check the product
+            # of whatever two numbers are actually printed instead of
+            # assuming which position holds the base.
+            left, right = q["prompt"].split(" = ?")[0].split(" × ")
+            assert int(q["answer"]) == int(left) * int(right)
+            assert base in (int(left), int(right))
         else:
             result = int(q["prompt"].split("= ")[1])
             assert base * int(q["answer"]) == result

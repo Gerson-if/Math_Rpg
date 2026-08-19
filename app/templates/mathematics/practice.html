@@ -827,6 +827,19 @@
     </div>
 
     <div class="relative z-10 border-t-2 border-gold bg-stone-950/80 p-3 sm:p-4">
+      {% if next_topic %}
+        {% set current_mastery = topic_mastery.mastery_score if topic_mastery else 0 %}
+        {% set progress_pct = ([100, ((current_mastery / mastery_threshold) * 100) | round | int] | min) %}
+        <div id="next-topic-progress" class="max-w-xl mx-auto mb-3">
+          <div class="flex items-center justify-between text-[0.65rem] sm:text-xs font-sans text-stone-400 mb-1">
+            <span><i class="fa-solid fa-unlock mr-1"></i> Domínio p/ <strong class="text-purple-300">{{ next_topic.name }}</strong></span>
+            <span id="next-topic-progress-pct">{{ progress_pct }}%</span>
+          </div>
+          <div class="w-full bg-stone-900 rounded-full h-2 border border-stone-700 overflow-hidden">
+            <div id="next-topic-progress-fill" class="bg-gradient-to-r from-purple-600 to-fuchsia-400 h-full rounded-full transition-all duration-500" style="width: {{ progress_pct }}%"></div>
+          </div>
+        </div>
+      {% endif %}
       <div id="question-slot"
            hx-get="{{ url_for('mathematics.new_question', topic_slug=topic.slug) }}"
            hx-trigger="load"
@@ -842,9 +855,9 @@
           <i class="fa-solid fa-flask"></i> <span class="hidden sm:inline">Consumíveis</span>
           <span id="consumables-total-badge" class="arena-action-badge-count">5</span>
         </button>
-        <button type="button" id="ultimate-btn" onclick="MathBattle.useUltimate()" disabled title="Fúria Arcana Suprema"
+        <button type="button" id="ultimate-btn" onclick="MathBattle.useUltimate()" disabled title="{{ ultimate_name }}"
                 class="ultimate-btn arena-action-btn ultimate">
-          <i class="fa-solid fa-meteor"></i> <span class="hidden sm:inline">Ultimate</span>
+          <i class="fa-solid {{ class_info.icon if class_info else 'fa-meteor' }}"></i> <span class="hidden sm:inline">{{ ultimate_name }}</span>
         </button>
       </div>
     </div>
@@ -921,6 +934,11 @@
     playerName: {{ (current_user.profile.display_name if current_user.profile else current_user.username) | tojson }},
     specialAttacks: {{ special_attacks | tojson }},
     battleTaunts: {{ battle_taunts | tojson }},
+    ultimateName: {{ ultimate_name | tojson }},
+    masteryThreshold: {{ mastery_threshold | tojson }},
+    nextTopicSlug: {{ next_topic.slug | tojson if next_topic else 'null' }},
+    nextTopicName: {{ next_topic.name | tojson if next_topic else 'null' }},
+    nextTopicUrl: {{ url_for('mathematics.practice', topic_slug=next_topic.slug) | tojson if next_topic else 'null' }},
   });
 </script>
 {% endblock %}

@@ -17,6 +17,10 @@
      data-needs-review="{{ 'true' if feedback and feedback.needs_review else 'false' }}"
      data-mastery-recovered="{{ 'true' if feedback and feedback.mastery_recovered else 'false' }}"
      data-stars="{{ feedback.stars if feedback else '' }}"
+     data-mastery-score="{{ feedback.mastery_score if feedback and feedback.mastery_score is not none else '' }}"
+     data-mastery-threshold="{{ feedback.mastery_threshold if feedback else '' }}"
+     data-next-topic-slug="{{ feedback.next_topic_slug if feedback and feedback.next_topic_slug else '' }}"
+     data-next-topic-name="{{ feedback.next_topic_name if feedback and feedback.next_topic_name else '' }}"
      class="max-w-xl mx-auto space-y-3">
 
   <div class="w-full bg-black/60 border-2 border-stone-700 rounded-lg p-3 sm:p-4 text-center shadow-inner">

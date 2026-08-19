@@ -69,6 +69,29 @@ def test_spam_heuristic_alone_warns_but_never_escalates(app, db):
     assert ChatModeration.query.filter_by(user_id=user.id).first() is None
 
 
+def test_first_violation_warning_previews_what_the_second_one_costs(app, db):
+    user = _create_user(db)
+    message = chat_service.send_message(user.id, "seu idiota")
+
+    assert message.moderation_warning.action == "warning"
+    assert "15min" in message.moderation_warning.next_consequence
+
+
+def test_banned_users_warning_has_no_next_consequence_to_preview(app, db):
+    user = _create_user(db)
+    outcome = None
+    for i in range(5):
+        message = _send_backdated(user.id, f"seu lixo idiota {i}")
+        outcome = message.moderation_warning
+        moderation = ChatModeration.query.filter_by(user_id=user.id).first()
+        if moderation:
+            moderation.muted_until = None
+            db.session.commit()
+
+    assert outcome.action == "banned"
+    assert outcome.next_consequence is None
+
+
 def test_second_offense_mutes_the_user_temporarily(app, db):
     user = _create_user(db)
     _send_backdated(user.id, "seu lixo")

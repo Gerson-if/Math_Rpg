@@ -52,6 +52,50 @@ def test_create_challenge_rejects_challenging_yourself(app, db):
             duel_service.create_challenge(user.id, user.id, topic.id)
 
 
+def test_create_challenge_rejects_a_second_pending_challenge_between_the_same_pair(app, db):
+    with app.app_context():
+        challenger = _make_user("chal_dup")
+        opponent = _make_user("opp_dup")
+        topic = _make_topic()
+        db.session.commit()
+
+        duel_service.create_challenge(challenger.id, opponent.id, topic.id)
+
+        with pytest.raises(duel_service.DuelError):
+            duel_service.create_challenge(challenger.id, opponent.id, topic.id)
+
+
+def test_create_challenge_rejects_the_reverse_direction_too(app, db):
+    with app.app_context():
+        challenger = _make_user("chal_rev")
+        opponent = _make_user("opp_rev")
+        topic = _make_topic()
+        db.session.commit()
+
+        duel_service.create_challenge(challenger.id, opponent.id, topic.id)
+
+        # Same pair, opponent challenging back before the first request was
+        # even answered — should be blocked exactly like a same-direction
+        # duplicate would be.
+        with pytest.raises(duel_service.DuelError):
+            duel_service.create_challenge(opponent.id, challenger.id, topic.id)
+
+
+def test_create_challenge_allows_a_new_one_once_the_previous_duel_finished(app, db):
+    with app.app_context():
+        challenger = _make_user("chal_done")
+        opponent = _make_user("opp_done")
+        topic = _make_topic()
+        db.session.commit()
+
+        first = duel_service.create_challenge(challenger.id, opponent.id, topic.id)
+        first.status = Duel.STATUS_FINISHED
+        db.session.commit()
+
+        second = duel_service.create_challenge(challenger.id, opponent.id, topic.id)
+        assert second.id != first.id
+
+
 def test_respond_to_challenge_accept_starts_the_first_round(app, db):
     with app.app_context():
         challenger = _make_user("challenger2")

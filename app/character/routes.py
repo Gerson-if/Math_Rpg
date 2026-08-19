@@ -6,7 +6,7 @@ Conquistas, ...), not layered over the arena."""
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
-from app.services import loot_service
+from app.services import classes as classes_service, loot_service
 
 character_bp = Blueprint("character", __name__, url_prefix="/personagem")
 
@@ -15,6 +15,13 @@ def _player_gold(user_id: int) -> int:
     from app.models import PlayerStats
     stats = PlayerStats.query.filter_by(user_id=user_id).first()
     return stats.gold if stats else 0
+
+
+def _class_buff_type(user_id: int) -> str | None:
+    from app.models import Profile
+    profile = Profile.query.filter_by(user_id=user_id).first()
+    class_key = profile.character_class if profile else None
+    return classes_service.CLASSES.get(class_key, {}).get("buff_type") if class_key else None
 
 
 @character_bp.route("/equipamentos")
@@ -43,6 +50,7 @@ def espolios():
         player_level=loot_service.player_level(current_user.id),
         min_level_by_rarity=loot_service.MIN_LEVEL_BY_RARITY,
         gold_by_rarity=loot_service.GOLD_BY_RARITY,
+        class_buff_type=_class_buff_type(current_user.id),
     )
 
 

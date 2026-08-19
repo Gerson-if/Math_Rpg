@@ -2,6 +2,8 @@
 share one blueprint/page (friends/index.html) because in practice you
 only ever invite someone to a dungeon from the friends list — there's no
 scenario where a user visits one without the other."""
+from urllib.parse import urlparse
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
@@ -10,6 +12,17 @@ from app.models import Subject
 from app.services import friends_service, dungeon_service, duel_service
 
 friends_bp = Blueprint("friends", __name__, url_prefix="/amigos")
+
+
+def _redirect_back(default_endpoint):
+    # Lets a friend-request form on some OTHER page (a public profile,
+    # say) send the player back to where they were instead of always
+    # dumping them on /amigos — only trusts request.referrer when it's
+    # same-origin, so this can't be turned into an open redirect.
+    referrer = request.referrer
+    if referrer and urlparse(referrer).netloc in ("", urlparse(request.host_url).netloc):
+        return redirect(referrer)
+    return redirect(url_for(default_endpoint))
 
 
 @friends_bp.route("/")
@@ -37,7 +50,7 @@ def send_request():
         flash(f"Convite de amizade enviado para {friendship.addressee.username}.", "info")
     except friends_service.FriendError as exc:
         flash(str(exc), "error")
-    return redirect(url_for("friends.index"))
+    return _redirect_back("friends.index")
 
 
 @friends_bp.route("/<int:friendship_id>/aceitar", methods=["POST"])

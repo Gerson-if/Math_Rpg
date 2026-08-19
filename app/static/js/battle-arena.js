@@ -69,7 +69,9 @@ const MathBattle = (() => {
   let cfg = {
     topicSlug: "", indexUrl: "/math/", buffs: {}, bossName: "O guardião", playerName: "aprendiz",
     specialAttacks: SPECIAL_ATTACK_NAMES_FALLBACK, battleTaunts: BATTLE_TAUNT_FALLBACK,
+    masteryThreshold: 0.5, nextTopicSlug: null, nextTopicName: null, nextTopicUrl: null,
   };
+  let advancedToNextTopic = false;
   let maxHP = BASE_MAX_HP, playerHP = maxHP;
   let bossMaxHP = BOSS_HP_BY_TIER.boss, bossHP = bossMaxHP;
   let combo = 0, fury = 0, lastPhase = 1;
@@ -371,8 +373,32 @@ const MathBattle = (() => {
     if (d.masteryRecovered === "true") {
       showSpeechBubble(`<i class="fa-solid fa-arrow-trend-up"></i> Domínio recuperado!`, "recovered");
     }
+    if (d.masteryScore !== undefined && d.masteryScore !== "") {
+      updateNextTopicProgress(parseFloat(d.masteryScore));
+    }
     focusAnswer();
   });
+
+  /* Domínio em tempo real rumo ao próximo tópico da trilha (ex.: tabuada
+     do 1 -> tabuada do 2) — a barra vive fora de #question-slot (não é
+     substituída a cada troca de pergunta) então só precisa ser
+     atualizada, nunca recriada. Quando o limiar é cruzado, o jogador
+     avança sozinho para o próximo tópico em vez de precisar voltar ao
+     mapa manualmente. */
+  function updateNextTopicProgress(masteryScore) {
+    if (!cfg.nextTopicSlug) return;
+    const fill = $("next-topic-progress-fill");
+    const pct = $("next-topic-progress-pct");
+    const ratio = Math.max(0, Math.min(100, Math.round((masteryScore / cfg.masteryThreshold) * 100)));
+    if (fill) fill.style.width = ratio + "%";
+    if (pct) pct.textContent = ratio + "%";
+
+    if (!advancedToNextTopic && cfg.nextTopicUrl && masteryScore >= cfg.masteryThreshold) {
+      advancedToNextTopic = true;
+      showBattleAlert("🎉 Domínio alcançado! Avançando para " + cfg.nextTopicName + "...", "crit");
+      setTimeout(() => { window.location.href = cfg.nextTopicUrl; }, 2400);
+    }
+  }
 
   /* A question's signed token expires (30min — see question_token.py) or a
      request can otherwise fail; htmx only swaps on 2xx by default, so
@@ -585,7 +611,7 @@ const MathBattle = (() => {
     updateFuryUi();
     BattleAudio.sfx.ultimate();
     BattleFx.triggerCritFlash("crit-flash", true);
-    showBattleAlert("☄️ Fúria Arcana Suprema!", "crit");
+    showBattleAlert("☄️ " + (cfg.ultimateName || "Fúria Arcana Suprema") + "!", "crit");
     BattleFx.launchProjectile($("hero-avatar"), $("boss-sprite"), "#f472b6", () => applyBossDamage(CONFIG.ultimateDamage, true, null), true);
   }
 

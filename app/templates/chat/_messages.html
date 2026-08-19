@@ -10,10 +10,10 @@
       <strong>Sua conta foi suspensa</strong> por violações repetidas das regras do chat.
     {% elif warning.action == 'muted' %}
       <strong>Você foi silenciado no chat</strong> até {{ warning.muted_until.strftime('%d/%m %H:%M') }}. {{ warning.reason }}
-      Reincidência leva a punições cada vez mais severas, podendo chegar à suspensão da conta.
+      {% if warning.next_consequence %}<br><span class="text-xs opacity-90">Se acontecer de novo: {{ warning.next_consequence }}.</span>{% endif %}
     {% else %}
-      Talvez sua mensagem esteja violando as regras do chat — {{ warning.reason }} Evite esse tipo de assunto ou palavra;
-      violações confirmadas levam a silêncio temporário e, em casos graves, à suspensão da conta.
+      Talvez sua mensagem esteja violando as regras do chat — {{ warning.reason }} Evite esse tipo de assunto ou palavra.
+      {% if warning.next_consequence %}<br><span class="text-xs opacity-90">Se uma violação for confirmada de novo: {{ warning.next_consequence }}.</span>{% endif %}
     {% endif %}
   </div>
 {% endif %}

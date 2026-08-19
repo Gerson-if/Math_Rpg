@@ -128,6 +128,23 @@ def test_report_message_rejects_a_duplicate_report_from_the_same_reporter(app, d
         chat_service.report_message(message.id, reporter.id)
 
 
+def test_report_message_rejects_a_second_report_against_the_same_player_via_a_different_message(app, db):
+    author = _create_user(db, email="autordup2@example.com", username="autordup2")
+    reporter = _create_user(db, email="repdup2@example.com", username="repdup2")
+    first_message = chat_service.send_message(author.id, "primeira mensagem qualquer")
+
+    chat_service.report_message(first_message.id, reporter.id)
+
+    from datetime import datetime, timedelta
+    first_message.created_at = datetime.utcnow() - timedelta(seconds=10)
+    from app.extensions import db as _db
+    _db.session.commit()
+    second_message = chat_service.send_message(author.id, "segunda mensagem, totalmente diferente")
+
+    with pytest.raises(chat_service.ChatError, match="jogador"):
+        chat_service.report_message(second_message.id, reporter.id)
+
+
 def test_report_message_notifies_both_the_reporter_and_the_reported_user(app, db):
     from app.models import Notification
 

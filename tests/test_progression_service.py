@@ -395,3 +395,37 @@ def test_effective_difficulty_is_never_below_one(app, db):
 
         _set_mastery(user, topic, score=0.1, correct=1, wrong=9)
         assert progression_service.get_effective_difficulty(user.id, topic) == 1
+
+
+def test_next_topic_for_returns_the_following_topic_in_the_same_subject(app, db):
+    with app.app_context():
+        subject = Subject(slug="tabuada", name="Tabuada", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        first = Topic(slug="tabuada-do-1", name="Tabuada do 1", subject_id=subject.id, order=0, base_difficulty=1)
+        second = Topic(slug="tabuada-do-2", name="Tabuada do 2", subject_id=subject.id, order=1, base_difficulty=1)
+        db.session.add_all([first, second])
+        db.session.commit()
+
+        next_topic = progression_service.next_topic_for(first)
+        assert next_topic is not None
+        assert next_topic.slug == "tabuada-do-2"
+
+
+def test_next_topic_for_returns_none_for_the_last_topic_in_a_subject(app, db):
+    with app.app_context():
+        topic = _make_topic()
+        assert progression_service.next_topic_for(topic) is None
+
+
+def test_next_topic_for_ignores_an_inactive_next_topic(app, db):
+    with app.app_context():
+        subject = Subject(slug="tabuada2", name="Tabuada 2", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        first = Topic(slug="t2-do-1", name="T2 do 1", subject_id=subject.id, order=0, base_difficulty=1)
+        second = Topic(slug="t2-do-2", name="T2 do 2", subject_id=subject.id, order=1, base_difficulty=1, is_active=False)
+        db.session.add_all([first, second])
+        db.session.commit()
+
+        assert progression_service.next_topic_for(first) is None

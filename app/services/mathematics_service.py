@@ -100,8 +100,16 @@ def generate_question(topic_slug: str, difficulty: int) -> Question:
 def _gen_tabuada(base: int, difficulty: int) -> Question:
     factor = random.randint(0, 10)
     if difficulty <= 3:
-        # Straightforward: base × factor = ?
-        prompt = f"{base} × {factor} = ?"
+        # From difficulty 2 onward, the printed order is randomly flipped
+        # ("3 × 7" instead of always "7 × 3") — mastering a table means
+        # genuinely recalling the fact regardless of which side it's
+        # written on, not pattern-matching a fixed position. Difficulty 1
+        # keeps the natural base-first order for a first encounter with
+        # the table.
+        if difficulty >= 2 and random.random() < 0.5:
+            prompt = f"{factor} × {base} = ?"
+        else:
+            prompt = f"{base} × {factor} = ?"
         answer = base * factor
     else:
         # Higher difficulty: the missing-factor variant forces recall

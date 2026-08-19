@@ -2,8 +2,8 @@ from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import Attempt, Level, Mastery, Notification, Subject, Topic, User, UserAchievement
-from app.services import classes as classes_service, guardians, loot_service, mentor_tips, progression_service
+from app.models import Attempt, Friendship, Level, Mastery, Notification, Subject, Topic, User, UserAchievement
+from app.services import classes as classes_service, friends_service, guardians, loot_service, mentor_tips, progression_service
 from app.users.forms import ProfileForm, ClassForm
 
 users_bp = Blueprint("users", __name__, url_prefix="/")
@@ -164,10 +164,20 @@ def public_profile(username):
         .order_by(UserAchievement.unlocked_at.asc())
         .all()
     )
+
+    friend_status = friends_service.relationship_status(current_user.id, user.id)
+    incoming_friendship_id = None
+    if friend_status == "pending_incoming":
+        incoming = Friendship.query.filter_by(
+            requester_id=user.id, addressee_id=current_user.id, status=Friendship.STATUS_PENDING,
+        ).first()
+        incoming_friendship_id = incoming.id if incoming else None
+
     return render_template(
         "users/public_profile.html", user=user,
         class_info=class_info, ability=ability, class_lore_line=class_lore_line,
         featured_achievements=[ua.achievement for ua in featured],
+        friend_status=friend_status, incoming_friendship_id=incoming_friendship_id,
     )
 
 

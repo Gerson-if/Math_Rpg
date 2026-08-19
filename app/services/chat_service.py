@@ -65,6 +65,7 @@ class ModerationWarning:
     action: str  # "warning" | "muted" | "banned"
     reason: str
     muted_until: datetime | None = None
+    next_consequence: str | None = None  # what happens on the *next* violation, if any
 
 
 def send_message(user_id: int, content: str, room: str = DEFAULT_ROOM) -> ChatMessage:
@@ -173,8 +174,14 @@ def report_message(message_id: int, reporter_id: int) -> ReportResult:
         raise ChatError("Mensagem não encontrada.")
     if message.user_id == reporter_id:
         raise ChatError("Você não pode denunciar sua própria mensagem.")
-    if ChatReport.query.filter_by(message_id=message_id, reporter_id=reporter_id).first() is not None:
-        raise ChatError("Você já denunciou esta mensagem.")
+    # One report per (reporter, offending player) — not just per message.
+    # Without this, a reporter could file a fresh denúncia against every
+    # message a player ever sent to keep pushing them up the escalation
+    # ladder; the automatic proactive scan (see send_message) keeps
+    # catching new violations on its own, so a second report from the
+    # same person isn't needed to keep enforcement going.
+    if ChatReport.query.filter_by(reporter_id=reporter_id, reported_user_id=message.user_id).first() is not None:
+        raise ChatError("Você já denunciou este jogador.")
 
     is_violation, reason = _analyze_violation(message.content)
     message.is_flagged = message.is_flagged or is_violation
@@ -259,6 +266,25 @@ def _format_remaining(delta: timedelta) -> str:
     return f"{days}d{hours}h" if hours else f"{days}d"
 
 
+def _describe_consequence(tier) -> str:
+    if tier is None:
+        return "apenas um aviso"
+    if tier == "ban":
+        return "a suspensão da conta"
+    return f"silêncio no chat por {_format_remaining(tier)}"
+
+
+def _next_consequence_after(violation_count: int) -> str | None:
+    """What happens if this same player racks up one more violation —
+    told to them up front (not just after the fact) so the ladder acts as
+    a real deterrent, not a surprise. None once they're already banned —
+    there's no "next" rung past that."""
+    if violation_count >= len(ESCALATION_LADDER) and ESCALATION_LADDER[-1] == "ban":
+        return None
+    next_tier = ESCALATION_LADDER[min(violation_count, len(ESCALATION_LADDER) - 1)]
+    return _describe_consequence(next_tier)
+
+
 def _register_violation(user_id: int, reason: str) -> ModerationWarning:
     """Applies the next rung of ESCALATION_LADDER for this user and
     records why — called for every confirmed violation, whether caught by
@@ -292,6 +318,8 @@ def _register_violation(user_id: int, reason: str) -> ModerationWarning:
         muted_until = datetime.utcnow() + tier
         moderation.muted_until = muted_until
 
+    next_consequence = _next_consequence_after(moderation.violation_count)
+
     db.session.add(Notification(
         user_id=user_id,
         type="chat_violation",
@@ -300,7 +328,8 @@ def _register_violation(user_id: int, reason: str) -> ModerationWarning:
             "reason": reason,
             "violation_count": moderation.violation_count,
             "muted_label": _format_remaining(tier) if isinstance(tier, timedelta) else None,
+            "next_consequence": next_consequence,
         },
     ))
 
-    return ModerationWarning(action=action, reason=reason, muted_until=muted_until)
+    return ModerationWarning(action=action, reason=reason, muted_until=muted_until, next_consequence=next_consequence)

@@ -87,9 +87,32 @@ def roll_rarity() -> dict:
     return RARITIES[0]
 
 
+def _pick_template_for(user_id: int) -> dict:
+    """Weighted template pick, nudged toward the player's own class buff
+    type (classes_service.CLASSES[...]["buff_type"]) so drops feel like
+    *your* class's gear more often — not a hard restriction, an item of
+    any type is still freely equippable/tradeable by anyone, this just
+    changes the odds. Deferred imports: classes.py itself imports
+    PASSIVE_BASE from this module, so importing it back at module load
+    time would be circular — safe here since generate_item is only ever
+    called well after both modules have finished loading."""
+    from app.models import Profile
+    from app.services import classes as classes_service
+
+    profile = Profile.query.filter_by(user_id=user_id).first()
+    class_key = profile.character_class if profile else None
+    buff_type = classes_service.CLASSES.get(class_key, {}).get("buff_type") if class_key else None
+    if not buff_type:
+        return random.choice(ITEM_TEMPLATES)
+
+    weights = [3.0 if t["passive_type"] == buff_type else 1.0 for t in ITEM_TEMPLATES]
+    return random.choices(ITEM_TEMPLATES, weights=weights, k=1)[0]
+
+
 def generate_item(user_id: int) -> ItemInstance:
-    """Rolls a random item and persists it (unequipped) for the user."""
-    template = random.choice(ITEM_TEMPLATES)
+    """Rolls a random item (weighted toward the player's class — see
+    _pick_template_for) and persists it (unequipped) for the user."""
+    template = _pick_template_for(user_id)
     rarity = roll_rarity()
     value = PASSIVE_BASE[template["passive_type"]] * rarity["mult"]
     item = ItemInstance(

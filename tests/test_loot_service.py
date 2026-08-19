@@ -53,6 +53,35 @@ def test_generate_item_persists_unequipped(app, db):
         assert item.passive_value > 0
 
 
+def test_generate_item_is_biased_toward_the_players_class_passive_type(app, db):
+    from app.models import Profile
+
+    with app.app_context():
+        user = _make_user()
+        db.session.add(Profile(user_id=user.id, display_name="loot", character_class="mago", class_tier_claimed=0))
+        db.session.commit()
+
+        # mago's buff_type is "critico" (see classes_service.CLASSES). A
+        # fully uniform roll across the 6 passive types would land here
+        # ~1/6 (16.7%) of the time; the weighting in _pick_template_for
+        # pushes the expected share to ~37.5% — comfortably clear of
+        # random noise at this sample size without the assertion being
+        # sensitive to exactly which seed produced which sequence.
+        types = [loot_service.generate_item(user.id).passive_type for _ in range(60)]
+        assert types.count("critico") > len(types) / 4
+
+
+def test_generate_item_stays_uniform_with_no_class_chosen(app, db):
+    with app.app_context():
+        user = _make_user()
+        db.session.commit()
+
+        types = {loot_service.generate_item(user.id).passive_type for _ in range(40)}
+        # No single class bias in play — should see real variety, not one
+        # passive_type dominating every roll.
+        assert len(types) > 2
+
+
 def test_rarity_distribution_covers_all_four_tiers(app, db):
     seen = {loot_service.roll_rarity()["id"] for _ in range(400)}
     assert seen == {r["id"] for r in loot_service.RARITIES}

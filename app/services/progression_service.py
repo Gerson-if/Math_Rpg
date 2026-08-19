@@ -146,6 +146,25 @@ def get_effective_difficulty(user_id: int, topic: Topic) -> int:
 # (which flags an already-practiced topic for review), since this is about
 # a first-time recommendation, not a regression warning.
 _PREREQUISITE_MASTERY_THRESHOLD = 0.5
+# Public alias — the battle screen shows this same number live (see
+# app/mathematics/routes.py) so a player watching their mastery bar climb
+# during a fight sees the exact threshold that will unlock next_topic_for
+# below, not a second number that happens to mean something similar.
+PREREQUISITE_MASTERY_THRESHOLD = _PREREQUISITE_MASTERY_THRESHOLD
+
+
+def next_topic_for(topic: Topic) -> Topic | None:
+    """The topic that immediately follows this one in its subject's
+    linear chain (see scripts/seed.py: each topic's prerequisite_slugs is
+    just the one right before it) — i.e. the topic that would drop out of
+    unmet_prerequisites once *this* topic's mastery clears
+    PREREQUISITE_MASTERY_THRESHOLD. None if `topic` is the last one in its
+    subject. Used to auto-advance the battle screen instead of leaving the
+    player to find "tabuada do 2" on the map themselves."""
+    return (
+        Topic.query.filter_by(subject_id=topic.subject_id, order=topic.order + 1, is_active=True)
+        .first()
+    )
 
 
 def unmet_prerequisites(user_id: int, topic: Topic) -> list[Topic]:

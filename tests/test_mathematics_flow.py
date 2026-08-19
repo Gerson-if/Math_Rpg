@@ -31,6 +31,31 @@ def _extract_token(html: str) -> str:
     return match.group(1)
 
 
+def test_practice_screen_shows_the_generic_ultimate_name_with_no_class_chosen(client, db):
+    _create_and_login(client, db)
+    topic = _create_topic(db)
+
+    resp = client.get(f"/math/praticar/{topic.slug}")
+    assert "Fúria Arcana Suprema" in resp.data.decode()
+
+
+def test_practice_screen_shows_the_players_own_class_ability_as_the_ultimate(client, db, app):
+    from app.models import Profile
+
+    user = _create_and_login(client, db)
+    topic = _create_topic(db)
+    db.session.add(Profile(
+        user_id=user.id, display_name="aluno",
+        character_class="mago", class_tier_claimed=0,
+    ))
+    db.session.commit()
+
+    resp = client.get(f"/math/praticar/{topic.slug}")
+    body = resp.data.decode()
+    assert "Centelha Arcana" in body  # mago's tier-0 ability (see classes_service.CLASS_ABILITIES)
+    assert "Fúria Arcana Suprema" not in body
+
+
 def test_new_question_requires_login(client, db):
     topic = _create_topic(db)
     resp = client.get(f"/math/praticar/{topic.slug}/questao")
@@ -222,6 +247,53 @@ def test_answer_fragment_always_carries_a_data_crit_attribute(client, db, app):
         data={"token": token, "answer": payload["answer"]},
     )
     assert 'data-crit="true"' in resp2.data.decode() or 'data-crit="false"' in resp2.data.decode()
+
+
+def test_answer_fragment_carries_next_topic_and_mastery_progress_when_a_next_topic_exists(client, db, app):
+    from app.models import Subject
+
+    _create_and_login(client, db)
+    subject = Subject(slug="tabuada-flow", name="Tabuada", order=0)
+    db.session.add(subject)
+    db.session.flush()
+    # Topic slugs must match TABUADA_RE ("tabuada-do-N") for
+    # generate_question to recognize them — the *subject* slug is what's
+    # namespaced per-test, not these.
+    first = Topic(slug="tabuada-do-1", name="Tabuada do 1", subject_id=subject.id, order=0, base_difficulty=1)
+    second = Topic(slug="tabuada-do-2", name="Tabuada do 2", subject_id=subject.id, order=1, base_difficulty=1)
+    db.session.add_all([first, second])
+    db.session.commit()
+
+    resp = client.get(f"/math/praticar/{first.slug}/questao")
+    token = _extract_token(resp.data.decode())
+    with app.app_context():
+        payload = question_token.read_token(token)
+
+    resp2 = client.post(
+        f"/math/praticar/{first.slug}/responder",
+        data={"token": token, "answer": payload["answer"]},
+    )
+    body = resp2.data.decode()
+    assert 'data-next-topic-slug="tabuada-do-2"' in body
+    assert 'data-next-topic-name="Tabuada do 2"' in body
+    assert 'data-mastery-threshold="0.5"' in body
+    assert 'data-mastery-score="' in body
+
+
+def test_answer_fragment_has_no_next_topic_for_the_last_topic_in_a_subject(client, db, app):
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="tabuada-do-10")
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    token = _extract_token(resp.data.decode())
+    with app.app_context():
+        payload = question_token.read_token(token)
+
+    resp2 = client.post(
+        f"/math/praticar/{topic.slug}/responder",
+        data={"token": token, "answer": payload["answer"]},
+    )
+    assert 'data-next-topic-slug=""' in resp2.data.decode()
 
 
 def test_a_single_correct_answer_never_carries_a_spurious_needs_review_flag(client, db, app):

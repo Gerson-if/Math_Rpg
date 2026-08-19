@@ -135,3 +135,63 @@ def test_toggle_featured_rejects_a_locked_achievement(client, db, app):
     resp = client.post(f"/achievements/destacar/{achievement_id}", follow_redirects=True)
     assert resp.status_code == 200
     assert "não desbloqueou" in resp.data.decode()
+
+
+def test_public_profile_shows_add_friend_button_for_a_stranger(client, db):
+    _create_and_login(client, db, email="viewer@example.com", username="viewer")
+    stranger = User(email="stranger@example.com", username="stranger")
+    stranger.set_password("senhaforte123")
+    db.session.add(stranger)
+    db.session.commit()
+
+    resp = client.get("/jogador/stranger")
+    body = resp.data.decode()
+    assert "Adicionar Amigo" in body
+
+
+def test_public_profile_shows_pending_badge_after_sending_a_request(client, db):
+    _create_and_login(client, db, email="viewer2@example.com", username="viewer2")
+    target = User(email="target2@example.com", username="target2")
+    target.set_password("senhaforte123")
+    db.session.add(target)
+    db.session.commit()
+
+    client.post("/amigos/solicitar", data={"username": "target2"})
+
+    resp = client.get("/jogador/target2")
+    body = resp.data.decode()
+    assert "Convite de amizade enviado" in body
+    assert "Adicionar Amigo" not in body
+
+
+def test_public_profile_shows_accept_button_for_an_incoming_request(client, db, app):
+    from app.services import friends_service
+
+    _create_and_login(client, db, email="viewer3@example.com", username="viewer3")
+
+    sender = User(email="sender3@example.com", username="sender3")
+    sender.set_password("senhaforte123")
+    db.session.add(sender)
+    db.session.commit()
+    friends_service.send_request(sender.id, "viewer3")
+
+    resp = client.get("/jogador/sender3")
+    body = resp.data.decode()
+    assert "Aceitar convite de amizade" in body
+
+
+def test_public_profile_shows_friends_badge_once_accepted(client, db, app):
+    from app.services import friends_service
+
+    other = User(email="other4@example.com", username="other4")
+    other.set_password("senhaforte123")
+    db.session.add(other)
+    db.session.commit()
+
+    user = _create_and_login(client, db, email="viewer4@example.com", username="viewer4")
+    friendship = friends_service.send_request(other.id, "viewer4")
+    friends_service.respond(friendship.id, user.id, accept=True)
+
+    resp = client.get("/jogador/other4")
+    body = resp.data.decode()
+    assert "Vocês são amigos" in body

@@ -65,11 +65,15 @@
           <p class="font-sans text-stone-100">
             Você foi <strong class="text-blood">silenciado no chat por {{ n.payload.muted_label }}</strong> (violação nº {{ n.payload.violation_count }}).
           </p>
-          <p class="text-stone-400 font-sans text-xs mt-1">Reincidência leva a punições cada vez mais severas, podendo chegar à suspensão da conta.</p>
         {% else %}
           <p class="font-sans text-stone-100">Aviso: sua mensagem no chat pode ter violado as regras.</p>
         {% endif %}
         <p class="text-stone-400 font-sans text-xs mt-1">{{ n.payload.reason }}</p>
+        {% if n.payload.next_consequence %}
+          <p class="text-stone-500 font-sans text-xs mt-1">
+            <i class="fa-solid fa-circle-exclamation mr-1"></i> Se acontecer de novo: {{ n.payload.next_consequence }}.
+          </p>
+        {% endif %}
       </div>
 
     {% elif n.type == 'duel_challenge' %}

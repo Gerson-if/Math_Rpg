@@ -84,6 +84,11 @@
               <i class="fa-solid fa-lock"></i> Nv {{ min_level }}
             </span>
           {% endif %}
+          {% if class_buff_type and item.passive_type == class_buff_type %}
+            <span class="absolute top-1.5 left-1.5 text-[0.6rem] text-gold" title="Ideal para sua classe">
+              <i class="fa-solid fa-star"></i>
+            </span>
+          {% endif %}
           <i class="fa-solid {{ item.icon_key }} text-2xl mb-1 {{ 'grayscale opacity-50' if locked else '' }}" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
           <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ item.name }}</p>
         </a>
@@ -109,6 +114,9 @@
         <p class="font-medieval text-white text-lg">{{ item.name }}</p>
         <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ item.rarity | capitalize }}</p>
         <p class="font-sans text-stone-300 text-sm">{{ ui.passive_label(item) }}</p>
+        {% if class_buff_type and item.passive_type == class_buff_type %}
+          <p class="font-sans text-gold text-xs mt-1"><i class="fa-solid fa-star mr-1"></i>Ideal para sua classe</p>
+        {% endif %}
 
         {% if locked %}
           <p class="text-stone-500 font-sans text-xs mt-3"><i class="fa-solid fa-lock"></i> Equipar exige nível {{ min_level }} — você está no {{ player_level }}.</p>

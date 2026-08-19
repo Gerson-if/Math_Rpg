@@ -70,7 +70,13 @@
     <p><strong class="text-gold">Loja do Reino</strong> — estoque do próprio reino, renovado a cada 24h. Compre com Ouro na hora, sem depender de sorte de drop.</p>
     <p><strong class="text-purple-300">Loja dos Jogadores</strong> — espólios anunciados por outros aventureiros, disponíveis por tempo limitado até serem vendidos ou expirarem.</p>
     <p><strong class="text-stone-200">Meus Anúncios</strong> — acompanhe o que você colocou à venda e cancele quando quiser.</p>
-    <p class="text-stone-500">Sem Ouro? Venda espólios que não usa mais na tela de <a href="{{ url_for('character.espolios') }}" class="underline hover:text-gold">Espólios</a>.</p>
+    <p class="text-stone-500 flex items-center gap-2 flex-wrap">
+      Sem Ouro? Venda espólios que não usa mais.
+      <a href="{{ url_for('character.espolios') }}"
+         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-gold/50 text-gold hover:bg-gold/10 hover:border-gold transition-colors">
+        <i class="fa-solid fa-sack-dollar"></i> Ir para Espólios
+      </a>
+    </p>
   </div>
 </div>
 
@@ -204,11 +210,18 @@
 <!-- MEUS ANÚNCIOS -->
 <div class="market-panel theme-meus" data-panel="meus">
   <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-4 sm:p-5 shadow-lg">
-    <p class="text-stone-500 font-sans text-sm mb-4">
-      Anuncie um espólio a partir da tela de
-      <a href="{{ url_for('character.espolios') }}" class="text-purple-300 hover:text-purple-200 underline">Espólios</a>.
-      Enquanto anunciado, o item fica reservado — não pode ser equipado nem anunciado de novo até vender ou cancelar.
-    </p>
+    <div class="flex items-start gap-3 mb-4 bg-black/30 border border-stone-700 rounded-lg p-3 sm:p-4">
+      <i class="fa-solid fa-circle-info text-purple-300 text-lg mt-0.5 shrink-0"></i>
+      <div class="flex-1">
+        <p class="text-stone-400 font-sans text-sm mb-2">
+          Enquanto anunciado, o item fica reservado — não pode ser equipado nem anunciado de novo até vender ou cancelar.
+        </p>
+        <a href="{{ url_for('character.espolios') }}"
+           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-mystic border-2 border-purple-400 text-white hover:scale-105 transition-transform">
+          <i class="fa-solid fa-sack-dollar"></i> Anunciar um espólio
+        </a>
+      </div>
+    </div>
     {% if my_listings %}
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {% for item in my_listings %}

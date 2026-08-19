@@ -60,6 +60,20 @@ def create_challenge(challenger_id: int, opponent_id: int, topic_id: int) -> Due
     if topic is None:
         raise DuelError("Tópico não encontrado.")
 
+    # Without this, nothing stopped the same pair from racking up several
+    # pending challenges (or challenging each other in both directions at
+    # once) — confusing on the receiving end (which one do I accept?) and
+    # easy to spam by mashing the button.
+    existing = Duel.query.filter(
+        Duel.status.in_((Duel.STATUS_PENDING, Duel.STATUS_ACTIVE)),
+        db.or_(
+            db.and_(Duel.challenger_id == challenger_id, Duel.opponent_id == opponent_id),
+            db.and_(Duel.challenger_id == opponent_id, Duel.opponent_id == challenger_id),
+        ),
+    ).first()
+    if existing is not None:
+        raise DuelError("Já existe um desafio pendente ou duelo em andamento com este jogador.")
+
     duel = Duel(
         room_code=_room_code(),
         challenger_id=challenger_id,

@@ -1,3 +1,4 @@
+import random
 from datetime import datetime, timedelta
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request
@@ -6,6 +7,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app.extensions import db, limiter
 from app.models import User, Profile, PlayerStats, Level, Rank, Attempt
 from app.auth.forms import RegisterForm, LoginForm
+from app.users.forms import AVATAR_CHOICES
 from app.services import classes as classes_service, guardians as guardians_service
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -41,7 +43,13 @@ def register():
         starting_level = Level.query.filter_by(number=1).first()
         starting_rank = Rank.query.order_by(Rank.order.asc()).first()
 
-        db.session.add(Profile(user_id=user.id, display_name=form.username.data))
+        # A random starting avatar (instead of the model's placeholder
+        # default, which isn't even a valid FontAwesome key the avatar_icon
+        # macro recognizes) so new players don't all show the exact same
+        # fallback icon in chat/rankings/profiles before ever visiting the
+        # profile editor.
+        starting_avatar = random.choice(AVATAR_CHOICES)[0]
+        db.session.add(Profile(user_id=user.id, display_name=form.username.data, avatar_key=starting_avatar))
         db.session.add(PlayerStats(
             user_id=user.id,
             last_active_at=datetime.utcnow(),

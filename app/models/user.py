@@ -52,7 +52,14 @@ class Profile(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False)
     display_name = db.Column(db.String(60), nullable=False)
-    avatar_key = db.Column(db.String(120), default="characters/idle")
+    # Registration always sets this explicitly to a random pick from
+    # AVATAR_CHOICES (see auth.routes.register) — this default is only a
+    # safety net for any other path that might create a Profile without
+    # specifying one. Must be a key avatar_icon's `valid` list recognizes
+    # (app/templates/_macros.html), unlike the old "characters/idle"
+    # placeholder this replaced, which silently made every profile that
+    # never visited the editor render the exact same fallback icon.
+    avatar_key = db.Column(db.String(120), default="fa-user-shield")
     title = db.Column(db.String(60), nullable=True)  # earned via achievements
     bio = db.Column(db.String(280), nullable=True)
 

@@ -1,15 +1,43 @@
 {% extends "base.html" %}
 {% import "_macros.html" as ui %}
 {% block title %}Amigos{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Desafios/convites pendentes costumavam ser um card discreto igual a
+     qualquer outro — fácil de rolar a página e nem notar. Agora entram
+     com uma animação de "isso é urgente" (estilo alerta de batalha de
+     Clash Royale): brilho pulsante na borda + leve solavanco no ícone. */
+  @keyframes alertCardGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(239,68,68,0.35); }
+    50% { box-shadow: 0 0 22px rgba(239,68,68,0.75); }
+  }
+  .alert-card { animation: alertCardGlow 1.6s ease-in-out infinite; }
+  @keyframes alertCardGlowPurple {
+    0%, 100% { box-shadow: 0 0 10px rgba(168,85,247,0.35); }
+    50% { box-shadow: 0 0 22px rgba(168,85,247,0.75); }
+  }
+  .alert-card-purple { animation: alertCardGlowPurple 1.6s ease-in-out infinite; }
+  @keyframes alertIconShake {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    20% { transform: rotate(-12deg) scale(1.1); }
+    40% { transform: rotate(10deg) scale(1.1); }
+    60% { transform: rotate(-6deg) scale(1.05); }
+    80% { transform: rotate(4deg) scale(1.02); }
+  }
+  .alert-card-icon { display: inline-block; animation: alertIconShake 1.8s ease-in-out infinite; }
+</style>
+{% endblock %}
+
 {% block content %}
 <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-6">
   <i class="fa-solid fa-people-group"></i> Amigos
 </h1>
 
 {% if duel_challenges %}
-  <div class="bg-red-950/30 border border-blood rounded-lg p-5 sm:p-6 mb-4 shadow-lg">
+  <div class="alert-card bg-red-950/30 border-2 border-blood rounded-lg p-5 sm:p-6 mb-4 shadow-lg">
     <h2 class="text-xl font-medieval text-red-200 mb-3">
-      <i class="fa-solid fa-bolt mr-1"></i> Desafios de duelo
+      <i class="fa-solid fa-bolt alert-card-icon mr-1"></i> Desafios de duelo
     </h2>
     <ul class="space-y-2">
       {% for duel in duel_challenges %}
@@ -39,9 +67,9 @@
 {% endif %}
 
 {% if dungeon_invites %}
-  <div class="bg-purple-950/30 border border-purple-500 rounded-lg p-5 sm:p-6 mb-4 shadow-lg">
+  <div class="alert-card-purple bg-purple-950/30 border-2 border-purple-500 rounded-lg p-5 sm:p-6 mb-4 shadow-lg">
     <h2 class="text-xl font-medieval text-purple-200 mb-3">
-      <i class="fa-solid fa-dungeon mr-1"></i> Convites de masmorra
+      <i class="fa-solid fa-dungeon alert-card-icon mr-1"></i> Convites de masmorra
     </h2>
     <ul class="space-y-2">
       {% for invite in dungeon_invites %}

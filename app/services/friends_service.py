@@ -97,6 +97,19 @@ def are_friends(user_id_a: int, user_id_b: int) -> bool:
     return pair is not None and pair.status == Friendship.STATUS_ACCEPTED
 
 
+def relationship_status(viewer_id: int, other_id: int) -> str:
+    """"friends" | "pending_outgoing" | "pending_incoming" | "none" — used
+    by the public profile page to decide what friend-request control (if
+    any) to show. "none" also covers a previously declined request, since
+    send_request already lets a fresh request overwrite one."""
+    pair = _find_pair(viewer_id, other_id)
+    if pair is None or pair.status == Friendship.STATUS_DECLINED:
+        return "none"
+    if pair.status == Friendship.STATUS_ACCEPTED:
+        return "friends"
+    return "pending_outgoing" if pair.requester_id == viewer_id else "pending_incoming"
+
+
 def _find_pair(user_id_a: int, user_id_b: int) -> Friendship | None:
     return Friendship.query.filter(
         db.or_(

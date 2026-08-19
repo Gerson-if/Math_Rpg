@@ -53,7 +53,28 @@
     position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
     background: rgba(5,5,5,0.94);
   }
-  .duel-connecting { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; flex: 1; color: #a8a29e; font-family: 'Cinzel', serif; }
+  .duel-connecting { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; flex: 1; color: #a8a29e; font-family: 'Cinzel', serif; text-align: center; }
+  .duel-connecting .retry-btn {
+    display: none; padding: 0.5rem 1.25rem; border-radius: 0.4rem; border: 2px solid #d4af37;
+    background: rgba(212,175,55,0.1); color: #fde68a; font-family: 'Cinzel', serif; cursor: pointer;
+  }
+  .duel-connecting.errored .fa-spinner { display: none; }
+  .duel-connecting.errored .retry-btn { display: inline-block; }
+
+  .duel-reconnect-banner {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 40;
+    background: rgba(127,29,29,0.92); color: #fecaca; text-align: center;
+    font-family: 'Cinzel', serif; font-size: 0.8rem; padding: 0.5rem;
+  }
+
+  .duel-confirm-overlay {
+    position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+    background: rgba(5,5,5,0.85);
+  }
+  .duel-confirm-box {
+    text-align: center; max-width: 22rem; padding: 1.75rem; background: rgba(20,10,10,0.9);
+    border: 2px solid #7f1d1d; border-radius: 0.5rem;
+  }
 </style>
 {% endblock %}
 
@@ -70,7 +91,12 @@
 <div class="duel-frame p-4 sm:p-6">
   <div id="duel-connecting" class="duel-connecting">
     <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
-    <p>Conectando ao duelo...</p>
+    <p id="duel-connecting-msg">Conectando ao duelo...</p>
+    <button type="button" class="retry-btn" id="duel-retry-btn"><i class="fa-solid fa-rotate-right mr-1"></i> Tentar de novo</button>
+  </div>
+
+  <div id="duel-reconnect-banner" class="duel-reconnect-banner hidden">
+    <i class="fa-solid fa-triangle-exclamation mr-1"></i> Conexão perdida — tentando reconectar...
   </div>
 
   <div id="duel-body" class="hidden flex-1 flex flex-col gap-5">
@@ -135,6 +161,18 @@
       </a>
     </div>
   </div>
+
+  <div id="duel-forfeit-confirm" class="duel-confirm-overlay hidden">
+    <div class="duel-confirm-box">
+      <i class="fa-solid fa-flag text-3xl text-blood mb-3"></i>
+      <p class="font-medieval text-lg text-white mb-1">Desistir deste duelo?</p>
+      <p class="text-stone-400 font-sans text-sm mb-5">Isso conta como derrota — seu oponente vence na hora.</p>
+      <div class="flex items-center justify-center gap-3">
+        <button type="button" id="duel-forfeit-cancel" class="px-4 py-2 rounded font-sans text-sm border border-stone-600 text-stone-300 hover:border-stone-400 cursor-pointer">Cancelar</button>
+        <button type="button" id="duel-forfeit-confirm-btn" class="px-4 py-2 rounded font-medieval text-sm bg-blood border-2 border-red-400 text-white hover:scale-105 transition-transform cursor-pointer">Desistir</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -144,6 +182,9 @@
   var isChallenger = {{ is_challenger | tojson }};
 
   var connectingEl = document.getElementById("duel-connecting");
+  var connectingMsgEl = document.getElementById("duel-connecting-msg");
+  var retryBtn = document.getElementById("duel-retry-btn");
+  var reconnectBanner = document.getElementById("duel-reconnect-banner");
   var bodyEl = document.getElementById("duel-body");
   var myHpFill = document.getElementById("my-hp-fill"), myHpText = document.getElementById("my-hp-text");
   var oppHpFill = document.getElementById("opp-hp-fill"), oppHpText = document.getElementById("opp-hp-text");
@@ -157,6 +198,11 @@
   var endTitle = document.getElementById("duel-end-title");
   var endSub = document.getElementById("duel-end-sub");
   var forfeitBtn = document.getElementById("forfeit-btn");
+  var forfeitConfirmOverlay = document.getElementById("duel-forfeit-confirm");
+  var forfeitCancelBtn = document.getElementById("duel-forfeit-cancel");
+  var forfeitConfirmBtn = document.getElementById("duel-forfeit-confirm-btn");
+
+  var hasJoinedOnce = false;
 
   function hpFor(challengerHp, opponentHp, wantMine) {
     var mineIsChallenger = isChallenger;
@@ -173,21 +219,62 @@
     oppHpText.textContent = Math.max(0, theirs) + "/100";
   }
 
-  var socket = io();
+  // Socket.IO's own reconnection logic (on by default) only re-opens the
+  // transport — it doesn't know this app has a "duel room" concept, so
+  // every successful connect (first time AND every reconnect after a
+  // drop) has to re-run join_duel to get back into the room and pull
+  // fresh state. Without connect_error/disconnect handling below, any
+  // hiccup (CDN blocked, wifi drop, server restart) left the player
+  // stuck on the spinner forever with zero explanation — indistinguishable
+  // from the feature being broken.
+  var socket = io({ timeout: 8000 });
+
+  function showConnectError(message) {
+    connectingEl.classList.add("errored");
+    connectingMsgEl.textContent = message;
+  }
 
   socket.on("connect", function () {
+    connectingEl.classList.remove("errored");
+    reconnectBanner.classList.add("hidden");
+    if (!hasJoinedOnce) connectingMsgEl.textContent = "Conectando ao duelo...";
+
     socket.emit("join_duel", { duel_id: duelId }, function (resp) {
       if (!resp || resp.error) {
-        feedbackEl.textContent = (resp && resp.error) || "Não foi possível entrar no duelo.";
+        showConnectError((resp && resp.error) || "Não foi possível entrar no duelo.");
         return;
       }
+      hasJoinedOnce = true;
       connectingEl.classList.add("hidden");
       bodyEl.classList.remove("hidden");
       promptEl.textContent = resp.prompt || "Aguardando pergunta...";
       roundTagEl.textContent = "Rodada " + (resp.round_number || 1);
       updateHp(resp.challenger_hp, resp.opponent_hp);
+      answerInput.disabled = false;
       answerInput.focus();
     });
+  });
+
+  socket.on("connect_error", function () {
+    if (hasJoinedOnce) {
+      reconnectBanner.classList.remove("hidden");
+      answerInput.disabled = true;
+    } else {
+      showConnectError("Não foi possível conectar ao duelo. Verifique sua internet.");
+    }
+  });
+
+  socket.on("disconnect", function () {
+    if (hasJoinedOnce) {
+      reconnectBanner.classList.remove("hidden");
+      answerInput.disabled = true;
+    }
+  });
+
+  retryBtn.addEventListener("click", function () {
+    connectingEl.classList.remove("errored");
+    connectingMsgEl.textContent = "Conectando ao duelo...";
+    socket.connect();
   });
 
   socket.on("round_result", function (data) {
@@ -265,7 +352,13 @@
   });
 
   forfeitBtn.addEventListener("click", function () {
-    if (!confirm("Desistir deste duelo?")) return;
+    forfeitConfirmOverlay.classList.remove("hidden");
+  });
+  forfeitCancelBtn.addEventListener("click", function () {
+    forfeitConfirmOverlay.classList.add("hidden");
+  });
+  forfeitConfirmBtn.addEventListener("click", function () {
+    forfeitConfirmOverlay.classList.add("hidden");
     socket.emit("forfeit_duel", { duel_id: duelId });
   });
 

@@ -26,6 +26,7 @@ from app.services import (
     guardians,
     lore,
 )
+from app.services import classes as classes_service
 
 mathematics_bp = Blueprint("mathematics", __name__, url_prefix="/math")
 
@@ -146,6 +147,20 @@ def practice(topic_slug):
     )
     best_stars = _stars_for(True, best_correct.response_time_ms) if best_correct else None
 
+    # The battle's "ultimate" attack used to always be the same generic
+    # "Fúria Arcana Suprema" regardless of class — a Guerreiro casting an
+    # arcane spell made no sense. Now it uses the player's own class
+    # ability name (see classes_service.ability_for), same one shown on
+    # their profile, falling back to the old generic name for anyone who
+    # hasn't picked a class yet.
+    profile = current_user.profile
+    class_key = profile.character_class if profile else None
+    ultimate_name = "Fúria Arcana Suprema"
+    class_info = None
+    if class_key and profile.class_tier_claimed >= 0:
+        class_info = classes_service.CLASSES.get(class_key)
+        ultimate_name = classes_service.ability_for(class_key, profile.class_tier_claimed) or ultimate_name
+
     return render_template(
         "mathematics/practice.html",
         topic=topic,
@@ -161,6 +176,10 @@ def practice(topic_slug):
         battle_taunts=guardians.battle_taunts_for(topic.subject.slug),
         topic_mastery=topic_mastery,
         best_stars=best_stars,
+        ultimate_name=ultimate_name,
+        class_info=class_info,
+        next_topic=progression_service.next_topic_for(topic),
+        mastery_threshold=progression_service.PREREQUISITE_MASTERY_THRESHOLD,
     )
 
 
@@ -232,6 +251,8 @@ def answer_question(topic_slug):
     next_q = mathematics_service.generate_question(topic.slug, next_difficulty)
     next_token = question_token.make_token(topic.slug, next_difficulty, next_q["answer"])
 
+    next_topic = progression_service.next_topic_for(topic)
+
     return render_template(
         "mathematics/_question.html",
         topic=topic,
@@ -251,6 +272,9 @@ def answer_question(topic_slug):
             "new_achievements": progress["new_achievements"],
             "is_crit": is_crit,
             "crit_item": crit_item,
+            "mastery_threshold": progression_service.PREREQUISITE_MASTERY_THRESHOLD,
+            "next_topic_slug": next_topic.slug if next_topic else None,
+            "next_topic_name": next_topic.name if next_topic else None,
             "stars": _stars_for(is_correct, elapsed_ms),
         },
     )
