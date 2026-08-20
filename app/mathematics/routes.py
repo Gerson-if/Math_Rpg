@@ -43,6 +43,35 @@ NEW_SUBJECT_SLUGS = {"algebra", "equacoes-2-grau", "geometria-basica"}
 STAR_TIME_THRESHOLDS_MS = (3000, 7000)  # <=3s: 3 stars, <=7s: 2 stars, else: 1
 
 
+# A concept/vocabulary question ("o que é numerador?") is mixed in
+# occasionally alongside the numeric drills, not as a separate mode —
+# "esses conceitos devem ser apresentados dado o nível de domínio geral
+# do jogador, de forma gradativa e progressiva": no vocabulary check
+# before there's been at least a little real exposure to the topic
+# (_CONCEPT_MIN_ATTEMPTS), then a real chance while mastery is still
+# building, tapering off to an occasional refresher once it's solid
+# (matches the same 0.75 "green" band practice.html already uses to
+# color the mastery display).
+_CONCEPT_MIN_ATTEMPTS = 3
+_CONCEPT_MASTERY_RAMP_THRESHOLD = 0.75
+_CONCEPT_CHANCE_WHILE_BUILDING = 0.25
+_CONCEPT_CHANCE_ONCE_SOLID = 0.05
+
+
+def _should_ask_concept_question(topic_mastery) -> bool:
+    if topic_mastery is None:
+        return False
+    attempts = topic_mastery.correct_count + topic_mastery.wrong_count
+    if attempts < _CONCEPT_MIN_ATTEMPTS:
+        return False
+    chance = (
+        _CONCEPT_CHANCE_ONCE_SOLID
+        if topic_mastery.mastery_score >= _CONCEPT_MASTERY_RAMP_THRESHOLD
+        else _CONCEPT_CHANCE_WHILE_BUILDING
+    )
+    return random.random() < chance
+
+
 def _stars_for(is_correct: bool, elapsed_ms: int) -> int:
     if not is_correct:
         return 0
@@ -249,14 +278,18 @@ def practice_summary(topic_slug):
 def new_question(topic_slug):
     topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
     difficulty = progression_service.get_effective_difficulty(current_user.id, topic)
+    topic_mastery = Mastery.query.filter_by(user_id=current_user.id, topic_id=topic.id).first()
     try:
-        q = mathematics_service.generate_question(topic.slug, difficulty)
+        q = mathematics_service.generate_question(
+            topic.slug, difficulty, force_concept=_should_ask_concept_question(topic_mastery)
+        )
     except ValueError:
         abort(404)
 
     token = question_token.make_token(topic.slug, difficulty, q["answer"])
     return render_template(
-        "mathematics/_question.html", topic=topic, prompt=q["prompt"], token=token
+        "mathematics/_question.html", topic=topic, prompt=q["prompt"], token=token,
+        is_concept=(q["meta"].get("kind") == "conceito"),
     )
 
 
@@ -306,10 +339,14 @@ def answer_question(topic_slug):
 
     # Keep the loop going: hand back feedback + the next question in one
     # response so practicing doesn't require a full page reload per item.
-    # Difficulty is recomputed *after* process_attempt() above, so it
-    # already reflects the mastery update from the answer just submitted.
+    # Difficulty and topic_mastery are both re-read *after* process_attempt()
+    # above, so they already reflect the update from the answer just
+    # submitted — including whether it's time to mix in a concept check.
     next_difficulty = progression_service.get_effective_difficulty(current_user.id, topic)
-    next_q = mathematics_service.generate_question(topic.slug, next_difficulty)
+    topic_mastery = Mastery.query.filter_by(user_id=current_user.id, topic_id=topic.id).first()
+    next_q = mathematics_service.generate_question(
+        topic.slug, next_difficulty, force_concept=_should_ask_concept_question(topic_mastery)
+    )
     next_token = question_token.make_token(topic.slug, next_difficulty, next_q["answer"])
 
     next_topic = progression_service.next_topic_for(topic)
@@ -319,6 +356,7 @@ def answer_question(topic_slug):
         topic=topic,
         prompt=next_q["prompt"],
         token=next_token,
+        is_concept=(next_q["meta"].get("kind") == "conceito"),
         feedback={
             "is_correct": is_correct,
             "correct_answer": payload["answer"],

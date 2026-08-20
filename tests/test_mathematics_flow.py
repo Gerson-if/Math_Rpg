@@ -476,3 +476,89 @@ def test_map_boss_landmark_is_locked_until_its_prerequisite_topic_is_mastered(cl
     body2 = resp2.data.decode()
     assert "boss-action-badge ready" in body2
     assert "Chefe liberado" in body2
+
+
+# --- concept/vocabulary questions ---------------------------------------
+
+def test_no_concept_question_before_the_minimum_number_of_attempts(client, db):
+    _create_and_login(client, db)
+    topic = _create_topic(db)
+
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    assert 'data-concept="false"' in resp.data.decode()
+
+
+def test_concept_question_can_appear_once_mastery_is_still_building(client, db, app, monkeypatch):
+    from app.mathematics import routes as mathematics_routes
+
+    user = _create_and_login(client, db)
+    topic = _create_topic(db)
+    with app.app_context():
+        db.session.add(Mastery(
+            user_id=user.id, topic_id=topic.id,
+            mastery_score=0.3, correct_count=4, wrong_count=1,
+        ))
+        db.session.commit()
+
+    monkeypatch.setattr(mathematics_routes.random, "random", lambda: 0.0)  # always below any chance threshold
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    body = resp.data.decode()
+    assert 'data-concept="true"' in body
+    assert 'inputmode="text"' in body
+
+
+def test_concept_question_is_rare_once_mastery_is_already_solid(client, db, app, monkeypatch):
+    from app.mathematics import routes as mathematics_routes
+
+    user = _create_and_login(client, db)
+    topic = _create_topic(db)
+    with app.app_context():
+        db.session.add(Mastery(
+            user_id=user.id, topic_id=topic.id,
+            mastery_score=0.9, correct_count=10, wrong_count=0,
+        ))
+        db.session.commit()
+
+    # 0.1 clears the "still building" chance (0.25) but not the "already
+    # solid" chance (0.05) -- confirms the ramp-down actually applies once
+    # mastery crosses the threshold, not just that *a* chance exists.
+    monkeypatch.setattr(mathematics_routes.random, "random", lambda: 0.1)
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    assert 'data-concept="false"' in resp.data.decode()
+
+
+def test_answering_a_concept_question_accepts_the_answer_without_accents(client, db, app, monkeypatch):
+    from app.mathematics import routes as mathematics_routes
+
+    user = _create_and_login(client, db)
+    subject = Subject(slug="fracoes", name="Frações", order=0)
+    db.session.add(subject)
+    db.session.flush()
+    topic = Topic(slug="fracoes-basicas", name="Frações básicas", subject_id=subject.id, order=0, base_difficulty=1)
+    db.session.add(topic)
+    db.session.flush()
+    db.session.add(Mastery(
+        user_id=user.id, topic_id=topic.id,
+        mastery_score=0.3, correct_count=4, wrong_count=1,
+    ))
+    db.session.commit()
+
+    monkeypatch.setattr(mathematics_routes.random, "random", lambda: 0.0)
+    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    body = resp.data.decode()
+    assert 'data-concept="true"' in body
+    token = _extract_token(body)
+    with app.app_context():
+        payload = question_token.read_token(token)
+    real_answer = payload["answer"]
+
+    # Strip accents and mangle the case the way a player typing fast on a
+    # phone might -- normalize_answer's accent-folding should still match.
+    import unicodedata
+    deaccented = "".join(c for c in unicodedata.normalize("NFKD", real_answer) if not unicodedata.combining(c))
+
+    resp2 = client.post(
+        f"/math/praticar/{topic.slug}/responder",
+        data={"token": token, "answer": deaccented.upper()},
+    )
+    assert 'data-correct="true"' in resp2.data.decode()

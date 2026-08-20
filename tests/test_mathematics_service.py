@@ -3,7 +3,7 @@ from fractions import Fraction
 
 import pytest
 
-from app.services.mathematics_service import generate_question
+from app.services.mathematics_service import generate_question, normalize_answer
 
 
 @pytest.mark.parametrize("difficulty", [1, 2, 3, 4, 5])
@@ -297,6 +297,35 @@ def test_perimeter_answer_matches_the_shape_described():
                 base, altura = nums[:2]
                 assert base != altura
                 assert answer == 2 * (base + altura)
+
+
+def test_force_concept_returns_a_concept_question_when_the_area_has_content():
+    q = generate_question("fracoes-basicas", 1, force_concept=True)
+    assert q["meta"]["kind"] == "conceito"
+    assert q["meta"]["area"] == "fracoes"
+    assert q["prompt"]
+    assert q["answer"]
+
+
+def test_force_concept_falls_back_to_numeric_for_an_unmapped_topic():
+    # Not a real curriculum slug, so math_areas has no entry for it —
+    # force_concept must not raise, just fall through to the normal
+    # per-topic dispatch below (which *will* raise its own ValueError for
+    # an unknown topic, same as without force_concept at all).
+    with pytest.raises(ValueError):
+        generate_question("topico-que-nao-existe", 1, force_concept=True)
+
+
+def test_force_concept_false_never_returns_a_concept_question():
+    for _ in range(20):
+        q = generate_question("fracoes-basicas", 1, force_concept=False)
+        assert q["meta"].get("kind") != "conceito"
+
+
+def test_normalize_answer_folds_accents_for_word_answers():
+    assert normalize_answer("Área") == normalize_answer("area")
+    assert normalize_answer("Numerador") == normalize_answer("numerador")
+    assert normalize_answer("  Denominador  ") == normalize_answer("denominador")
 
 
 def test_area_answer_matches_the_shape_described():

@@ -19,8 +19,11 @@ Design notes
 import math
 import random
 import re
+import unicodedata
 from fractions import Fraction
 from typing import TypedDict
+
+from app.services import concepts_service, math_areas
 
 TABUADA_RE = re.compile(r"^tabuada-do-(\d{1,2})$")
 
@@ -43,12 +46,23 @@ _COMPARISON_RANGES = {1: (1, 10), 2: (1, 20), 3: (1, 50), 4: (1, 100), 5: (1, 50
 _COUNTING_SYMBOLS = ["⭐", "🍎", "🐱", "⚽", "🌸", "🚗", "🐟", "🎈"]
 
 
+def _strip_accents(value: str) -> str:
+    """"area" == "área", "numero" == "número" — a concept question's
+    answer is often an accented Portuguese word (see concepts_service),
+    and accents are exactly the kind of thing easy to drop while typing
+    fast, especially on a phone keyboard. Numeric answers never hit this
+    path (they return earlier in normalize_answer), so this only ever
+    affects word/symbol comparisons."""
+    return "".join(c for c in unicodedata.normalize("NFKD", value) if not unicodedata.combining(c))
+
+
 def normalize_answer(value: str) -> str:
     """Numeric-aware comparison: '007' == '7', '0,3' == '0.3' (pt-BR decimal
     comma) == '0.30', and whole-valued floats collapse to plain ints ('3.0'
     == '3') so decimal-operation answers that land on a whole number still
-    match. Falls back to a trimmed/lowered/space-stripped string compare for
-    non-numeric answers (e.g. fractions like '5/6'). Shared by the solo
+    match. Falls back to an accent-folded, trimmed/lowered/space-stripped
+    string compare for non-numeric answers (e.g. fractions like '5/6', or a
+    concept question's word answer like 'Numerador'). Shared by the solo
     practice loop (app/mathematics/routes.py) and real-time duels
     (app/services/duel_service.py) so both grade answers the same way."""
     value = (value or "").strip().replace(",", ".")
@@ -60,11 +74,26 @@ def normalize_answer(value: str) -> str:
         as_float = float(value)
         return str(int(as_float)) if as_float.is_integer() else repr(as_float)
     except (TypeError, ValueError):
-        return value.lower().replace(" ", "")
+        return _strip_accents(value.lower().replace(" ", ""))
 
 
-def generate_question(topic_slug: str, difficulty: int) -> Question:
+def generate_question(topic_slug: str, difficulty: int, force_concept: bool = False) -> Question:
+    """force_concept asks for a vocabulary/terminology question instead of
+    a numeric one — see concepts_service and app/mathematics/routes.py's
+    _should_ask_concept_question, which decides *when* that's worth doing
+    based on the player's own mastery of the topic (not here — this
+    function stays a pure "given these inputs" generator, same as every
+    other question kind, so it's trivially testable without touching the
+    database). Silently falls back to a normal numeric question if the
+    topic's math area has no concept content yet, so passing force_concept
+    for newly-added curriculum never raises."""
     difficulty = max(1, min(5, difficulty))
+
+    if force_concept:
+        area_slug = math_areas.TOPIC_AREAS.get(topic_slug)
+        concept = concepts_service.random_concept_question(area_slug)
+        if concept is not None:
+            return {"prompt": concept["prompt"], "answer": concept["answer"], "meta": {"kind": "conceito", "area": area_slug}}
 
     tabuada_match = TABUADA_RE.match(topic_slug)
     if tabuada_match:
