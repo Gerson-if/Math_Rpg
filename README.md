@@ -219,6 +219,16 @@ XP" — ver `app/services/loot_service.py`.
   matérias, conquista via critério JSON, chat, ranking) antes de ser
   considerado pronto para produção. O deploy num servidor real depende
   apenas de credenciais de um provedor de nuvem.
+- **Sem CDN em produção** — Tailwind CSS, fontes (MedievalSharp/Cinzel),
+  FontAwesome e htmx eram carregados de `cdn.tailwindcss.com`,
+  `fonts.googleapis.com`, `cdnjs.cloudflare.com` e `unpkg.com` a cada
+  visita; agora são compilados/copiados localmente em build-time
+  (`npm run build`, ver "Assets locais" abaixo) e servidos como qualquer
+  outro arquivo estático do app — nenhuma requisição a um CDN acontece em
+  runtime, e a aplicação nunca fica de pé refém da disponibilidade de um
+  serviço de terceiro. Os dois padrões de textura que vinham de
+  `transparenttextures.com` também foram trocados por ruído SVG
+  autocontido (`data:` URI, sem arquivo nem requisição nenhuma).
 
 ## Roadmap
 
@@ -249,21 +259,50 @@ pip install -r requirements.txt
 cp .env.example .env
 # edite .env e defina uma SECRET_KEY própria
 
-# 4. Banco de dados (SQLite local por padrão) — as migrações já estão no
+# 4. Assets do frontend (Tailwind CSS, fontes, FontAwesome, htmx) — só
+# precisa do Node.js instalado; nada disso roda em produção, é só
+# compilado/copiado uma vez aqui e servido como arquivo estático.
+npm install
+npm run build
+
+# 5. Banco de dados (SQLite local por padrão) — as migrações já estão no
 # repo em migrations/versions/, então é só aplicar:
 mkdir -p instance
 flask db upgrade
 # (só rode "flask db migrate" de novo se você alterar um model)
 
-# 5. Popular currículo/níveis/ranks/conquistas iniciais
+# 6. Popular currículo/níveis/ranks/conquistas iniciais
 python scripts/seed.py
 
-# 6. Rodar o servidor
+# 7. Rodar o servidor
 python run.py
 # ou: flask --app run run --debug
 ```
 
 A aplicação sobe em `http://localhost:5000`. `/health` retorna `{"status": "ok"}`.
+
+### Assets locais (sem CDN)
+
+O CSS (Tailwind), as fontes (MedievalSharp/Cinzel), o FontAwesome e o
+htmx eram carregados de CDNs externos a cada requisição; agora são
+compilados/copiados uma vez para `app/static/` e servidos localmente —
+ver `package.json`, `tailwind.config.js`, `assets/css/input.css` e
+`assets/copy-vendor-assets.js`. Nada disso é commitado no git
+(`app/static/vendor/` e `app/static/css/tailwind.css` estão no
+`.gitignore` — são build output, não código-fonte), então **é preciso
+rodar `npm install && npm run build` antes da primeira vez que subir o
+servidor**, e de novo sempre que:
+
+- mudar alguma classe Tailwind num template (`npm run watch:css` recompila
+  o CSS automaticamente a cada salvamento, útil durante o desenvolvimento);
+- atualizar `package.json` (nova versão de alguma dependência de frontend).
+
+`npm run build` roda os dois passos de uma vez:
+
+```bash
+npm run copy:vendor   # copia htmx/FontAwesome/fontes de node_modules para app/static/vendor/
+npm run build:css     # compila assets/css/input.css -> app/static/css/tailwind.css (minificado)
+```
 
 ## Testes
 
@@ -317,11 +356,15 @@ app/
   static/js/       módulos de batalha (battle-audio, battle-fx, battle-loot, battle-arena)
   static/images/   artes em uso (icons/subjects, ranks, achievements)
   static/assets/   pacotes de arte originais — fora do git (licença), só local
+  static/css/      Tailwind compilado (tailwind.css) — gerado por `npm run build`, fora do git
+  static/vendor/   htmx/FontAwesome/fontes copiados de node_modules — gerado por `npm run build`, fora do git
+assets/            fonte do pipeline de build do frontend (input.css, copy-vendor-assets.js)
 config/            classes de configuração (dev/test/produção)
 migrations/        Flask-Migrate/Alembic — já commitado, só rodar `flask db upgrade`
 scripts/seed.py    popula currículo, níveis, ranks, conquistas (upsert — roda de novo sem duplicar)
 scripts/backup_db.py / restore_db.py   backup e restauração do banco (Postgres/SQLite)
-tests/             pytest (251 testes)
+tests/             pytest
+package.json, tailwind.config.js   pipeline de build do frontend (Tailwind CSS local, sem CDN)
 deploy/install.sh  instalador + gerenciador (instalar, atualizar com segurança,
                    status, reiniciar, backup/restore) para VM/VPS Ubuntu/Debian
 deploy/*.service, *.timer   unidades systemd (app, backup diário, leaderboards)

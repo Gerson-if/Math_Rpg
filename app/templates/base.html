@@ -6,38 +6,27 @@
   <title>{% block title %}Matemática RPG{% endblock %}</title>
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-  <!-- Tailwind CSS via CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            medieval: ['MedievalSharp', 'cursive'],
-            cinzel: ['Cinzel', 'serif'],
-          },
-          colors: {
-            parchment: { 100: '#fdf6e3', 200: '#f4e8c1', 300: '#e0c99a', 900: '#4a3b22' },
-            blood: '#8b0000',
-            gold: '#d4af37',
-            mystic: '#4b0082',
-          },
-        },
-      },
-    };
-  </script>
+  <!-- Tailwind CSS, pré-compilado localmente (npm run build) — ver
+       tailwind.config.js. Sem <script> de CDN em runtime. -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
 
-  <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/medievalsharp/index.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/cinzel/400.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/cinzel/600.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/cinzel/800.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
 
-  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="{{ url_for('static', filename='vendor/htmx/htmx.min.js') }}"></script>
 
   <style>
+    /* Local replacement for transparenttextures.com's "dark-matter"
+       pattern (see README.md's "Assets locais" section) — self-contained
+       SVG noise as a data: URI, no network request at page load. */
     body {
       background-color: #111827;
       background-image:
         radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%),
-        url('https://www.transparenttextures.com/patterns/dark-matter.png');
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
       color: #e5e7eb;
     }
     .magic-glow { text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }

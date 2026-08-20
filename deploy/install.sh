@@ -270,6 +270,17 @@ install_system_packages() {
     apt-get update -y >>"$LOG_FILE" 2>&1
     apt-get install -y caddy >>"$LOG_FILE" 2>&1
   fi
+
+  # Node.js — needed once, at install/update time, to compile Tailwind CSS
+  # and copy the local vendor copies of htmx/FontAwesome/fonts (see
+  # build_frontend_assets below and README.md's "Assets locais" section).
+  # Not needed at runtime: gunicorn serves the already-built files, so this
+  # is a build-time-only dependency, same category as build-essential above.
+  if ! command -v node >/dev/null 2>&1 || [[ "$(node -e 'console.log(process.versions.node.split(".")[0])' 2>/dev/null)" -lt 18 ]]; then
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >>"$LOG_FILE" 2>&1
+    apt-get install -y nodejs >>"$LOG_FILE" 2>&1
+  fi
+
   ok "Pacotes do sistema instalados."
 }
 
@@ -331,6 +342,21 @@ setup_python_venv() {
   sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --upgrade pip --quiet
   sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt" --quiet
   ok "Dependências Python instaladas."
+}
+
+build_frontend_assets() {
+  # Compiles Tailwind CSS and copies the local vendor assets (htmx,
+  # FontAwesome, fonts) into app/static/ — see package.json and
+  # assets/copy-vendor-assets.js. Nothing here touches app/static/images/
+  # (art) or app/static/js/ (hand-written game code), both already
+  # committed to the repo; this only regenerates the *build output* the
+  # app used to fetch from a CDN at runtime, which is why it's git-ignored
+  # (see .gitignore) and has to run on every install/update instead of
+  # being committed once.
+  info "Compilando assets do frontend (Tailwind CSS, fontes, ícones, htmx)..."
+  sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npm ci --quiet" >>"$LOG_FILE" 2>&1
+  sudo -u "$APP_USER" bash -c "cd '$APP_DIR' && npm run build --silent" >>"$LOG_FILE" 2>&1
+  ok "Assets do frontend compilados (sem dependência de CDN em produção)."
 }
 
 generate_env_file() {
@@ -544,6 +570,7 @@ action_install() {
   create_system_user
   fetch_code
   setup_python_venv
+  build_frontend_assets
   generate_env_file
   run_migrations_and_seed
   install_systemd_units
@@ -570,6 +597,7 @@ rollback_update() {
   sudo -u "$APP_USER" git -C "$APP_DIR" checkout "$BRANCH"
   sudo -u "$APP_USER" git -C "$APP_DIR" reset --hard "$target_commit"
   sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt" --quiet
+  build_frontend_assets
 
   info "Restaurando o banco a partir do backup pré-atualização..."
   if ! run_flask_cmd ".venv/bin/python scripts/restore_db.py --latest --dir '$APP_DIR/backups' --yes"; then
@@ -609,6 +637,7 @@ action_update() {
   info "Atualizando código: $old_commit -> $new_commit"
 
   sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt" --quiet
+  build_frontend_assets
 
   info "Aplicando migrações do banco..."
   if ! run_flask_cmd ".venv/bin/flask db upgrade"; then

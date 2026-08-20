@@ -108,6 +108,12 @@ Cada ação também roda direto, sem menu: `--action=update`,
   assume 22 fixo), 80 e 443; todo o resto fica bloqueado.
 - **systemd** — `math-rpg.service` roda a aplicação via Gunicorn (worker
   `eventlet`, necessário para os duelos em tempo real).
+- **Assets do frontend sem CDN** — Node.js é instalado só para compilar,
+  em build-time, o Tailwind CSS e copiar as cópias locais de htmx/
+  FontAwesome/fontes (`npm ci && npm run build`, ver seção 6 abaixo);
+  nada disso fica rodando em produção, e a aplicação nunca faz uma
+  requisição a `cdn.tailwindcss.com`, `fonts.googleapis.com`,
+  `cdnjs.cloudflare.com` ou qualquer outro CDN em tempo de execução.
 
 A seção abaixo documenta cada passo manualmente — útil pra entender o que
 o script faz por baixo dos panos, ou pra customizar algo que ele não
@@ -128,6 +134,12 @@ certificado TLS automaticamente).
 ```bash
 sudo apt update
 sudo apt install -y python3-venv python3-pip postgresql-client git
+
+# Node.js — só usado em build-time, para compilar o Tailwind CSS e copiar
+# as cópias locais de htmx/FontAwesome/fontes (ver passo 6 abaixo e
+# README.md's "Assets locais"). Não fica rodando em produção.
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+sudo apt install -y nodejs
 
 # Caddy (repositório oficial)
 sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
@@ -195,7 +207,27 @@ RATELIMIT_STORAGE_URI=redis://localhost:6379
 # SOCKETIO_MESSAGE_QUEUE=redis://localhost:6379
 ```
 
-### 6. Migrações e seed
+### 6. Compilar os assets do frontend
+
+A aplicação não depende de nenhum CDN em produção (Tailwind CSS, fontes,
+FontAwesome e htmx são todos servidos localmente) — mas por isso mesmo
+precisam ser compilados/copiados uma vez, aqui, antes de subir a
+aplicação:
+
+```bash
+cd /opt/math-rpg
+sudo -u math-rpg npm ci
+sudo -u math-rpg npm run build
+```
+
+Isso gera `app/static/css/tailwind.css` (compilado a partir de
+`assets/css/input.css` + `tailwind.config.js`) e copia htmx/FontAwesome/
+fontes de `node_modules` para `app/static/vendor/` (ver
+`assets/copy-vendor-assets.js`). Nenhum dos dois é commitado no git —
+rode este passo de novo sempre que atualizar o código (o script de
+atualização automatizado do `deploy/install.sh` já faz isso sozinho).
+
+### 7. Migrações e seed
 
 ```bash
 cd /opt/math-rpg
@@ -203,7 +235,7 @@ sudo -u math-rpg .venv/bin/flask db upgrade
 sudo -u math-rpg .venv/bin/python scripts/seed.py
 ```
 
-### 7. Gunicorn como serviço systemd
+### 8. Gunicorn como serviço systemd
 
 ```bash
 sudo cp deploy/math-rpg.service /etc/systemd/system/math-rpg.service
@@ -222,7 +254,7 @@ eventlet já lida bem com muitas conexões simultâneas via green threads,
 diferente de um worker `sync`. Só suba para mais de um worker depois de
 configurar `SOCKETIO_MESSAGE_QUEUE` (Redis) — ver seção 5.
 
-### 8. Caddy (proxy reverso + HTTPS automático)
+### 9. Caddy (proxy reverso + HTTPS automático)
 
 Edite `Caddyfile` na raiz do projeto: troque `math-rpg.example.com` pelo
 seu domínio de verdade.
@@ -238,7 +270,7 @@ sudo systemctl reload caddy
 Na primeira requisição HTTPS pro domínio, o Caddy emite o certificado
 Let's Encrypt sozinho — nada de certbot ou renovação manual.
 
-### 9. Agendar os jobs periódicos
+### 10. Agendar os jobs periódicos
 
 Nenhum scheduler roda dentro do processo da aplicação (ver comentários em
 `gunicorn.conf.py` e `app/__init__.py` — com múltiplos workers, um
@@ -270,7 +302,7 @@ mesmo disco do banco não sobrevive a uma falha de disco. Para restaurar
 um backup gerado por qualquer um dos dois caminhos, use
 `scripts/restore_db.py --latest` (veja `--help`).
 
-### 10. Checagem final
+### 11. Checagem final
 
 ```bash
 curl -sf https://seu-dominio.com/health
@@ -288,6 +320,8 @@ cada requisição `method`/`path`/`status`/`user_id`), e
 cd /opt/math-rpg
 sudo -u math-rpg git checkout <commit-anterior>
 sudo -u math-rpg .venv/bin/pip install -r requirements.txt
+sudo -u math-rpg npm ci
+sudo -u math-rpg npm run build
 sudo -u math-rpg .venv/bin/flask db upgrade   # migrações são só pra frente —
                                                 # ver downgrade() em cada
                                                 # arquivo de migrations/versions/
