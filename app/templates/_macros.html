@@ -3,18 +3,56 @@
    circle used everywhere else in the theme; otherwise fall back to
    FontAwesome/initials so a missing icon never breaks the layout. #}
 
-{% macro rank_badge(rank, size='md') %}
+{# Per-tier color escalation — bronze reads as dull metal, imortal reads
+   as radiant — so climbing the ladder feels like *getting* somewhere even
+   for the 3 top tiers that have no dedicated art yet (see RANKS in
+   scripts/seed.py) and fall back to a 2-letter initial badge. Any slug not
+   listed here (a brand-new tier seeded before this map is updated) just
+   gets the old flat gold treatment instead of breaking. #}
+{% macro rank_badge(rank, size='md', dim=False, pulse=False) %}
   {% if rank %}
-    {% set dims = 'w-6 h-6 text-[0.6rem]' if size == 'sm' else 'w-10 h-10 text-sm' %}
+    {% set _theme = {
+      'iniciante':   ('border-stone-500',   'text-stone-300',   'rgba(168,162,158,0.35)'),
+      'bronze':      ('border-amber-700',   'text-amber-500',   'rgba(180,83,9,0.45)'),
+      'prata':       ('border-slate-300',   'text-slate-200',   'rgba(203,213,225,0.45)'),
+      'ouro':        ('border-gold',        'text-gold',        'rgba(212,175,55,0.45)'),
+      'platina':     ('border-teal-300',    'text-teal-200',    'rgba(94,234,212,0.45)'),
+      'diamante':    ('border-sky-300',     'text-sky-200',     'rgba(125,211,252,0.5)'),
+      'mestre':      ('border-purple-400',  'text-purple-300',  'rgba(192,132,252,0.5)'),
+      'grao-mestre': ('border-fuchsia-400', 'text-fuchsia-300', 'rgba(232,121,249,0.55)'),
+      'lenda':       ('border-red-400',     'text-red-300',     'rgba(248,113,113,0.55)'),
+      'imortal':     ('border-yellow-200',  'text-yellow-100',  'rgba(253,224,71,0.75)'),
+    } %}
+    {% set border_cls, text_cls, glow = _theme.get(rank.slug, ('border-gold', 'text-gold', 'rgba(212,175,55,0.4)')) %}
+    {% set dims = 'w-6 h-6 text-[0.6rem]' if size == 'sm' else ('w-11 h-11 text-sm' if size == 'lg' else 'w-10 h-10 text-sm') %}
     {% set pad = 'p-0.5' if size == 'sm' else 'p-1.5' %}
-    <span class="inline-flex items-center justify-center {{ dims }} rounded-full bg-stone-800 border-2 border-gold text-gold font-medieval font-bold shrink-0 shadow-[0_0_8px_rgba(212,175,55,0.35)] {{ pad if rank.icon_key else '' }}"
+    <span class="inline-flex items-center justify-center {{ dims }} rounded-full bg-stone-800 border-2 font-medieval font-bold shrink-0 transition-transform
+                 {{ 'border-stone-700 text-stone-600 opacity-40' if dim else (border_cls ~ ' ' ~ text_cls) }}
+                 {{ 'rank-badge-current' if pulse else '' }}
+                 {{ pad if rank.icon_key else '' }}"
+          style="{{ '' if dim else 'box-shadow: 0 0 8px ' ~ glow ~ ';' }}"
           title="{{ rank.name }}">
       {% if rank.icon_key %}
         <img src="{{ url_for('static', filename=rank.icon_key) }}" alt="{{ rank.name }}"
-             class="w-full h-full object-contain" style="image-rendering: pixelated;">
+             class="w-full h-full object-contain {{ 'grayscale' if dim else '' }}" style="image-rendering: pixelated;">
       {% else %}
         {{ rank.name[:2] | upper }}
       {% endif %}
+    </span>
+  {% endif %}
+{% endmacro %}
+
+{# Small class badge — icon + the class's own accent color (same palette
+   as the battle arena's ultimate button), shown next to a player's name
+   wherever their class matters (currently the ranking page). class_info
+   is one CLASSES[key] dict from app.services.classes, or None if the
+   player hasn't picked a class yet, in which case nothing renders. #}
+{% macro class_badge(class_info, size='sm') %}
+  {% if class_info %}
+    {% set dims = 'w-5 h-5 text-[0.6rem]' if size == 'sm' else 'w-7 h-7 text-xs' %}
+    <span class="inline-flex items-center justify-center {{ dims }} rounded-full bg-stone-800 border border-{{ class_info.color }} text-{{ class_info.color }} shrink-0"
+          title="{{ class_info.name }}">
+      <i class="fa-solid {{ class_info.icon }}"></i>
     </span>
   {% endif %}
 {% endmacro %}
@@ -36,8 +74,9 @@
   {% endif %}
 {% endmacro %}
 
-{% macro achievement_badge(achievement, unlocked) %}
-  <span class="inline-flex items-center justify-center w-11 h-11 rounded-full border-2 shrink-0 {{ 'border-gold bg-yellow-900/40 text-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' if unlocked else 'border-stone-700 bg-stone-900 text-stone-600' }} {{ 'p-2' if achievement.icon_key else '' }}"
+{% macro achievement_badge(achievement, unlocked, size='md') %}
+  {% set dims = 'w-14 h-14 text-xl' if size == 'lg' else 'w-11 h-11' %}
+  <span class="inline-flex items-center justify-center {{ dims }} rounded-full border-2 shrink-0 {{ 'border-gold bg-yellow-900/40 text-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' if unlocked else 'border-stone-700 bg-stone-900 text-stone-600' }} {{ 'p-2' if achievement.icon_key else '' }}"
         title="{{ achievement.name }}">
     {% if achievement.icon_key %}
       <img src="{{ url_for('static', filename=achievement.icon_key) }}" alt="{{ achievement.name }}"

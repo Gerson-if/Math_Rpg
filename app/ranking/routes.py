@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 
 from app.extensions import db
 from app.models import PlayerStats, User, Rank
+from app.services import classes as classes_service
 
 ranking_bp = Blueprint("ranking", __name__, url_prefix="/ranking")
 
@@ -33,4 +34,5 @@ def index():
         top_players=top_players,
         all_ranks=all_ranks,
         my_stats=my_stats,
+        class_defs=classes_service.CLASSES,
     )

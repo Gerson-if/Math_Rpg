@@ -987,7 +987,7 @@ const MathBattle = (() => {
   // slowly, and there's no way to speed-read a bar that already dismissed
   // itself. A fast reader isn't stuck waiting either: "Continuar agora"
   // (see loadingBarHtml/runLoadingBar) ends the wait on demand.
-  const STORY_TRANSITION_DELAY_MS = 7000;
+  const STORY_TRANSITION_DELAY_MS = 10000;
 
   function progressColorClass(pct) {
     if (pct >= 75) return "text-emerald-400";

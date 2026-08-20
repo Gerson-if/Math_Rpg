@@ -1,38 +1,109 @@
 {% extends "base.html" %}
 {% import "_macros.html" as ui %}
 {% block title %}Conquistas{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Same visual language as the ranking page (podium/ladder) — cards lift
+     in on load and unlocked ones get a slow gold pulse, so this screen
+     reads as part of the same polished set instead of a plain list. */
+  @keyframes achvCardIn {
+    0% { opacity: 0; transform: translateY(14px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .achv-card {
+    animation: achvCardIn 0.4s cubic-bezier(0.2,0.8,0.2,1) both;
+    animation-delay: var(--achv-delay, 0s);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .achv-card:hover { transform: translateY(-3px); }
+  .achv-card.unlocked { border-color: #d4af37; box-shadow: 0 0 0 rgba(212,175,55,0); }
+  .achv-card.unlocked:hover { box-shadow: 0 6px 20px rgba(212,175,55,0.25); }
+  @keyframes achvGlowPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(212,175,55,0.15); }
+    50% { box-shadow: 0 0 18px rgba(212,175,55,0.4); }
+  }
+  .achv-card.featured { animation: achvCardIn 0.4s cubic-bezier(0.2,0.8,0.2,1) both, achvGlowPulse 2.6s ease-in-out infinite; }
+
+  .achv-progress-track { width: 100%; height: 6px; border-radius: 9999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); overflow: hidden; }
+  .achv-progress-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #78716c, #d4af37); transition: width 0.5s ease; }
+
+  /* Overall completion bar in the header — the same shimmering-gold
+     treatment as the ranking ladder's "achieved" connector bar. */
+  @keyframes achvHeaderShimmer { 0% { background-position: -40px 0; } 100% { background-position: 40px 0; } }
+  .achv-header-fill {
+    background: linear-gradient(90deg, #a8842e, #d4af37, #a8842e);
+    background-size: 40px 100%;
+    animation: achvHeaderShimmer 1.6s linear infinite;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
   <i class="fa-solid fa-trophy"></i> Conquistas
 </h1>
-<p class="text-stone-400 font-sans text-sm mb-6">
-  Destaque até {{ max_featured }} conquistas ({{ featured_count }}/{{ max_featured }}) para exibir no seu perfil público.
-</p>
-<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
-  <ul class="divide-y divide-stone-800">
-    {% for a in achievements %}
-      {% set unlocked = a.id in unlocked_ids %}
-      {% set featured = a.id in featured_ids %}
-      <li class="flex items-center gap-4 py-3 {{ '' if unlocked else 'opacity-50' }}">
-        {{ ui.achievement_badge(a, unlocked) }}
-        <div class="flex-1 min-w-0">
-          <strong class="font-sans text-stone-100">{{ a.name }}</strong>
-          <div class="text-stone-400 font-sans text-sm">{{ a.description }}</div>
-        </div>
-        {% if unlocked %}
-          <form method="POST" action="{{ url_for('achievements.toggle_featured', achievement_id=a.id) }}" class="shrink-0">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans border transition-colors
-                           {{ 'border-gold text-gold bg-yellow-950/30' if featured else 'border-stone-700 text-stone-400 hover:border-stone-500' }}">
-              <i class="fa-solid fa-star"></i> {{ "Em destaque" if featured else "Destacar" }}
-            </button>
-          </form>
-        {% endif %}
-      </li>
-    {% else %}
-      <li class="py-3 font-sans text-stone-400">Nenhuma conquista cadastrada ainda.</li>
-    {% endfor %}
-  </ul>
+
+<!-- OVERALL PROGRESS -->
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 shadow-lg mb-6">
+  <div class="flex items-center justify-between text-sm font-sans text-stone-300 mb-2">
+    <span><strong class="text-gold">{{ unlocked_count }}</strong> / {{ total_count }} conquistas desbloqueadas</span>
+    <span class="text-stone-400">Destaque até {{ max_featured }} ({{ featured_count }}/{{ max_featured }})</span>
+  </div>
+  <div class="w-full bg-stone-900 rounded-full h-2.5 border border-stone-700 overflow-hidden">
+    <div class="achv-header-fill h-full rounded-full" style="width: {{ ((unlocked_count / total_count * 100) | round | int) if total_count else 0 }}%;"></div>
+  </div>
 </div>
+
+{% set outer_delay = namespace(value=0) %}
+{% for group in groups %}
+  <div class="mb-7">
+    <h2 class="flex items-center gap-2 text-lg font-medieval text-stone-100 mb-3">
+      <i class="fa-solid {{ group.icon }} text-gold"></i> {{ group.label }}
+      <span class="text-xs font-sans text-stone-500 font-normal">
+        ({{ group.unlocked_count }}/{{ group.entries | length }})
+      </span>
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {% for a, progress in group.entries %}
+        {% set unlocked = a.id in unlocked_ids %}
+        {% set featured = a.id in featured_ids %}
+        {% set outer_delay.value = outer_delay.value + 0.04 %}
+        <div class="achv-card {{ 'unlocked' if unlocked else '' }} {{ 'featured' if featured else '' }} bg-stone-900/60 border rounded-lg p-4 flex flex-col gap-3
+                    {{ 'border-gold' if unlocked else 'border-stone-700' }}"
+             style="--achv-delay: {{ (outer_delay.value % 0.6) | round(2) }}s;">
+          <div class="flex items-start gap-3">
+            {{ ui.achievement_badge(a, unlocked, size='lg') }}
+            <div class="min-w-0 flex-1">
+              <strong class="font-sans text-sm {{ 'text-stone-100' if unlocked else 'text-stone-400' }}">{{ a.name }}</strong>
+              <div class="text-stone-500 font-sans text-xs mt-0.5">{{ a.description }}</div>
+            </div>
+          </div>
+
+          {% if not unlocked and progress %}
+            <div>
+              <div class="achv-progress-track">
+                <div class="achv-progress-fill" style="width: {{ progress.pct }}%;"></div>
+              </div>
+              <div class="text-right text-[0.65rem] font-sans text-stone-500 mt-1">{{ progress.current }} / {{ progress.target }}</div>
+            </div>
+          {% endif %}
+
+          {% if unlocked %}
+            <form method="POST" action="{{ url_for('achievements.toggle_featured', achievement_id=a.id) }}" class="mt-auto">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-sans border transition-colors
+                             {{ 'border-gold text-gold bg-yellow-950/30' if featured else 'border-stone-700 text-stone-400 hover:border-stone-500' }}">
+                <i class="fa-solid fa-star"></i> {{ "Em destaque" if featured else "Destacar" }}
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% else %}
+  <p class="font-sans text-stone-400">Nenhuma conquista cadastrada ainda.</p>
+{% endfor %}
 {% endblock %}

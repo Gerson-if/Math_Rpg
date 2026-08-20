@@ -288,6 +288,61 @@ def test_achievement_unlocks_by_level_reached(app, db):
         assert unlocked_codes.count("nivel_tres") == 1
 
 
+def test_achievement_unlocks_by_rank_reached(app, db):
+    with app.app_context():
+        user = _make_user()
+        topic = _make_topic()
+        _seed_levels_and_ranks()  # iniciante (order=1, min_level=1), bronze (order=2, min_level=3)
+        db.session.add(Achievement(
+            code="chegou_bronze",
+            name="Liga de Bronze",
+            description="Alcance a liga Bronze.",
+            criteria={"type": "rank_reached", "value": 2},
+        ))
+        db.session.commit()
+
+        unlocked_codes = []
+        for _ in range(30):
+            result = progression_service.process_attempt(
+                _make_attempt(user, topic, correct=True, difficulty=5)
+            )
+            unlocked_codes += [a.code for a in result["new_achievements"]]
+
+        stats = PlayerStats.query.filter_by(user_id=user.id).first()
+        assert stats.rank is not None and stats.rank.order >= 2
+        assert unlocked_codes.count("chegou_bronze") == 1
+
+
+def test_progress_for_achievement_reports_current_and_target(app, db):
+    with app.app_context():
+        user = _make_user()
+        _seed_levels_and_ranks()
+        stats = PlayerStats(user_id=user.id, xp=0, total_correct=7, total_wrong=3, best_streak=4)
+        db.session.add(stats)
+        db.session.flush()
+
+        assert progression_service.progress_for_achievement(
+            user.id, stats, {"type": "attempts_correct_total", "value": 20}
+        ) == (7, 20)
+        assert progression_service.progress_for_achievement(
+            user.id, stats, {"type": "attempts_total", "value": 20}
+        ) == (10, 20)
+        assert progression_service.progress_for_achievement(
+            user.id, stats, {"type": "best_streak", "value": 25}
+        ) == (4, 25)
+        # No level/rank assigned yet — reports 0 progress rather than
+        # crashing on a None relationship.
+        assert progression_service.progress_for_achievement(
+            user.id, stats, {"type": "level_reached", "value": 10}
+        ) == (0, 10)
+        assert progression_service.progress_for_achievement(
+            user.id, stats, {"type": "rank_reached", "value": 5}
+        ) == (0, 5)
+        assert progression_service.progress_for_achievement(
+            user.id, stats, {"type": "not_a_real_type", "value": 1}
+        ) is None
+
+
 def test_profile_title_is_set_from_the_newest_unlocked_achievement(app, db):
     with app.app_context():
         user = _make_user()

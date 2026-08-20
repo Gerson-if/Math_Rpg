@@ -89,15 +89,8 @@
       {% for rank in all_ranks %}
         {% set achieved = my_rank and rank.order <= my_rank.order %}
         {% set is_current = my_rank and rank.id == my_rank.id %}
-        <div class="flex flex-col items-center gap-1 shrink-0 px-3 {{ 'opacity-40' if not achieved else '' }}">
-          <span class="inline-flex items-center justify-center w-11 h-11 rounded-full border-2 font-medieval font-bold text-sm
-                       {{ 'border-gold text-gold rank-badge-current' if is_current else ('border-stone-500 text-stone-300' if achieved else 'border-stone-700 text-stone-600') }}">
-            {% if rank.icon_key %}
-              <img src="{{ url_for('static', filename=rank.icon_key) }}" alt="{{ rank.name }}" class="w-full h-full object-contain rounded-full" style="image-rendering: pixelated;">
-            {% else %}
-              {{ rank.name[:2] | upper }}
-            {% endif %}
-          </span>
+        <div class="flex flex-col items-center gap-1 shrink-0 px-3">
+          {{ ui.rank_badge(rank, size='lg', dim=not achieved, pulse=is_current) }}
           <span class="font-sans text-[0.65rem] text-center {{ 'text-gold font-bold' if is_current else 'text-stone-400' }}">{{ rank.name }}</span>
           <span class="font-sans text-[0.6rem] text-stone-600">Nv. {{ rank.min_level }}</span>
         </div>
@@ -133,8 +126,11 @@
           {{ ui.avatar_icon(user.profile) }}
         </div>
         {{ ui.rank_badge(stats.rank, size='sm') }}
-        <span class="font-sans text-sm font-bold text-center truncate w-full" title="{{ user.profile.display_name if user.profile else user.username }}">
-          {{ user.profile.display_name if user.profile else user.username }}
+        <span class="inline-flex items-center gap-1 max-w-full">
+          {{ ui.class_badge(class_defs.get(user.profile.character_class) if user.profile else none) }}
+          <span class="font-sans text-sm font-bold truncate" title="{{ user.profile.display_name if user.profile else user.username }}">
+            {{ user.profile.display_name if user.profile else user.username }}
+          </span>
         </span>
         <span class="font-sans text-xs text-stone-400"><i class="fa-solid fa-coins text-gold mr-1"></i>{{ stats.xp }} XP</span>
       </div>
@@ -157,7 +153,12 @@
       {% for stats, user in rest %}
         <tr class="{{ 'text-gold' if user.id == current_user.id else 'text-stone-200' }}">
           <td class="py-2 pr-2">{{ loop.index + 3 }}</td>
-          <td class="py-2 pr-2">{{ user.profile.display_name if user.profile else user.username }}</td>
+          <td class="py-2 pr-2">
+            <span class="inline-flex items-center gap-2">
+              {{ ui.class_badge(class_defs.get(user.profile.character_class) if user.profile else none) }}
+              {{ user.profile.display_name if user.profile else user.username }}
+            </span>
+          </td>
           <td class="py-2 pr-2">
             <span class="inline-flex items-center gap-2">
               {{ ui.rank_badge(stats.rank, size='sm') }}
