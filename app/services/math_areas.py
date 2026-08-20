@@ -183,3 +183,19 @@ def area_slug_for_topic(topic) -> str | None:
 def area_for_topic(topic) -> MathArea | None:
     slug = area_slug_for_topic(topic)
     return AREAS.get(slug) if slug else None
+
+
+def area_slugs_for_subject(subject) -> list[str]:
+    """Every distinct math area a Subject's topics touch, in AREAS'
+    canonical order — used to build one dedicated concept exercise per
+    Subject on the adventure map (see mathematics.routes.concepts)
+    instead of one per topic, since the vocabulary itself belongs to the
+    area, not to any single topic inside it. Most subjects map to exactly
+    one area; a couple (Fundamentos, Tabuada+Comparação split) span two,
+    which is exactly why this returns a list rather than a single slug."""
+    found = {
+        area_slug_for_topic(topic)
+        for topic in subject.topics
+        if area_slug_for_topic(topic) is not None
+    }
+    return [slug for slug in AREAS if slug in found]

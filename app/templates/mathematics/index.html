@@ -148,6 +148,36 @@
   }
 
   .map-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; font-family: 'Cinzel', serif; font-size: 0.68rem; color: #e0c99a; }
+
+  /* The "Conceitos" node is deliberately NOT a circle like the guardian
+     landmark or the topic dots — a different shape reads as "a different
+     kind of thing to do here" at a glance, which is the whole point of
+     separating vocabulary review from numeric drilling. */
+  .map-concept-node {
+    display: flex; align-items: center; gap: 0.4rem;
+    border: 1.5px solid #b45309; border-radius: 0.5rem;
+    background: rgba(69,26,3,0.55); color: #fcd34d;
+    padding: 0.3rem 0.6rem; margin-top: 0.55rem;
+    font-family: 'Cinzel', serif; font-size: 0.62rem; letter-spacing: 0.03em;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .map-concept-node:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(180,83,9,0.5); }
+
+  /* One subject shown "in the mist" — the very next region on the trail,
+     previewed so the map isn't a hard wall, but deliberately without its
+     topic grid so it doesn't compete for attention with what the player
+     should actually be doing right now. */
+  .map-waypoint.is-preview .map-landmark { opacity: 0.5; filter: grayscale(0.6); }
+  .map-waypoint.is-preview .map-label { opacity: 0.7; }
+  .preview-note {
+    font-size: 0.55rem; font-family: sans-serif; color: #a8a29e; margin-top: 0.3rem;
+    text-align: center; max-width: 9rem;
+  }
+
+  .map-further-trail {
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+    color: #8a7454; font-family: 'Cinzel', serif; text-align: center; opacity: 0.75;
+  }
 </style>
 {% endblock %}
 
@@ -162,7 +192,10 @@
   </a>
 </div>
 <p class="text-stone-400 font-sans text-sm mb-6">
-  Cada trilha tem seus próprios tópicos — as bolinhas <i class="fa-solid fa-star text-[0.7em]"></i> ao redor do guardião — e termina num guardião. Pratique os tópicos primeiro; enfrente o guardião quando a trilha até ele estiver dominada.
+  Cada trilha tem dois tipos de exercício: a caixinha <i class="fa-solid fa-book-open text-[0.7em] text-amber-400"></i>
+  <strong class="text-amber-400">Conceitos</strong> revisa o vocabulário e as ideias, sem cálculo nem cronômetro; as
+  bolinhas <i class="fa-solid fa-star text-[0.7em]"></i> ao redor do guardião são a <strong>prática</strong> numérica de cada
+  tópico. A trilha termina num guardião — pratique os tópicos primeiro e enfrente-o quando a trilha estiver dominada.
 </p>
 
 <div class="map-frame p-2 sm:p-4 mb-8">
@@ -194,7 +227,9 @@
       {% set landmark_tag = 'a' if boss_ready else 'div' %}
       {% set lane = ['lane-left', 'lane-center', 'lane-right'][loop.index0 % 3] %}
       {% set stagger = (loop.index0 % 4) * 0.09 %}
-      <div class="map-waypoint {{ lane }}" style="--stagger: {{ stagger }}s;">
+      {% set is_preview = (subject.id == preview_subject_id) %}
+      {% set areas = subject_areas.get(subject.id, []) %}
+      <div class="map-waypoint {{ lane }} {{ 'is-preview' if is_preview else '' }}" style="--stagger: {{ stagger }}s;">
         <{{ landmark_tag }} {% if boss_ready %}href="{{ url_for('mathematics.practice', topic_slug=boss_topic.slug) }}"{% endif %}
            class="relative"
            title="{% if boss_ready %}Enfrentar {{ g.name }}{% elif boss_topic %}Complete {{ unmet_boss | map(attribute='name') | join(', ') }} antes de enfrentar {{ g.name }}{% else %}{{ subject.name }} — guardado por {{ g.name }}{% endif %}">
@@ -207,29 +242,53 @@
           {% endif %}
         </{{ landmark_tag }}>
         <span class="map-label text-{{ g.color }}">{{ subject.name }}</span>
-        {% if boss_ready %}
-          <span class="boss-status-line text-yellow-400/90"><i class="fa-solid fa-khanda"></i> Chefe liberado</span>
-        {% elif boss_topic %}
-          <span class="boss-status-line text-stone-500"><i class="fa-solid fa-lock"></i> complete a trilha</span>
-        {% endif %}
-        <div class="map-topics-label"><i class="fa-solid fa-hand-pointer"></i> Tópicos — toque para praticar</div>
-        <div class="map-topics">
-          {% for topic in subject.topics %}
-            {% set unmet = recommend_first.get(topic.id, []) %}
-            <a href="{{ url_for('mathematics.practice', topic_slug=topic.slug) }}"
-               class="map-topic-dot {{ 'border-dashed border-stone-600 text-stone-500' if unmet else ('border-' ~ g.color ~ ' text-' ~ g.color) }}"
-               title="{{ topic.name }}{% if unmet %} — recomendado praticar antes: {{ unmet | map(attribute='name') | join(', ') }}{% endif %}">
-              <i class="fa-solid {{ 'fa-compass' if unmet else 'fa-star' }}"></i>
+
+        {% if is_preview %}
+          <span class="preview-note"><i class="fa-solid fa-cloud"></i> próxima região — avance na trilha atual para revelá-la</span>
+        {% else %}
+          {% if boss_ready %}
+            <span class="boss-status-line text-yellow-400/90"><i class="fa-solid fa-khanda"></i> Chefe liberado</span>
+          {% elif boss_topic %}
+            <span class="boss-status-line text-stone-500"><i class="fa-solid fa-lock"></i> complete a trilha</span>
+          {% endif %}
+
+          {% if areas %}
+            <a href="{{ url_for('mathematics.concepts', subject_slug=subject.slug) }}" class="map-concept-node"
+               title="Revisar o vocabulário e as ideias de {{ subject.name }} — sem cálculo, sem cronômetro">
+              <i class="fa-solid fa-book-open"></i> Conceitos
             </a>
-          {% endfor %}
-        </div>
+          {% endif %}
+
+          <div class="map-topics-label"><i class="fa-solid fa-hand-pointer"></i> Tópicos — toque para praticar</div>
+          <div class="map-topics">
+            {% for topic in subject.topics %}
+              {% set unmet = recommend_first.get(topic.id, []) %}
+              <a href="{{ url_for('mathematics.practice', topic_slug=topic.slug) }}"
+                 class="map-topic-dot {{ 'border-dashed border-stone-600 text-stone-500' if unmet else ('border-' ~ g.color ~ ' text-' ~ g.color) }}"
+                 title="{{ topic.name }}{% if unmet %} — recomendado praticar antes: {{ unmet | map(attribute='name') | join(', ') }}{% endif %}">
+                <i class="fa-solid {{ 'fa-compass' if unmet else 'fa-star' }}"></i>
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
       </div>
     {% endfor %}
+
+    {% if hidden_count > 0 %}
+      <div class="map-waypoint lane-center">
+        <div class="map-further-trail">
+          <i class="fa-solid fa-mountain-sun text-2xl opacity-70"></i>
+          <span class="map-label" style="color:#8a7454;">+{{ hidden_count }} regi{{ 'ões' if hidden_count > 1 else 'ão' }} adiante</span>
+          <span class="preview-note">reveladas conforme sua jornada avança</span>
+        </div>
+      </div>
+    {% endif %}
     </div>
   </div>
 
   <div class="map-legend border-t border-yellow-900/40 pt-3 pb-1">
-    <span><i class="fa-solid fa-circle text-[0.5rem] mr-1"></i> Tópico</span>
+    <span><i class="fa-solid fa-book-open text-amber-400 mr-1"></i> Conceitos (teoria)</span>
+    <span><i class="fa-solid fa-star text-[0.7em] mr-1"></i> Tópico (prática)</span>
     <span><i class="fa-solid fa-dragon mr-1"></i> Guardião da trilha</span>
     <span><i class="fa-solid fa-compass mr-1"></i> Recomendado praticar antes</span>
   </div>

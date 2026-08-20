@@ -479,16 +479,15 @@ def test_map_boss_landmark_is_locked_until_its_prerequisite_topic_is_mastered(cl
 
 
 # --- concept/vocabulary questions ---------------------------------------
+#
+# Concept questions no longer show up inside the numeric practice loop at
+# all (see app/mathematics/routes.py's module docstring) -- they live in
+# their own dedicated exercise under /math/conceitos/<subject_slug>.
 
-def test_no_concept_question_before_the_minimum_number_of_attempts(client, db):
-    _create_and_login(client, db)
-    topic = _create_topic(db)
-
-    resp = client.get(f"/math/praticar/{topic.slug}/questao")
-    assert 'data-concept="false"' in resp.data.decode()
-
-
-def test_concept_question_can_appear_once_mastery_is_still_building(client, db, app, monkeypatch):
+def test_numeric_practice_never_returns_a_concept_question(client, db, app, monkeypatch):
+    """Regression guard for the old forced-mixing behaviour: no matter how
+    much mastery/attempts a player has, /questao and /responder only ever
+    hand back numeric drills now."""
     from app.mathematics import routes as mathematics_routes
 
     user = _create_and_login(client, db)
@@ -500,53 +499,45 @@ def test_concept_question_can_appear_once_mastery_is_still_building(client, db, 
         ))
         db.session.commit()
 
-    monkeypatch.setattr(mathematics_routes.random, "random", lambda: 0.0)  # always below any chance threshold
+    monkeypatch.setattr(mathematics_routes.random, "random", lambda: 0.0)
     resp = client.get(f"/math/praticar/{topic.slug}/questao")
     body = resp.data.decode()
-    assert 'data-concept="true"' in body
-    assert 'inputmode="text"' in body
+    assert 'inputmode="numeric"' in body
+    assert "Questão de Conceito" not in body
 
 
-def test_concept_question_is_rare_once_mastery_is_already_solid(client, db, app, monkeypatch):
-    from app.mathematics import routes as mathematics_routes
-
-    user = _create_and_login(client, db)
-    topic = _create_topic(db)
-    with app.app_context():
-        db.session.add(Mastery(
-            user_id=user.id, topic_id=topic.id,
-            mastery_score=0.9, correct_count=10, wrong_count=0,
-        ))
-        db.session.commit()
-
-    # 0.1 clears the "still building" chance (0.25) but not the "already
-    # solid" chance (0.05) -- confirms the ramp-down actually applies once
-    # mastery crosses the threshold, not just that *a* chance exists.
-    monkeypatch.setattr(mathematics_routes.random, "random", lambda: 0.1)
-    resp = client.get(f"/math/praticar/{topic.slug}/questao")
-    assert 'data-concept="false"' in resp.data.decode()
+def test_concepts_page_requires_login(client, db):
+    resp = client.get("/math/conceitos/fracoes")
+    assert resp.status_code in (302, 401)
 
 
-def test_answering_a_concept_question_accepts_the_answer_without_accents(client, db, app, monkeypatch):
-    from app.mathematics import routes as mathematics_routes
-
-    user = _create_and_login(client, db)
+def test_concepts_page_shows_a_prompt_for_a_subject_with_concept_content(client, db):
+    _create_and_login(client, db)
     subject = Subject(slug="fracoes", name="Frações", order=0)
     db.session.add(subject)
     db.session.flush()
     topic = Topic(slug="fracoes-basicas", name="Frações básicas", subject_id=subject.id, order=0, base_difficulty=1)
     db.session.add(topic)
-    db.session.flush()
-    db.session.add(Mastery(
-        user_id=user.id, topic_id=topic.id,
-        mastery_score=0.3, correct_count=4, wrong_count=1,
-    ))
     db.session.commit()
 
-    monkeypatch.setattr(mathematics_routes.random, "random", lambda: 0.0)
-    resp = client.get(f"/math/praticar/{topic.slug}/questao")
+    resp = client.get("/math/conceitos/fracoes")
     body = resp.data.decode()
-    assert 'data-concept="true"' in body
+    assert resp.status_code == 200
+    assert "Grimório de Conceitos" in body
+    assert 'name="token"' in body
+
+
+def test_answering_a_concept_question_accepts_the_answer_without_accents(client, db, app):
+    _create_and_login(client, db)
+    subject = Subject(slug="fracoes", name="Frações", order=0)
+    db.session.add(subject)
+    db.session.flush()
+    topic = Topic(slug="fracoes-basicas", name="Frações básicas", subject_id=subject.id, order=0, base_difficulty=1)
+    db.session.add(topic)
+    db.session.commit()
+
+    resp = client.get("/math/conceitos/fracoes")
+    body = resp.data.decode()
     token = _extract_token(body)
     with app.app_context():
         payload = question_token.read_token(token)
@@ -558,7 +549,21 @@ def test_answering_a_concept_question_accepts_the_answer_without_accents(client,
     deaccented = "".join(c for c in unicodedata.normalize("NFKD", real_answer) if not unicodedata.combining(c))
 
     resp2 = client.post(
-        f"/math/praticar/{topic.slug}/responder",
+        "/math/conceitos/fracoes/responder",
         data={"token": token, "answer": deaccented.upper()},
     )
     assert 'data-correct="true"' in resp2.data.decode()
+
+
+def test_concepts_page_redirects_when_the_subject_has_no_concept_content(client, db):
+    """A subject whose topics don't map to any math area with concept
+    content yet (or an empty subject) shouldn't 404 or crash -- it just
+    bounces back to the map with a flash message."""
+    _create_and_login(client, db)
+    subject = Subject(slug="vazio", name="Vazio", order=0)
+    db.session.add(subject)
+    db.session.commit()
+
+    resp = client.get("/math/conceitos/vazio", follow_redirects=True)
+    assert resp.status_code == 200
+    assert "/math/" in resp.request.path

@@ -89,3 +89,24 @@ def random_concept_question(area_slug: str | None) -> ConceptQuestion | None:
         return None
     pool = CONCEPT_QUESTIONS.get(area_slug)
     return random.choice(pool) if pool else None
+
+
+def pool_for_areas(area_slugs: list[str]) -> list[ConceptQuestion]:
+    """Union of every area's concept pool, in AREAS order and de-duplicated
+    by prompt — a Subject on the adventure map can span more than one math
+    area (see math_areas' own docstring, e.g. Fundamentos = senso-numerico
+    + comparação), so its dedicated concept exercise pulls from all of
+    them rather than picking just one arbitrarily."""
+    seen_prompts: set[str] = set()
+    pool: list[ConceptQuestion] = []
+    for area_slug in area_slugs:
+        for question in CONCEPT_QUESTIONS.get(area_slug, []):
+            if question["prompt"] not in seen_prompts:
+                seen_prompts.add(question["prompt"])
+                pool.append(question)
+    return pool
+
+
+def random_concept_question_for_areas(area_slugs: list[str]) -> ConceptQuestion | None:
+    pool = pool_for_areas(area_slugs)
+    return random.choice(pool) if pool else None

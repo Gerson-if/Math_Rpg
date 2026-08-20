@@ -47,3 +47,29 @@ def test_area_for_topic_returns_none_for_an_unmapped_slug():
 
     assert math_areas.area_slug_for_topic(_FakeTopic()) is None
     assert math_areas.area_for_topic(_FakeTopic()) is None
+
+
+class _FakeTopicWithSlug:
+    def __init__(self, slug):
+        self.slug = slug
+
+
+class _FakeSubject:
+    def __init__(self, topic_slugs):
+        self.topics = [_FakeTopicWithSlug(s) for s in topic_slugs]
+
+
+def test_area_slugs_for_subject_dedupes_and_keeps_canonical_order():
+    # Fundamentos-style subject: two topics, two different areas.
+    subject = _FakeSubject(["numeros-e-contagem", "comparacao-de-quantidades"])
+    assert math_areas.area_slugs_for_subject(subject) == ["senso-numerico", "comparacao"]
+
+
+def test_area_slugs_for_subject_returns_one_slug_when_all_topics_share_an_area():
+    subject = _FakeSubject(["adicao", "subtracao", "multiplicacao", "divisao"])
+    assert math_areas.area_slugs_for_subject(subject) == ["operacoes-aritmeticas"]
+
+
+def test_area_slugs_for_subject_ignores_unmapped_topics_instead_of_crashing():
+    subject = _FakeSubject(["nao-existe"])
+    assert math_areas.area_slugs_for_subject(subject) == []

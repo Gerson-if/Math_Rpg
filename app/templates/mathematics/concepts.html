@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Conceitos — {{ subject.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .grimoire-frame {
+    background-color: #241a10;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(212,175,55,0.07), transparent 55%),
+      url('https://www.transparenttextures.com/patterns/aged-paper.png');
+    border: 8px double #8b6b1f;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6), inset 0 0 50px rgba(0,0,0,0.5);
+  }
+  .grimoire-title { font-family: 'MedievalSharp', cursive; color: #f4e8c1; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between flex-wrap gap-2 mb-4">
+  <h1 class="flex items-center gap-3 text-xl sm:text-2xl font-medieval text-gold">
+    <i class="fa-solid fa-book-open"></i> Conceitos — {{ subject.name }}
+  </h1>
+  <a href="{{ url_for('mathematics.index') }}"
+     class="inline-flex items-center gap-2 text-sm font-sans text-stone-400 hover:text-gold transition-colors">
+    <i class="fa-solid fa-map-location-dot"></i> Voltar ao mapa
+  </a>
+</div>
+
+<p class="text-stone-400 font-sans text-sm mb-6 max-w-2xl">
+  Aqui você revisa o <strong class="text-amber-400">vocabulário e as ideias</strong> por trás da trilha
+  de {{ subject.name }} — sem cálculo, sem cronômetro, sem combo. Vá no seu ritmo; quando terminar,
+  volte ao mapa e pratique os tópicos numéricos com essa base mais firme.
+</p>
+
+<div class="grimoire-frame max-w-xl mx-auto p-4 sm:p-6">
+  <p class="grimoire-title text-center text-lg mb-4"><i class="fa-solid fa-feather-pointed mr-1"></i> Grimório de Conceitos</p>
+  {% include "mathematics/_concept_question.html" %}
+</div>
+{% endblock %}

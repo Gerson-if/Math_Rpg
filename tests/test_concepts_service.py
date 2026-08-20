@@ -27,3 +27,26 @@ def test_random_concept_question_returns_one_from_the_right_area():
 def test_random_concept_question_returns_none_for_an_unknown_or_missing_area():
     assert concepts_service.random_concept_question("nao-existe") is None
     assert concepts_service.random_concept_question(None) is None
+
+
+def test_pool_for_areas_unions_multiple_areas_without_duplicates():
+    pool = concepts_service.pool_for_areas(["senso-numerico", "comparacao"])
+    expected_prompts = {q["prompt"] for q in concepts_service.CONCEPT_QUESTIONS["senso-numerico"]}
+    expected_prompts |= {q["prompt"] for q in concepts_service.CONCEPT_QUESTIONS["comparacao"]}
+    assert {q["prompt"] for q in pool} == expected_prompts
+    assert len(pool) == len(expected_prompts)
+
+
+def test_pool_for_areas_ignores_unknown_area_slugs():
+    pool = concepts_service.pool_for_areas(["nao-existe"])
+    assert pool == []
+
+
+def test_random_concept_question_for_areas_returns_none_for_an_empty_list():
+    assert concepts_service.random_concept_question_for_areas([]) is None
+
+
+def test_random_concept_question_for_areas_draws_from_the_combined_pool():
+    for _ in range(30):
+        q = concepts_service.random_concept_question_for_areas(["fracoes"])
+        assert q in concepts_service.CONCEPT_QUESTIONS["fracoes"]

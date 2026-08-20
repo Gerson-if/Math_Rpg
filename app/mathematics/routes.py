@@ -25,6 +25,8 @@ from app.services import (
     loot_service,
     guardians,
     lore,
+    concepts_service,
+    math_areas,
 )
 from app.services import classes as classes_service
 
@@ -43,33 +45,13 @@ NEW_SUBJECT_SLUGS = {"algebra", "equacoes-2-grau", "geometria-basica"}
 STAR_TIME_THRESHOLDS_MS = (3000, 7000)  # <=3s: 3 stars, <=7s: 2 stars, else: 1
 
 
-# A concept/vocabulary question ("o que é numerador?") is mixed in
-# occasionally alongside the numeric drills, not as a separate mode —
-# "esses conceitos devem ser apresentados dado o nível de domínio geral
-# do jogador, de forma gradativa e progressiva": no vocabulary check
-# before there's been at least a little real exposure to the topic
-# (_CONCEPT_MIN_ATTEMPTS), then a real chance while mastery is still
-# building, tapering off to an occasional refresher once it's solid
-# (matches the same 0.75 "green" band practice.html already uses to
-# color the mastery display).
-_CONCEPT_MIN_ATTEMPTS = 3
-_CONCEPT_MASTERY_RAMP_THRESHOLD = 0.75
-_CONCEPT_CHANCE_WHILE_BUILDING = 0.25
-_CONCEPT_CHANCE_ONCE_SOLID = 0.05
-
-
-def _should_ask_concept_question(topic_mastery) -> bool:
-    if topic_mastery is None:
-        return False
-    attempts = topic_mastery.correct_count + topic_mastery.wrong_count
-    if attempts < _CONCEPT_MIN_ATTEMPTS:
-        return False
-    chance = (
-        _CONCEPT_CHANCE_ONCE_SOLID
-        if topic_mastery.mastery_score >= _CONCEPT_MASTERY_RAMP_THRESHOLD
-        else _CONCEPT_CHANCE_WHILE_BUILDING
-    )
-    return random.random() < chance
+# Concept/vocabulary questions ("o que é numerador?") used to be mixed in
+# at random alongside the numeric drills, right in the middle of a battle
+# — a player mid-combo would suddenly get a text question with no warning.
+# They're now their own dedicated exercise (see the /math/conceitos/
+# routes below and mathematics/concepts.html), reached deliberately from
+# the adventure map instead of sprung on the player mid-fight. The battle
+# loop stays 100% numeric.
 
 
 def _stars_for(is_correct: bool, elapsed_ms: int) -> int:
@@ -123,15 +105,56 @@ def index():
     # obvious "start here" to click instead of guessing which node to try.
     first_topic = subjects[0].topics[0] if subjects and subjects[0].topics else None
 
+    # The map used to render all 11 subjects — each with its own guardian
+    # AND full topic-dot grid — in one long scroll, regardless of how far
+    # along the player actually was. That's the "muito confuso" the map
+    # got redone for: a brand-new player scrolling past nine regions of
+    # content they haven't touched yet has no idea where to even start.
+    # Now only subjects the player has already engaged with (has at least
+    # one Attempt in) render in full, plus exactly one "peek" ahead — the
+    # very next subject in the trail — shown misty/collapsed (guardian
+    # silhouette only, no topic grid) as a preview of what's coming, not
+    # a wall of content to parse. Nothing is hard-locked (same philosophy
+    # as unmet_prerequisites/boss_unmet above): the rest of the trail
+    # still exists past that point, just folded into a single "further
+    # ahead" marker instead of being dumped on screen all at once.
+    discovered_ids = _discovered_subject_ids(current_user.id)
+    last_discovered_idx = -1
+    for i, subject in enumerate(subjects):
+        if subject.id in discovered_ids:
+            last_discovered_idx = i
+    # Subject 0 is always shown in full — it's the trail's entry point,
+    # reachable via "Início" even before the player has a single Attempt
+    # anywhere — so the reveal frontier never sits behind index 0.
+    full_reveal_idx = max(0, last_discovered_idx) if subjects else -1
+    reveal_count = min(len(subjects), full_reveal_idx + 2)
+    visible_subjects = subjects[:reveal_count]
+    hidden_count = len(subjects) - len(visible_subjects)
+    preview_subject_id = (
+        visible_subjects[full_reveal_idx + 1].id
+        if len(visible_subjects) > full_reveal_idx + 1
+        else None
+    )
+
+    # One "Conceitos" node per subject, next to its guardian — a distinct
+    # kind of waypoint (book, not a star-dotted trail) so a player looking
+    # at the map can tell at a glance "this teaches me the vocabulary" vs
+    # "this drills the calculation", instead of the two being mixed inside
+    # the same practice screen the way concept questions used to be.
+    subject_areas = {subject.id: math_areas.area_slugs_for_subject(subject) for subject in subjects}
+
     return render_template(
         "mathematics/index.html",
-        subjects=subjects,
+        subjects=visible_subjects,
+        hidden_count=hidden_count,
+        preview_subject_id=preview_subject_id,
         recommend_first=recommend_first,
         guardians=subject_guardians,
         new_subjects=NEW_SUBJECT_SLUGS,
         boss_topics=boss_topics,
         boss_unmet=boss_unmet,
         first_topic=first_topic,
+        subject_areas=subject_areas,
     )
 
 
@@ -148,6 +171,65 @@ def list_topics():
         }
         for s in subjects
     ])
+
+
+@mathematics_bp.route("/conceitos/<subject_slug>")
+@login_required
+def concepts(subject_slug):
+    """Dedicated concept/vocabulary exercise for one Subject — deliberately
+    separate from the numeric battle loop (see the module docstring near
+    the top of this file for why they used to be mixed). No XP/loot/mastery
+    is touched here: this is a quiet reading-and-recall exercise, not
+    another arena, so it never competes with the battle screen's own
+    progression for the player's attention."""
+    subject = Subject.query.filter_by(slug=subject_slug, is_active=True).first_or_404()
+    area_slugs = math_areas.area_slugs_for_subject(subject)
+    question = concepts_service.random_concept_question_for_areas(area_slugs)
+    if question is None:
+        flash("Esta trilha ainda não tem conceitos cadastrados.", "info")
+        return redirect(url_for("mathematics.index"))
+
+    token = question_token.make_token(subject.slug, 0, question["answer"])
+    return render_template(
+        "mathematics/concepts.html",
+        subject=subject,
+        prompt=question["prompt"],
+        token=token,
+    )
+
+
+@mathematics_bp.route("/conceitos/<subject_slug>/responder", methods=["POST"])
+@login_required
+@limiter.limit("120 per minute")
+def concepts_answer(subject_slug):
+    subject = Subject.query.filter_by(slug=subject_slug, is_active=True).first_or_404()
+    area_slugs = math_areas.area_slugs_for_subject(subject)
+
+    token = request.form.get("token", "")
+    submitted_answer = request.form.get("answer", "")
+    try:
+        payload = question_token.read_token(token)
+    except question_token.TokenError:
+        abort(400, description="Pergunta expirada ou inválida — carregue uma nova.")
+    if payload.get("topic") != subject.slug:
+        abort(400)
+
+    is_correct = _normalize(submitted_answer) == _normalize(payload["answer"])
+
+    next_question = concepts_service.random_concept_question_for_areas(area_slugs)
+    next_token = (
+        question_token.make_token(subject.slug, 0, next_question["answer"])
+        if next_question
+        else None
+    )
+
+    return render_template(
+        "mathematics/_concept_question.html",
+        subject=subject,
+        prompt=next_question["prompt"] if next_question else None,
+        token=next_token,
+        feedback={"is_correct": is_correct, "correct_answer": payload["answer"]},
+    )
 
 
 def _practice_context(topic):
@@ -278,18 +360,14 @@ def practice_summary(topic_slug):
 def new_question(topic_slug):
     topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
     difficulty = progression_service.get_effective_difficulty(current_user.id, topic)
-    topic_mastery = Mastery.query.filter_by(user_id=current_user.id, topic_id=topic.id).first()
     try:
-        q = mathematics_service.generate_question(
-            topic.slug, difficulty, force_concept=_should_ask_concept_question(topic_mastery)
-        )
+        q = mathematics_service.generate_question(topic.slug, difficulty)
     except ValueError:
         abort(404)
 
     token = question_token.make_token(topic.slug, difficulty, q["answer"])
     return render_template(
         "mathematics/_question.html", topic=topic, prompt=q["prompt"], token=token,
-        is_concept=(q["meta"].get("kind") == "conceito"),
     )
 
 
@@ -339,14 +417,10 @@ def answer_question(topic_slug):
 
     # Keep the loop going: hand back feedback + the next question in one
     # response so practicing doesn't require a full page reload per item.
-    # Difficulty and topic_mastery are both re-read *after* process_attempt()
-    # above, so they already reflect the update from the answer just
-    # submitted — including whether it's time to mix in a concept check.
+    # next_difficulty is re-read *after* process_attempt() above, so it
+    # already reflects the update from the answer just submitted.
     next_difficulty = progression_service.get_effective_difficulty(current_user.id, topic)
-    topic_mastery = Mastery.query.filter_by(user_id=current_user.id, topic_id=topic.id).first()
-    next_q = mathematics_service.generate_question(
-        topic.slug, next_difficulty, force_concept=_should_ask_concept_question(topic_mastery)
-    )
+    next_q = mathematics_service.generate_question(topic.slug, next_difficulty)
     next_token = question_token.make_token(topic.slug, next_difficulty, next_q["answer"])
 
     next_topic = progression_service.next_topic_for(topic)
@@ -356,7 +430,6 @@ def answer_question(topic_slug):
         topic=topic,
         prompt=next_q["prompt"],
         token=next_token,
-        is_concept=(next_q["meta"].get("kind") == "conceito"),
         feedback={
             "is_correct": is_correct,
             "correct_answer": payload["answer"],
