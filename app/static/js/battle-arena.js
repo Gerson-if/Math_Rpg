@@ -981,12 +981,13 @@ const MathBattle = (() => {
 
   /* ---------------- advancing to the next topic without a page reload ---------------- */
 
-  // Long enough to read the transition screen's info AND watch the
-  // loading bar sweep across — a bare 1.4s was tuned for a screen with
-  // interactive buttons the player might've clicked early; a pure
-  // presentation screen wants a bit more room to actually register as
-  // "loading" rather than a flicker.
-  const STORY_TRANSITION_DELAY_MS = 2200;
+  // Long enough to read the transition screen's info (mastery, mentor
+  // tip, chronicle) AND watch the loading bar sweep across. Deliberately
+  // generous rather than tuned to a fast reader — some players read more
+  // slowly, and there's no way to speed-read a bar that already dismissed
+  // itself. The "Cancelar e voltar ao mapa" link is the only actual
+  // escape if someone needs longer still.
+  const STORY_TRANSITION_DELAY_MS = 4500;
 
   function progressColorClass(pct) {
     if (pct >= 75) return "text-emerald-400";
