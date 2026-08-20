@@ -213,8 +213,14 @@ XP" — ver `app/services/loot_service.py`.
   ZeroSSL com domínio, certificado autoassinado só com IP), systemd,
   firewall e backups/leaderboards agendados — e depois vira uma
   ferramenta de gerência com atualização segura (backup + rollback
-  automático se algo falhar), status dos serviços, reinício e
-  backup/restore sob demanda. Ver [DEPLOY.md](DEPLOY.md).
+  automático se algo falhar), status dos serviços, reinício,
+  backup/restore e migração completa para outro servidor sob demanda.
+  Etapas de rede (apt, repositórios do Caddy/Node.js, git, pip, npm)
+  tentam de novo automaticamente antes de desistir, com diagnóstico
+  específico (DNS, timeout, chave GPG, etc.) em vez de uma falha
+  genérica; o instalador também detecta de antemão containers de
+  desenvolvimento (Codespaces/Dev Containers/Docker) onde ele não
+  funciona. Ver [DEPLOY.md](DEPLOY.md).
 - Validado contra um Postgres real local (registro, prática nas 9
   matérias, conquista via critério JSON, chat, ranking) antes de ser
   considerado pronto para produção. O deploy num servidor real depende

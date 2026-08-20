@@ -21,8 +21,15 @@ descreve — pacotes do sistema, PostgreSQL (ou SQLite), Caddy com HTTPS
 automático, usuário de sistema, migrações, o serviço systemd e as rotinas
 agendadas de backup/leaderboard — e depois de instalado vira uma
 ferramenta de gerência (atualizar com segurança, ver status, reiniciar,
-backup/restore). Requer um servidor Ubuntu/Debian limpo com acesso root.
-Se for usar domínio, aponte o DNS pro IP do servidor antes de instalar.
+backup/restore, migrar para outro servidor). Requer uma VM/VPS Ubuntu ou
+Debian de verdade, com systemd como PID 1 e acesso root — **não
+funciona em containers de desenvolvimento efêmeros** (GitHub Codespaces,
+VS Code Dev Containers, `docker run` sem systemd): o instalador detecta
+isso e avisa antes de mexer em qualquer pacote (opção "Verificar
+ambiente" do menu, ou `--action=check-env`). Para só rodar o jogo
+localmente e testar/desenvolver, use `python run.py` (ver README.md) em
+vez deste instalador. Se for usar domínio, aponte o DNS pro IP do
+servidor antes de instalar.
 
 ```bash
 curl -fsSL -o install.sh https://raw.githubusercontent.com/Gerson-if/Math_Rpg/main/deploy/install.sh
@@ -89,9 +96,73 @@ abrir o menu:
    confirmação explícita (digitar `RESTAURAR`) e sempre salva uma cópia
    de segurança do banco atual antes de sobrescrever
    (`pre-restore-safety-*`).
+7. **Verificar ambiente** — diagnóstico isolado (não muda nada no
+   servidor): sistema operacional, privilégios, se é um container de
+   desenvolvimento (Codespaces/Dev Container/Docker — não suportado),
+   systemd, espaço em disco e conectividade com GitHub/npm/Caddy/Node.js.
+   Útil antes de instalar, ou para investigar uma falha.
+8. **Migrar — exportar** — gera um `.tar.gz` com um backup fresco do
+   banco de dados e um pequeno arquivo de metadados
+   (`math-rpg-migration-<data>.tar.gz`, salvo em
+   `backups/migrations/`). Ver "Migrar para outro servidor" abaixo.
+9. **Migrar — importar** — no servidor novo, restaura o `.tar.gz` gerado
+   pela opção 8 (sempre com um backup de segurança do banco atual antes
+   de sobrescrever).
 
 Cada ação também roda direto, sem menu: `--action=update`,
-`--action=status`, `--action=restart`, `--action=backup`.
+`--action=status`, `--action=restart`, `--action=backup`,
+`--action=restore`, `--action=check-env`, `--action=migrate-export`,
+`--action=migrate-import --file=<arquivo>`.
+
+### Prevenção e tratamento de erros
+
+Etapas que dependem de rede (`apt-get`, a chave/repositório do Caddy, o
+repositório do Node.js, `git clone`/`fetch`, `pip install`, `npm ci`)
+tentam de novo automaticamente (3 tentativas, com espera entre elas) antes
+de desistir — uma instabilidade de alguns segundos na rede não derruba a
+instalação inteira. Quando uma etapa de `apt` falha mesmo assim, o
+instalador lê o log e aponta o diagnóstico mais provável (problema de
+DNS, timeout de rede, outro `apt`/`dpkg` rodando ao mesmo tempo, ou chave
+GPG de um repositório de terceiros corrompida) em vez de só apontar pro
+arquivo de log.
+
+Antes de instalar ou atualizar, o instalador também checa o ambiente:
+detecta containers de desenvolvimento (Codespaces, Dev Containers,
+Docker sem systemd — este instalador não funciona neles, ver
+"Verificar ambiente" acima), espaço em disco, e conectividade com os
+serviços externos necessários — avisando com antecedência em vez de
+falhar de um jeito confuso na metade do processo.
+
+### Migrar para outro servidor
+
+A "migração" move os **dados** do jogo (usuários, progresso, itens,
+chat, etc. — tudo que está no banco) para um servidor novo. O `.env`
+(`SECRET_KEY`, senha do banco, config de TLS) e a configuração do Caddy
+**não** são migrados — são sempre gerados frescos por uma instalação
+normal no servidor de destino, já corretos para o domínio/IP/banco
+daquele servidor; copiar essas credenciais de um servidor pro outro
+normalmente causa mais problemas do que resolve.
+
+```bash
+# 1. No servidor ATUAL:
+sudo bash install.sh --action=migrate-export
+# gera algo como backups/migrations/math-rpg-migration-20260115T030000Z.tar.gz
+
+# 2. Copie o arquivo para o servidor NOVO:
+scp /opt/math-rpg/backups/migrations/math-rpg-migration-*.tar.gz usuario@servidor-novo:/tmp/
+
+# 3. No servidor NOVO, instale a aplicação normalmente primeiro
+#    (gera SECRET_KEY, banco e TLS próprios daquele servidor):
+sudo bash install.sh --action=install ...
+
+# 4. Ainda no servidor NOVO, importe os dados:
+sudo bash install.sh --action=migrate-import --file=/tmp/math-rpg-migration-20260115T030000Z.tar.gz
+```
+
+O passo de importação sempre salva um backup de segurança do banco do
+servidor novo antes de sobrescrever, e avisa se o pacote foi exportado
+de um motor de banco diferente do configurado no servidor de destino
+(SQLite vs. PostgreSQL).
 
 ### O que o instalador configura
 
