@@ -29,10 +29,21 @@ def index():
     all_ranks = Rank.query.order_by(Rank.order.asc()).all()
     my_stats = PlayerStats.query.filter_by(user_id=current_user.id).first()
 
+    # Evolved display (name/icon), not the bare base class — a Cavaleiro
+    # should show as "Cavaleiro" here too, not fall back to "Guerreiro"
+    # just because the ranking page has its own lookup.
+    class_display_by_user_id = {}
+    for stats, user in top_players:
+        profile = user.profile
+        if profile and profile.character_class:
+            class_display_by_user_id[user.id] = classes_service.display_for(
+                profile.character_class, profile.class_tier_claimed
+            )
+
     return render_template(
         "ranking/index.html",
         top_players=top_players,
         all_ranks=all_ranks,
         my_stats=my_stats,
-        class_defs=classes_service.CLASSES,
+        class_display_by_user_id=class_display_by_user_id,
     )

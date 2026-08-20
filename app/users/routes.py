@@ -38,9 +38,7 @@ def _level_progress(stats):
 @login_required
 def dashboard():
     profile = current_user.profile
-    can_choose = classes_service.can_choose_class(
-        _level_number(current_user), profile.class_tier_claimed if profile else -1
-    )
+    can_choose = classes_service.can_choose_class(profile.character_class if profile else None)
 
     next_level, level_progress_pct = _level_progress(current_user.stats)
 
@@ -114,13 +112,11 @@ def delete_notification(notification_id):
 def profile():
     profile = current_user.profile
     class_key = profile.character_class if profile else None
-    class_info = classes_service.CLASSES.get(class_key) if class_key else None
+    tier_claimed = profile.class_tier_claimed if profile else -1
+    class_info = classes_service.display_for(class_key, tier_claimed) if class_key else None
     ability = None
-    if class_info and profile.class_tier_claimed >= 0:
-        ability = classes_service.ability_for(class_key, profile.class_tier_claimed)
-    can_choose = classes_service.can_choose_class(
-        _level_number(current_user), profile.class_tier_claimed if profile else -1
-    )
+    if class_info and tier_claimed >= 0:
+        ability = classes_service.ability_for(class_key, tier_claimed)
     class_lore_line = classes_service.CLASS_LORE.get(class_key) if class_key else None
 
     featured = (
@@ -132,7 +128,8 @@ def profile():
 
     return render_template(
         "users/profile.html", user=current_user,
-        class_info=class_info, ability=ability, can_choose_class=can_choose,
+        class_info=class_info, ability=ability,
+        switch_class_cost=classes_service.switch_class_cost(class_key),
         class_lore_line=class_lore_line,
         featured_achievements=[ua.achievement for ua in featured],
         next_level=next_level, level_progress_pct=level_progress_pct,
@@ -153,10 +150,11 @@ def public_profile(username):
 
     profile = user.profile
     class_key = profile.character_class if profile else None
-    class_info = classes_service.CLASSES.get(class_key) if class_key else None
+    tier_claimed = profile.class_tier_claimed if profile else -1
+    class_info = classes_service.display_for(class_key, tier_claimed) if class_key else None
     ability = None
-    if class_info and profile.class_tier_claimed >= 0:
-        ability = classes_service.ability_for(class_key, profile.class_tier_claimed)
+    if class_info and tier_claimed >= 0:
+        ability = classes_service.ability_for(class_key, tier_claimed)
     class_lore_line = classes_service.CLASS_LORE.get(class_key) if class_key else None
 
     featured = (
@@ -199,28 +197,55 @@ def edit_profile():
 @users_bp.route("/profile/classe", methods=["GET", "POST"])
 @login_required
 def choose_class():
+    """First pick is free. Once a class is already claimed, this same
+    screen re-picking the *same* class is a no-op, and picking a
+    *different* one is a paid switch (see classes_service.
+    SWITCH_CLASS_GOLD_COST) — evolving within your current class no
+    longer happens here at all, it's automatic as you level (see
+    progression_service._update_class_tier)."""
     profile = current_user.profile
     level_number = _level_number(current_user)
-    tier_claimed = profile.class_tier_claimed
-    if not classes_service.can_choose_class(level_number, tier_claimed):
-        flash("Sua classe atual ainda não pode ser trocada — alcance o próximo nível de habilidade.", "warning")
-        return redirect(url_for("users.profile"))
-
+    current_class_key = profile.character_class
     target_tier = classes_service.current_tier(level_number)
-    form = ClassForm(character_class=profile.character_class or "")
+    cost = classes_service.switch_class_cost(current_class_key)
+
+    form = ClassForm(character_class=current_class_key or "")
     if form.validate_on_submit():
-        profile.character_class = form.character_class.data
+        chosen_key = form.character_class.data
+
+        if chosen_key == current_class_key:
+            flash("Você já está nessa classe.", "info")
+            return redirect(url_for("users.profile"))
+
+        if current_class_key:
+            stats = current_user.stats
+            gold = stats.gold if stats else 0
+            if gold < cost:
+                flash(f"Ouro insuficiente para trocar de classe — faltam {cost - gold} de ouro.", "error")
+                return redirect(url_for("users.choose_class"))
+            stats.gold -= cost
+
+        profile.character_class = chosen_key
         profile.class_tier_claimed = target_tier
         db.session.commit()
-        ability = classes_service.ability_for(profile.character_class, target_tier)
-        flash(f"Classe definida! Nova habilidade: {ability}.", "info")
+
+        display = classes_service.display_for(chosen_key, target_tier)
+        name = display["name"] if display else chosen_key
+        if current_class_key:
+            flash(f"Classe trocada para {name}! (-{cost} de ouro)", "info")
+        else:
+            flash(f"Classe definida! Você agora é {name}.", "info")
         return redirect(url_for("users.profile"))
 
     return render_template(
         "users/choose_class.html", form=form,
-        classes=classes_service.CLASSES, target_tier=target_tier,
+        classes={key: classes_service.display_for(key, target_tier) for key in classes_service.CLASSES},
+        target_tier=target_tier,
         tier_label=classes_service.ABILITY_TIERS[target_tier]["label"],
         abilities=classes_service.CLASS_ABILITIES,
         class_lore=classes_service.CLASS_LORE,
-        is_reclass=tier_claimed >= 0,
+        is_reclass=bool(current_class_key),
+        current_class_key=current_class_key,
+        switch_class_cost=cost,
+        player_gold=(current_user.stats.gold if current_user.stats else 0),
     )

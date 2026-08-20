@@ -15,6 +15,7 @@ from flask import current_app
 from sqlalchemy import func
 
 from app.extensions import db
+from app.services import classes as classes_service
 from app.models import (
     Attempt,
     PlayerStats,
@@ -79,8 +80,9 @@ def process_attempt(attempt: Attempt, bonus_xp: int = 0) -> dict:
         stats.current_streak = 0
     stats.last_active_at = datetime.utcnow()
 
-    leveled_up = _update_level(stats)
-    _update_rank(stats)
+    leveled_up, level_number = _update_level(stats)
+    _update_rank(stats, level_number)
+    _update_class_tier(stats, level_number)
 
     mastery, mastery_just_dropped, mastery_just_recovered = _update_mastery(attempt)
 
@@ -302,8 +304,15 @@ def _xp_for_attempt(attempt: Attempt) -> int:
     return _XP_BY_DIFFICULTY.get(attempt.difficulty, 10)
 
 
-def _update_level(stats: PlayerStats) -> bool:
-    """Returns True if this attempt caused a level-up."""
+def _update_level(stats: PlayerStats) -> tuple[bool, int]:
+    """Returns (leveled_up, current_level_number). The number comes from
+    the freshly-queried Level row, not stats.level — reassigning
+    stats.level_id here does *not* refresh the stats.level relationship
+    attribute within this same call (that's a separate, lazily-cached
+    reference in SQLAlchemy), so callers reading stats.level.number right
+    after this used to silently see the *previous* level for the rest of
+    this one request. Passing the number through explicitly sidesteps
+    that instead of relying on relationship-cache timing."""
     previous_number = stats.level.number if stats.level else 0
 
     new_level = (
@@ -312,24 +321,46 @@ def _update_level(stats: PlayerStats) -> bool:
         .first()
     )
     if new_level is None:
-        return False
+        return False, previous_number
 
     if new_level.id != stats.level_id:
         stats.level_id = new_level.id
-        return new_level.number > previous_number
-    return False
+    return new_level.number > previous_number, new_level.number
 
 
-def _update_rank(stats: PlayerStats) -> None:
-    if stats.level is None:
-        return
+def _update_rank(stats: PlayerStats, level_number: int) -> None:
     new_rank = (
-        Rank.query.filter(Rank.min_level <= stats.level.number)
+        Rank.query.filter(Rank.min_level <= level_number)
         .order_by(Rank.order.desc())
         .first()
     )
     if new_rank is not None:
         stats.rank_id = new_rank.id
+
+
+def _update_class_tier(stats: PlayerStats, level_number: int) -> None:
+    """Auto-evolves a claimed class within its own family as the player
+    levels up — see app/services/classes.py's module docstring. Only ever
+    moves forward, and only for a player who's already picked a class
+    (class_tier_claimed stays -1, meaning "no class yet", until the
+    player's own free first pick sets it to >= 0); never picks a class for
+    them. Fires a Notification the first time a given tier is reached so
+    it doesn't pass by unnoticed the way a background stat bump would."""
+    profile = Profile.query.filter_by(user_id=stats.user_id).first()
+    if profile is None or not profile.character_class or profile.class_tier_claimed < 0:
+        return
+
+    new_tier = classes_service.current_tier(level_number)
+    if new_tier <= profile.class_tier_claimed:
+        return
+
+    profile.class_tier_claimed = new_tier
+    evolved = classes_service.display_for(profile.character_class, new_tier)
+    db.session.add(Notification(
+        user_id=stats.user_id,
+        type="class_evolution",
+        payload={"name": evolved["name"] if evolved else profile.character_class, "tier": new_tier},
+    ))
 
 
 def _update_mastery(attempt: Attempt) -> tuple[Mastery, bool, bool]:

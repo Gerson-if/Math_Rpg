@@ -160,7 +160,7 @@ def _practice_context(topic):
     ultimate_name = "Fúria Arcana Suprema"
     class_info = None
     if class_key and profile.class_tier_claimed >= 0:
-        class_info = classes_service.CLASSES.get(class_key)
+        class_info = classes_service.display_for(class_key, profile.class_tier_claimed)
         ultimate_name = classes_service.ability_for(class_key, profile.class_tier_claimed) or ultimate_name
 
     return {

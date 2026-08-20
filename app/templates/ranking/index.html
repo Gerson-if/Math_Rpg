@@ -131,7 +131,7 @@
         </div>
         {{ ui.rank_badge(stats.rank, size='sm') }}
         <span class="inline-flex items-center gap-1 max-w-full">
-          {{ ui.class_badge(class_defs.get(user.profile.character_class) if user.profile else none) }}
+          {{ ui.class_badge(class_display_by_user_id.get(user.id)) }}
           <span class="font-sans text-sm font-bold truncate" title="{{ user.profile.display_name if user.profile else user.username }}">
             {{ user.profile.display_name if user.profile else user.username }}
           </span>
@@ -159,7 +159,7 @@
           <td class="py-2 pr-2">{{ loop.index + 3 }}</td>
           <td class="py-2 pr-2">
             <span class="inline-flex items-center gap-2">
-              {{ ui.class_badge(class_defs.get(user.profile.character_class) if user.profile else none) }}
+              {{ ui.class_badge(class_display_by_user_id.get(user.id)) }}
               {{ user.profile.display_name if user.profile else user.username }}
             </span>
           </td>

@@ -129,12 +129,11 @@
     {% else %}
       <p class="text-stone-400 font-sans">Você ainda não escolheu uma classe.</p>
     {% endif %}
-    {% if can_choose_class %}
-      <a href="{{ url_for('users.choose_class') }}"
-         class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded font-medieval text-sm text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-        <i class="fa-solid fa-shield-halved"></i> {{ "Trocar de classe" if class_info else "Escolher classe" }}
-      </a>
-    {% endif %}
+    <a href="{{ url_for('users.choose_class') }}"
+       class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded font-medieval text-sm text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+      <i class="fa-solid fa-shield-halved"></i>
+      {% if class_info %}Trocar de classe <span class="text-stone-500 text-xs">({{ switch_class_cost }} <i class="fa-solid fa-coins"></i>)</span>{% else %}Escolher classe{% endif %}
+    </a>
   </div>
 
   <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">

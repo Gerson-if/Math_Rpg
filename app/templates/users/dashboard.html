@@ -75,12 +75,10 @@
 {% if can_choose_class %}
   <div class="hall-card d2 bg-yellow-950/30 border-2 border-gold rounded-lg p-4 sm:p-5 mt-4 shadow-lg flex items-center gap-3 flex-wrap">
     <i class="fa-solid fa-shield-halved text-gold text-xl"></i>
-    <p class="font-sans text-yellow-100 flex-1 min-w-[200px]">
-      {{ "Uma nova habilidade de classe está disponível!" if user.profile and user.profile.character_class else "Escolha sua classe para reforçar sua batalha." }}
-    </p>
+    <p class="font-sans text-yellow-100 flex-1 min-w-[200px]">Escolha sua classe para reforçar sua batalha.</p>
     <a href="{{ url_for('users.choose_class') }}"
        class="inline-flex items-center gap-2 px-4 py-2 bg-mystic border-2 border-purple-400 text-white rounded font-medieval text-sm hover:scale-105 transition-transform">
-      <i class="fa-solid fa-wand-magic-sparkles"></i> {{ "Trocar classe" if user.profile and user.profile.character_class else "Escolher classe" }}
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Escolher classe
     </a>
   </div>
 {% endif %}

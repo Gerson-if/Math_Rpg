@@ -85,6 +85,15 @@
         <a href="{{ url_for('friends.index') }}" class="text-xs font-sans text-purple-300 hover:text-purple-200">Ver desafio</a>
       </div>
 
+    {% elif n.type == 'class_evolution' %}
+      <i class="fa-solid fa-shield-halved text-gold text-xl mt-0.5"></i>
+      <div>
+        <p class="font-sans text-stone-100">
+          Sua classe evoluiu para <strong class="text-gold">{{ n.payload.name }}</strong>!
+        </p>
+        <a href="{{ url_for('users.profile') }}" class="text-xs font-sans text-purple-300 hover:text-purple-200">Ver perfil</a>
+      </div>
+
     {% elif n.type == 'duel_result' %}
       <i class="fa-solid {{ 'fa-crown text-gold' if n.payload.won else 'fa-skull text-stone-500' }} text-xl mt-0.5"></i>
       <div>

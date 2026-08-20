@@ -1,10 +1,16 @@
-"""Character classes: chosen freely the first time, then re-chosen (same
-class or a different one) only when a new ability tier unlocks by level —
-"escolher classe, e quando chegar a um determinado nível, pode mudar de
-classe e ganha uma nova habilidade". Like loot_service's equipment buffs,
-a class's bonus only ever affects the *cosmetic* battle presentation
-(crit chance, combo, fury, etc. — see loot_service.compute_buffs, which
-merges this in) — never real XP or mastery.
+"""Character classes: chosen freely the first time, then *evolving on
+their own* within the same family as the player levels up — no more
+manually re-visiting the class picker at every tier (see
+progression_service._update_class_tier, which advances
+Profile.class_tier_claimed automatically the moment a new tier is
+reached). Switching to a *different* family entirely is a separate,
+deliberate action (see SWITCH_CLASS_GOLD_COST) that costs gold, since
+that's an identity change, not growth — "escolher classe, e conforme sobe
+de nível, evolui dentro da mesma; mudar de classe custa ouro". Like
+loot_service's equipment buffs, a class's bonus only ever affects the
+*cosmetic* battle presentation (crit chance, combo, fury, etc. — see
+loot_service.compute_buffs, which merges this in) — never real XP or
+mastery.
 """
 from typing import TypedDict
 
@@ -46,6 +52,36 @@ CLASS_ABILITIES: dict[str, list[str]] = {
     "ladino": ["Golpe Furtivo", "Passos Silenciosos", "Assassinato"],
 }
 
+# The class's own displayed identity per tier — same index as
+# ABILITY_TIERS/CLASS_ABILITIES. Tier 0 is just the base CLASSES entry;
+# tiers 1/2 are a genuinely different name+icon, not just a stronger
+# version of the same portrait, so reaching level 10/25 actually reads as
+# "becoming" something new rather than a numeric upgrade. Color and
+# buff_type never change across tiers — evolving doesn't change *what*
+# the class is good at, only how far along that path you've come.
+EVOLVED_NAMES: dict[str, list[str]] = {
+    "guerreiro": ["Guerreiro", "Cavaleiro", "Campeão Real"],
+    "mago": ["Mago", "Arcanista", "Arquimago"],
+    "arqueiro": ["Arqueiro", "Batedor", "Mestre Arqueiro"],
+    "clerigo": ["Clérigo", "Paladino", "Bispo Sagrado"],
+    "ladino": ["Ladino", "Assassino", "Mestre das Sombras"],
+}
+EVOLVED_ICONS: dict[str, list[str]] = {
+    "guerreiro": ["fa-khanda", "fa-shield-halved", "fa-crown"],
+    "mago": ["fa-hat-wizard", "fa-wand-sparkles", "fa-hurricane"],
+    "arqueiro": ["fa-bullseye", "fa-crosshairs", "fa-bolt"],
+    "clerigo": ["fa-cross", "fa-hands-praying", "fa-sun"],
+    "ladino": ["fa-user-ninja", "fa-user-secret", "fa-mask"],
+}
+
+# Switching to a *different* class family costs gold (see loot_service.sell
+# for where gold actually comes from) — evolving forward within the same
+# family, by contrast, is free and automatic. Flat rather than scaled by
+# tier: the cost is for the identity change itself, not a refund of
+# "progress lost" (there isn't any — see choose_class() preserving the
+# equivalent tier in the new family).
+SWITCH_CLASS_GOLD_COST = 150
+
 # One line of flavor per class, tying it into "As Crônicas de Arith" (see
 # app/services/lore.py) — how this class's aprendiz would carry the same
 # quest to find the princesa Sela differently. Purely narrative, shown on
@@ -68,12 +104,22 @@ def current_tier(level_number: int) -> int:
     return tier
 
 
-def can_choose_class(level_number: int, class_tier_claimed: int) -> bool:
-    """True if the player has never picked a class yet, or a new tier has
-    unlocked since their last pick."""
-    if class_tier_claimed < 0:
-        return True
-    return current_tier(level_number) > class_tier_claimed
+def can_choose_class(class_key: str | None) -> bool:
+    """True only for a player who has never picked a class yet — the free,
+    no-strings first pick. Once a class is chosen it evolves on its own as
+    the player levels (see progression_service._update_class_tier); the
+    only way to end up with a *different* family after that is the paid
+    "Trocar de classe" flow (see switch_class_cost below and
+    users.choose_class), not this free first-pick path."""
+    return not class_key
+
+
+def switch_class_cost(current_class_key: str | None) -> int:
+    """Gold cost to change family — 0 for the free first pick (nothing to
+    switch *from* yet), SWITCH_CLASS_GOLD_COST otherwise. A tiny wrapper so
+    callers never have to duplicate the "is this actually a switch"
+    check."""
+    return 0 if not current_class_key else SWITCH_CLASS_GOLD_COST
 
 
 def ability_for(class_key: str, tier: int) -> str | None:
@@ -81,6 +127,21 @@ def ability_for(class_key: str, tier: int) -> str | None:
     if not names or tier >= len(names):
         return None
     return names[tier]
+
+
+def display_for(class_key: str | None, tier: int) -> CharacterClass | None:
+    """The evolved name/icon for this class at this tier, falling back to
+    the base CLASSES entry for an unknown class or an out-of-range tier
+    (e.g. new curriculum added ahead of updating EVOLVED_NAMES) rather
+    than breaking. None only if class_key itself isn't a real class."""
+    base = CLASSES.get(class_key) if class_key else None
+    if base is None:
+        return None
+    names = EVOLVED_NAMES.get(class_key)
+    icons = EVOLVED_ICONS.get(class_key)
+    if not names or not icons or tier < 0 or tier >= len(names):
+        return base
+    return {"name": names[tier], "icon": icons[tier], "color": base["color"], "buff_type": base["buff_type"]}
 
 
 def class_buff(class_key: str | None, tier_claimed: int) -> dict[str, float]:

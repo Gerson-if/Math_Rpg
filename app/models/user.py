@@ -64,9 +64,12 @@ class Profile(db.Model, TimestampMixin):
     bio = db.Column(db.String(280), nullable=True)
 
     # Character class (see app/services/classes.py) — chosen freely the
-    # first time, then re-chosen only when a new ability tier unlocks
-    # (level 10, level 25). class_tier_claimed tracks the highest tier
-    # already "cashed in", so the game knows whether a reclass is owed.
+    # first time (character_class stays None until then), then evolving
+    # within that same family automatically as the player levels up (see
+    # progression_service._update_class_tier). class_tier_claimed tracks
+    # the highest ability/evolution tier reached — switching to a
+    # *different* family costs gold (users.choose_class) and resets this
+    # to the tier the player's current level already earns, not to 0.
     character_class = db.Column(db.String(20), nullable=True)
     class_tier_claimed = db.Column(db.Integer, default=-1, nullable=False)
 

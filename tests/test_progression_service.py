@@ -12,6 +12,7 @@ from app.models import (
     PlayerStats,
     Mastery,
     Profile,
+    Notification,
 )
 from app.services import progression_service
 
@@ -311,6 +312,51 @@ def test_achievement_unlocks_by_rank_reached(app, db):
         stats = PlayerStats.query.filter_by(user_id=user.id).first()
         assert stats.rank is not None and stats.rank.order >= 2
         assert unlocked_codes.count("chegou_bronze") == 1
+
+
+def test_process_attempt_auto_evolves_the_claimed_class_tier_on_level_up(app, db):
+    # See app/services/classes.py: a claimed class evolves within its own
+    # family automatically as the player levels — no manual re-visit to
+    # /profile/classe needed anymore.
+    with app.app_context():
+        user = _make_user()
+        db.session.add(Profile(
+            user_id=user.id, display_name="p",
+            character_class="guerreiro", class_tier_claimed=0,
+        ))
+        topic = _make_topic()
+        for number in range(1, 11):
+            db.session.add(Level(number=number, xp_required=int(50 * (number - 1) ** 1.4)))
+        db.session.commit()
+
+        for _ in range(40):
+            progression_service.process_attempt(_make_attempt(user, topic, correct=True, difficulty=5))
+
+        profile = Profile.query.filter_by(user_id=user.id).first()
+        stats = PlayerStats.query.filter_by(user_id=user.id).first()
+        assert stats.level.number >= 10
+        assert profile.class_tier_claimed == 1  # tier 1 unlocks at level 10
+
+        notif = Notification.query.filter_by(user_id=user.id, type="class_evolution").first()
+        assert notif is not None
+        assert notif.payload["name"] == "Cavaleiro"
+
+
+def test_process_attempt_does_not_touch_class_tier_for_a_player_with_no_class(app, db):
+    with app.app_context():
+        user = _make_user()
+        db.session.add(Profile(user_id=user.id, display_name="p"))  # no character_class
+        topic = _make_topic()
+        for number in range(1, 11):
+            db.session.add(Level(number=number, xp_required=int(50 * (number - 1) ** 1.4)))
+        db.session.commit()
+
+        for _ in range(40):
+            progression_service.process_attempt(_make_attempt(user, topic, correct=True, difficulty=5))
+
+        profile = Profile.query.filter_by(user_id=user.id).first()
+        assert profile.class_tier_claimed == -1
+        assert Notification.query.filter_by(user_id=user.id, type="class_evolution").first() is None
 
 
 def test_progress_for_achievement_reports_current_and_target(app, db):

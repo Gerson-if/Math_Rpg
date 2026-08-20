@@ -20,9 +20,12 @@
 
 <p class="text-stone-400 font-sans mb-6">
   {% if is_reclass %}
-    Você alcançou o nível de <strong class="text-gold">{{ tier_label }}</strong> — escolha (ou confirme) sua classe para desbloquear uma nova habilidade.
+    Sua classe atual evolui sozinha conforme você sobe de nível — escolher a mesma aqui não custa nada.
+    Trocar para uma <strong class="text-gold">classe diferente</strong> custa
+    <strong class="text-gold">{{ switch_class_cost }} <i class="fa-solid fa-coins"></i></strong>
+    (você tem {{ player_gold }}).
   {% else %}
-    Sua classe define uma habilidade passiva que reforça sua apresentação em batalha. Poderá trocar novamente ao alcançar o próximo nível de habilidade.
+    Sua classe define uma habilidade passiva que reforça sua apresentação em batalha, e evolui sozinha conforme você sobe de nível.
   {% endif %}
 </p>
 
@@ -33,13 +36,21 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {% for value, label in form.character_class.choices %}
         {% set cls = classes[value] %}
+        {% set is_current = value == current_class_key %}
         <label class="cursor-pointer">
           <input type="radio" name="character_class" value="{{ value }}" class="peer sr-only"
                  {{ 'checked' if form.character_class.data == value else '' }}>
           <span class="flex items-start gap-3 p-4 rounded-lg border-2 border-stone-700 bg-stone-800/60 text-stone-300 peer-checked:border-gold peer-checked:bg-yellow-950/30 hover:border-stone-500 transition-colors">
             <i class="fa-solid {{ cls.icon }} text-2xl text-{{ cls.color }} shrink-0 mt-1"></i>
             <span>
-              <span class="block font-medieval text-lg text-white">{{ cls.name }}</span>
+              <span class="flex items-center gap-2">
+                <span class="block font-medieval text-lg text-white">{{ cls.name }}</span>
+                {% if is_current %}
+                  <span class="text-[0.6rem] uppercase tracking-wide text-emerald-400 border border-emerald-600 rounded-full px-2 py-0.5">Atual</span>
+                {% elif is_reclass %}
+                  <span class="text-[0.6rem] uppercase tracking-wide text-stone-400 border border-stone-600 rounded-full px-2 py-0.5">{{ switch_class_cost }} <i class="fa-solid fa-coins"></i></span>
+                {% endif %}
+              </span>
               <span class="block text-xs text-stone-400 mt-1">Habilidade em {{ tier_label }}: <strong class="text-gold">{{ abilities[value][target_tier] }}</strong></span>
               {% if class_lore.get(value) %}
                 <span class="block text-[0.7rem] text-purple-300 font-serif italic mt-1.5">{{ class_lore[value] }}</span>
