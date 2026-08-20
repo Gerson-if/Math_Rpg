@@ -985,9 +985,9 @@ const MathBattle = (() => {
   // tip, chronicle) AND watch the loading bar sweep across. Deliberately
   // generous rather than tuned to a fast reader — some players read more
   // slowly, and there's no way to speed-read a bar that already dismissed
-  // itself. The "Cancelar e voltar ao mapa" link is the only actual
-  // escape if someone needs longer still.
-  const STORY_TRANSITION_DELAY_MS = 4500;
+  // itself. A fast reader isn't stuck waiting either: "Continuar agora"
+  // (see loadingBarHtml/runLoadingBar) ends the wait on demand.
+  const STORY_TRANSITION_DELAY_MS = 7000;
 
   function progressColorClass(pct) {
     if (pct >= 75) return "text-emerald-400";
@@ -1007,20 +1007,27 @@ const MathBattle = (() => {
   // Presentation only — no Enfrentar/Voltar choice, since the fight
   // starts on its own regardless of whether either would've been
   // clicked. This sweeping bar is what actually communicates "time
-  // remaining" instead of a decision the timer overrides anyway.
+  // remaining" instead of a decision the timer overrides anyway. A
+  // reader who finishes early doesn't have to sit through the rest of a
+  // duration tuned for someone slower — "Continuar agora" ends the wait
+  // immediately (see runLoadingBar).
   function loadingBarHtml() {
     return `
       <div class="transition-loading">
         <div class="transition-loading-icon"><i class="fa-solid fa-dungeon"></i></div>
         <div class="transition-loading-track"><div id="transition-loading-fill" class="transition-loading-fill"></div></div>
         <p class="transition-loading-label">Preparando o confronto...</p>
+        <button type="button" id="transition-skip-btn" class="transition-skip-btn">
+          Continuar agora <i class="fa-solid fa-forward"></i>
+        </button>
       </div>`;
   }
 
   // Animates #transition-loading-fill from 0 to 100% over
-  // STORY_TRANSITION_DELAY_MS and calls onDone once that time is up — the
-  // single timer both the visual bar and the actual transition are tied
-  // to, so the bar never lies about how long is actually left.
+  // STORY_TRANSITION_DELAY_MS and calls onDone once that time is up (or
+  // immediately if "Continuar agora" is clicked first) — a single path to
+  // onDone either way, so the timer and the skip button can never both
+  // fire and double-advance.
   function runLoadingBar(onDone) {
     const fill = $("transition-loading-fill");
     if (fill) {
@@ -1030,7 +1037,17 @@ const MathBattle = (() => {
       // transition entirely instead of animating between them.
       requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = "100%"; }));
     }
-    setTimeout(onDone, STORY_TRANSITION_DELAY_MS);
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      onDone();
+    };
+    const timer = setTimeout(finish, STORY_TRANSITION_DELAY_MS);
+    const skipBtn = $("transition-skip-btn");
+    if (skipBtn) skipBtn.addEventListener("click", finish);
   }
 
   // Applies one topic's battle config (fetched from .../resumo, see

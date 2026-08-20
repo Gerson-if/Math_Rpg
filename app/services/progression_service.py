@@ -154,15 +154,36 @@ PREREQUISITE_MASTERY_THRESHOLD = _PREREQUISITE_MASTERY_THRESHOLD
 
 
 def next_topic_for(topic: Topic) -> Topic | None:
-    """The topic that immediately follows this one in its subject's
-    linear chain (see scripts/seed.py: each topic's prerequisite_slugs is
-    just the one right before it) — i.e. the topic that would drop out of
+    """The topic that immediately follows this one along the overall
+    curriculum — i.e. the topic that would drop out of
     unmet_prerequisites once *this* topic's mastery clears
-    PREREQUISITE_MASTERY_THRESHOLD. None if `topic` is the last one in its
-    subject. Used to auto-advance the battle screen instead of leaving the
-    player to find "tabuada do 2" on the map themselves."""
-    return (
+    PREREQUISITE_MASTERY_THRESHOLD. Used to auto-advance the battle screen
+    instead of leaving the player to find "tabuada do 2" on the map
+    themselves.
+
+    Normally the next topic in the same subject's linear chain (see
+    scripts/seed.py: each topic's prerequisite_slugs is just the one
+    right before it). But when `topic` is the *last* one in its subject —
+    the boss fight — the journey doesn't just stop there: it continues
+    into the first topic of the next active subject, same as picking the
+    next region on the adventure map by hand. Only None once the very
+    last subject's boss has been reached, with nowhere left to go."""
+    within_subject = (
         Topic.query.filter_by(subject_id=topic.subject_id, order=topic.order + 1, is_active=True)
+        .first()
+    )
+    if within_subject:
+        return within_subject
+
+    next_subject = (
+        Subject.query.filter(Subject.order > topic.subject.order, Subject.is_active.is_(True))
+        .order_by(Subject.order.asc())
+        .first()
+    )
+    if next_subject is None:
+        return None
+    return (
+        Topic.query.filter_by(subject_id=next_subject.id, order=0, is_active=True)
         .first()
     )
 
@@ -406,18 +427,20 @@ def _check_achievements(user_id: int, stats: PlayerStats) -> list[Achievement]:
     return unlocked
 
 
-def _meets_criteria(user_id: int, stats: PlayerStats, criteria: dict) -> bool:
-    """Declarative achievement criteria, read straight from the DB row —
-    new achievement types just need a new branch here, not a schema
-    change."""
+def progress_for_achievement(user_id: int, stats: PlayerStats, criteria: dict) -> tuple[int, int] | None:
+    """(current, target) for one achievement's criteria — the same numbers
+    _meets_criteria compares, just handed back instead of collapsed into a
+    bool, so the achievements page can render a real progress bar for
+    anything still locked. Returns None for an unrecognized criteria type
+    (nothing meaningful to show)."""
     criteria_type = criteria.get("type")
     value = criteria.get("value")
 
     if criteria_type == "attempts_correct_total":
-        return stats.total_correct >= value
+        return stats.total_correct, value
 
     if criteria_type == "attempts_total":
-        return (stats.total_correct + stats.total_wrong) >= value
+        return stats.total_correct + stats.total_wrong, value
 
     if criteria_type == "distinct_practice_days":
         distinct_days = (
@@ -425,13 +448,19 @@ def _meets_criteria(user_id: int, stats: PlayerStats, criteria: dict) -> bool:
             .filter(Attempt.user_id == user_id)
             .scalar()
         )
-        return distinct_days >= value
+        return distinct_days, value
 
     if criteria_type == "best_streak":
-        return stats.best_streak >= value
+        return stats.best_streak, value
 
     if criteria_type == "level_reached":
-        return stats.level is not None and stats.level.number >= value
+        return (stats.level.number if stats.level else 0), value
+
+    # value is the target Rank's `order` (not its slug) — comparing orders
+    # means reaching any *later* tier still satisfies an earlier
+    # milestone, same "at least this far" semantics as level_reached.
+    if criteria_type == "rank_reached":
+        return (stats.rank.order if stats.rank else 0), value
 
     if criteria_type == "attempts_correct_in_subject":
         count = (
@@ -445,6 +474,17 @@ def _meets_criteria(user_id: int, stats: PlayerStats, criteria: dict) -> bool:
             )
             .scalar()
         )
-        return count >= value
+        return count, value
 
-    return False
+    return None
+
+
+def _meets_criteria(user_id: int, stats: PlayerStats, criteria: dict) -> bool:
+    """Declarative achievement criteria, read straight from the DB row —
+    new achievement types just need a new branch in progress_for_achievement
+    above, not a schema change."""
+    progress = progress_for_achievement(user_id, stats, criteria)
+    if progress is None:
+        return False
+    current, target = progress
+    return current >= target

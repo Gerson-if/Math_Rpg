@@ -780,6 +780,19 @@
     font-family: sans-serif; font-size: 0.7rem; color: #78716c; text-decoration: underline;
   }
   .transition-cancel-link:hover { color: #d4af37; }
+
+  /* Lets a fast reader end the loading-bar wait on their own terms
+     instead of sitting through a duration tuned for someone slower — kept
+     visually quiet (no glow/pulse) so it reads as optional, not the
+     expected action. */
+  .transition-skip-btn {
+    margin-top: 0.85rem; cursor: pointer;
+    padding: 0.4rem 1.1rem; border-radius: 9999px;
+    background: transparent; border: 1px solid rgba(212,175,55,0.35);
+    color: #a8a29e; font-family: sans-serif; font-size: 0.72rem;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .transition-skip-btn:hover { border-color: #d4af37; color: #d4af37; }
 </style>
 {% endblock %}
 

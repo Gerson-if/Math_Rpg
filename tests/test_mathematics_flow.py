@@ -296,6 +296,36 @@ def test_answer_fragment_has_no_next_topic_for_the_last_topic_in_a_subject(clien
     assert 'data-next-topic-slug=""' in resp2.data.decode()
 
 
+def test_answer_fragment_continues_into_the_next_subject_after_defeating_a_boss(client, db, app):
+    # Beating a subject's last topic (its boss) used to leave the player
+    # stranded there — no way forward except rematching the same boss.
+    # See progression_service.next_topic_for.
+    from app.models import Subject
+
+    _create_and_login(client, db)
+    subject_a = Subject(slug="subj-a-flow", name="Subject A", order=0)
+    subject_b = Subject(slug="subj-b-flow", name="Subject B", order=1)
+    db.session.add_all([subject_a, subject_b])
+    db.session.flush()
+    boss = Topic(slug="tabuada-do-9", name="Chefe A", subject_id=subject_a.id, order=0, base_difficulty=1)
+    next_first = Topic(slug="tabuada-do-8", name="Primeiro B", subject_id=subject_b.id, order=0, base_difficulty=1)
+    db.session.add_all([boss, next_first])
+    db.session.commit()
+
+    resp = client.get(f"/math/praticar/{boss.slug}/questao")
+    token = _extract_token(resp.data.decode())
+    with app.app_context():
+        payload = question_token.read_token(token)
+
+    resp2 = client.post(
+        f"/math/praticar/{boss.slug}/responder",
+        data={"token": token, "answer": payload["answer"]},
+    )
+    body = resp2.data.decode()
+    assert 'data-next-topic-slug="tabuada-do-8"' in body
+    assert 'data-next-topic-name="Primeiro B"' in body
+
+
 def test_practice_summary_requires_login(client, db):
     topic = _create_topic(db)
     resp = client.get(f"/math/praticar/{topic.slug}/resumo")

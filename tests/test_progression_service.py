@@ -412,7 +412,10 @@ def test_next_topic_for_returns_the_following_topic_in_the_same_subject(app, db)
         assert next_topic.slug == "tabuada-do-2"
 
 
-def test_next_topic_for_returns_none_for_the_last_topic_in_a_subject(app, db):
+def test_next_topic_for_returns_none_when_nothing_follows_this_subject_either(app, db):
+    # _make_topic's lone subject has no other subject after it — the
+    # "journey" genuinely has nowhere left to go, unlike a boss fight in
+    # the middle of the curriculum (see the cross-subject test below).
     with app.app_context():
         topic = _make_topic()
         assert progression_service.next_topic_for(topic) is None
@@ -429,3 +432,41 @@ def test_next_topic_for_ignores_an_inactive_next_topic(app, db):
         db.session.commit()
 
         assert progression_service.next_topic_for(first) is None
+
+
+def test_next_topic_for_continues_into_the_next_subjects_first_topic(app, db):
+    # Defeating a subject's boss (its last topic) used to strand the
+    # player there with nothing to advance to — the journey should
+    # continue into the next subject's own first topic instead, same as
+    # picking the next region on the adventure map by hand.
+    with app.app_context():
+        subject_a = Subject(slug="subject-a", name="Subject A", order=0)
+        subject_b = Subject(slug="subject-b", name="Subject B", order=1)
+        db.session.add_all([subject_a, subject_b])
+        db.session.flush()
+        boss = Topic(slug="a-boss", name="Chefe A", subject_id=subject_a.id, order=0, base_difficulty=1)
+        next_first = Topic(slug="b-first", name="Primeiro B", subject_id=subject_b.id, order=0, base_difficulty=1)
+        db.session.add_all([boss, next_first])
+        db.session.commit()
+
+        next_topic = progression_service.next_topic_for(boss)
+        assert next_topic is not None
+        assert next_topic.slug == "b-first"
+
+
+def test_next_topic_for_skips_an_inactive_next_subject(app, db):
+    with app.app_context():
+        subject_a = Subject(slug="subject-c", name="Subject C", order=0)
+        subject_b = Subject(slug="subject-d", name="Subject D (inactive)", order=1, is_active=False)
+        subject_c = Subject(slug="subject-e", name="Subject E", order=2)
+        db.session.add_all([subject_a, subject_b, subject_c])
+        db.session.flush()
+        boss = Topic(slug="c-boss", name="Chefe C", subject_id=subject_a.id, order=0, base_difficulty=1)
+        skipped_first = Topic(slug="d-first", name="Primeiro D", subject_id=subject_b.id, order=0, base_difficulty=1)
+        real_next = Topic(slug="e-first", name="Primeiro E", subject_id=subject_c.id, order=0, base_difficulty=1)
+        db.session.add_all([boss, skipped_first, real_next])
+        db.session.commit()
+
+        next_topic = progression_service.next_topic_for(boss)
+        assert next_topic is not None
+        assert next_topic.slug == "e-first"
