@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Diagnóstico de Domínio{% endblock %}
+
+{% block extra_head %}
+<style>
+  .diag-bar-track { width: 100%; height: 8px; border-radius: 9999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); overflow: hidden; }
+  .diag-bar-fill { height: 100%; border-radius: 9999px; transition: width 0.6s ease; }
+
+  @keyframes diagCardIn {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .diag-card { animation: diagCardIn 0.4s ease-out both; animation-delay: var(--diag-delay, 0s); }
+
+  @keyframes diagGapPulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(239,68,68,0.35); }
+    50% { box-shadow: 0 0 22px rgba(239,68,68,0.6); }
+  }
+  .diag-gap-callout { animation: diagGapPulse 2.4s ease-in-out infinite; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="flex items-center gap-3 text-2xl sm:text-3xl font-medieval text-gold mb-2">
+  <i class="fa-solid fa-magnifying-glass-chart"></i> Diagnóstico de Domínio
+</h1>
+<p class="text-stone-400 font-sans text-sm mb-6 max-w-2xl">
+  Cada matéria da trilha é feita de habilidades diferentes por baixo dos panos — este mapa mostra
+  seu domínio real em cada uma delas, não só por tópico, para você saber exatamente onde treinar mais.
+</p>
+
+{% if not report %}
+  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-6 font-sans text-stone-400">
+    Ainda não há conteúdo suficiente na trilha para gerar um diagnóstico.
+  </div>
+{% else %}
+
+  {% if weakest %}
+    <div class="diag-gap-callout bg-red-950/30 border-2 border-red-500 rounded-lg p-5 mb-6 flex flex-col sm:flex-row items-center gap-4">
+      <div class="w-14 h-14 rounded-full bg-stone-900 border-2 border-red-400 flex items-center justify-center text-2xl text-red-300 shrink-0">
+        <i class="fa-solid {{ weakest.icon }}"></i>
+      </div>
+      <div class="flex-1 text-center sm:text-left">
+        <p class="text-red-300 font-sans text-xs uppercase tracking-wide font-bold mb-0.5">Sua maior lacuna agora</p>
+        <h2 class="font-medieval text-lg text-white">{{ weakest.name }}</h2>
+        <p class="text-stone-400 font-sans text-sm">{{ weakest.description }} — {{ weakest.mastery_pct }}% de domínio.</p>
+      </div>
+      <a href="{{ url_for('mathematics.practice', topic_slug=weakest.weakest_topic.slug) }}"
+         class="shrink-0 px-5 py-2.5 bg-red-900 border-2 border-red-400 text-white rounded font-medieval hover:scale-105 transition-transform">
+        <i class="fa-solid fa-khanda mr-1"></i> Treinar agora
+      </a>
+    </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {% for area in report %}
+      {% set bar_color = 'bg-emerald-400' if area.mastery_pct >= 75 else ('bg-yellow-400' if area.mastery_pct >= 40 else 'bg-red-500') %}
+      <div class="diag-card bg-stone-900/60 border border-stone-700 rounded-lg p-4 flex flex-col gap-3" style="--diag-delay: {{ (loop.index0 * 0.05) | round(2) }}s;">
+        <div class="flex items-start gap-3">
+          <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-stone-800 border-2 border-{{ area.color }} text-{{ area.color }} shrink-0">
+            <i class="fa-solid {{ area.icon }}"></i>
+          </span>
+          <div class="min-w-0 flex-1">
+            <strong class="font-sans text-sm text-stone-100">{{ area.name }}</strong>
+            <div class="text-stone-500 font-sans text-xs mt-0.5">{{ area.description }}</div>
+          </div>
+          <span class="font-medieval text-sm text-stone-200 shrink-0">{{ area.mastery_pct }}%</span>
+        </div>
+        <div class="diag-bar-track">
+          <div class="diag-bar-fill {{ bar_color }}" style="width: {{ area.mastery_pct }}%;"></div>
+        </div>
+        <div class="flex items-center justify-between text-xs font-sans text-stone-500">
+          <span>{{ area.topics_practiced }}/{{ area.topics_total }} tópicos praticados</span>
+          <a href="{{ url_for('mathematics.practice', topic_slug=area.weakest_topic.slug) }}"
+             class="text-{{ area.color }} hover:underline">
+            Praticar <i class="fa-solid fa-arrow-right ml-0.5"></i>
+          </a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

@@ -85,18 +85,22 @@
         Você alcançou o topo da trilha — <strong class="text-gold">{{ my_rank.name if my_rank else "Mestre" }}</strong>!
       {% endif %}
     </p>
-    <div class="flex items-center overflow-x-auto pb-2">
+    <!-- Wraps onto as many rows as needed instead of scrolling sideways —
+         10 tiers no longer fit in one row on most screens, and a bare
+         horizontal scrollbar under a "trilha" card read as a layout bug
+         more than an intentional strip to drag. Each badge's own
+         achieved/current/locked state (see rank_badge) still carries the
+         progression story without needing the connector bars a single
+         scrolling row had room for. -->
+    <div class="flex flex-wrap justify-center gap-x-2 gap-y-4">
       {% for rank in all_ranks %}
         {% set achieved = my_rank and rank.order <= my_rank.order %}
         {% set is_current = my_rank and rank.id == my_rank.id %}
-        <div class="flex flex-col items-center gap-1 shrink-0 px-3">
+        <div class="flex flex-col items-center gap-1 w-16 sm:w-20">
           {{ ui.rank_badge(rank, size='lg', dim=not achieved, pulse=is_current) }}
           <span class="font-sans text-[0.65rem] text-center {{ 'text-gold font-bold' if is_current else 'text-stone-400' }}">{{ rank.name }}</span>
           <span class="font-sans text-[0.6rem] text-stone-600">Nv. {{ rank.min_level }}</span>
         </div>
-        {% if not loop.last %}
-          <div class="h-0.5 w-6 sm:w-10 shrink-0 rounded-full {{ 'rank-bar-achieved' if achieved else 'bg-stone-700' }}"></div>
-        {% endif %}
       {% endfor %}
     </div>
   </div>

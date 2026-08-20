@@ -49,6 +49,24 @@ TIPS: list[Tip] = [
     {"kind": "regra", "text": "Tópicos com domínio baixo aparecem na fila de Revisão — vale a pena visitá-la de vez em quando para não esquecer o que já aprendeu."},
     {"kind": "regra", "text": "Depois de treinar cada tabuada separadamente, experimente a Tabuada Mista — ela sorteia qualquer tabela de 1 a 10, um bom teste de domínio completo."},
     {"kind": "regra", "text": "Seu rank sobe junto com seu nível — cada rank exige um nível mínimo, então subir de nível é sempre o caminho mais direto até o próximo."},
+
+    # ---- second wave: more curiosities + rules, added alongside a longer
+    # on-screen reading time in Salão do Herói (see dashboard.html) so
+    # there's actually room to read more of the pool per visit. ----
+    {"kind": "curiosidade", "text": "No Triângulo de Pascal, cada número é a soma dos dois números acima dele — uma ferramenta de séculos atrás ainda usada para calcular combinações e probabilidades."},
+    {"kind": "curiosidade", "text": "Números primos gêmeos são pares de primos que diferem por apenas 2, como 11 e 13, ou 17 e 19 — ninguém ainda provou se existem infinitos pares assim."},
+    {"kind": "curiosidade", "text": "Divisão por zero não tem resultado definido — não existe número que, multiplicado por zero, dê de volta o valor original."},
+    {"kind": "curiosidade", "text": "MDC (máximo divisor comum) e MMC (mínimo múltiplo comum) já eram usados na Grécia antiga para simplificar frações e resolver problemas de repetição de eventos."},
+    {"kind": "curiosidade", "text": "O sistema de numerais romanos não tinha um símbolo para o zero — o que tornava contas grandes bem mais difíceis do que com os algarismos indo-arábicos que usamos hoje."},
+    {"kind": "curiosidade", "text": "A palavra \"geometria\" vem do grego e significa \"medir a terra\" — surgiu no Egito antigo para redemarcar terrenos depois das cheias do rio Nilo."},
+    {"kind": "curiosidade", "text": "O matemático francês Blaise Pascal construiu, em 1642, uma das primeiras máquinas de somar mecânicas da história — a \"Pascalina\"."},
+    {"kind": "curiosidade", "text": "Um número perfeito é igual à soma dos seus próprios divisores (sem contar ele mesmo) — o menor exemplo é o 6, já que 1 + 2 + 3 = 6."},
+    {"kind": "curiosidade", "text": "A notação científica existe para escrever números muito grandes ou muito pequenos de forma compacta — como a distância até outras estrelas."},
+    {"kind": "curiosidade", "text": "A simetria aparece tanto na geometria (flores, borboletas, prédios) quanto na álgebra, em funções que se comportam da mesma forma dos dois lados do zero."},
+
+    {"kind": "regra", "text": "Fugir de uma batalha não apaga seu progresso — as respostas certas já dadas continuam valendo; só a vitória cosmética do chefe fica para a próxima tentativa."},
+    {"kind": "regra", "text": "Equipamentos só mudam a apresentação da batalha (dano, crítico, fúria) — nunca o XP ou o domínio real, que dependem só das suas respostas certas."},
+    {"kind": "regra", "text": "Cada matéria tem sua própria trilha — vencer o guardião final de uma não bloqueia as outras; você pode explorar a ordem que quiser."},
 ]
 
 

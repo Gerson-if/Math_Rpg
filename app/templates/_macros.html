@@ -42,18 +42,34 @@
   {% endif %}
 {% endmacro %}
 
-{# Small class badge — icon + the class's own accent color (same palette
-   as the battle arena's ultimate button), shown next to a player's name
-   wherever their class matters (currently the ranking page). class_info
-   is one CLASSES[key] dict from app.services.classes, or None if the
-   player hasn't picked a class yet, in which case nothing renders. #}
-{% macro class_badge(class_info, size='sm') %}
+{# Class badge — icon + the class's own accent color (same palette as the
+   battle arena's ultimate button), shown next to a player's name wherever
+   their class matters (currently the ranking page). class_info is one
+   CLASSES[key] dict from app.services.classes, or None if the player
+   hasn't picked a class yet, in which case nothing renders.
+
+   Spells out the class name by default (label=True) instead of relying on
+   the icon alone — several class icons (fa-hat-wizard, fa-khanda) also
+   happen to be valid *personal avatar* choices (see avatar_icon above),
+   an unrelated, separately-chosen decoration. An icon-only badge could
+   read as "this player's avatar coincidentally looks like a different
+   class" instead of actually identifying their class; the name removes
+   any doubt. Pass label=False for tight spaces where the icon alone
+   (plus its title tooltip) is enough. #}
+{% macro class_badge(class_info, size='sm', label=True) %}
   {% if class_info %}
-    {% set dims = 'w-5 h-5 text-[0.6rem]' if size == 'sm' else 'w-7 h-7 text-xs' %}
-    <span class="inline-flex items-center justify-center {{ dims }} rounded-full bg-stone-800 border border-{{ class_info.color }} text-{{ class_info.color }} shrink-0"
-          title="{{ class_info.name }}">
-      <i class="fa-solid {{ class_info.icon }}"></i>
-    </span>
+    {% if label %}
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-800 border border-{{ class_info.color }} text-{{ class_info.color }} text-[0.65rem] font-sans font-bold shrink-0 whitespace-nowrap"
+            title="{{ class_info.name }}">
+        <i class="fa-solid {{ class_info.icon }}"></i> {{ class_info.name }}
+      </span>
+    {% else %}
+      {% set dims = 'w-5 h-5 text-[0.6rem]' if size == 'sm' else 'w-7 h-7 text-xs' %}
+      <span class="inline-flex items-center justify-center {{ dims }} rounded-full bg-stone-800 border border-{{ class_info.color }} text-{{ class_info.color }} shrink-0"
+            title="{{ class_info.name }}">
+        <i class="fa-solid {{ class_info.icon }}"></i>
+      </span>
+    {% endif %}
   {% endif %}
 {% endmacro %}
 
