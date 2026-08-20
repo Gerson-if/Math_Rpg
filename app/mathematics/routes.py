@@ -33,7 +33,7 @@ mathematics_bp = Blueprint("mathematics", __name__, url_prefix="/math")
 # Flags the "castelo final" region on the adventure map as freshly added,
 # progressive advanced content — purely a visual badge, never a gate (see
 # scripts/seed.py's entry_prereqs for the advisory recommendation instead).
-NEW_SUBJECT_SLUGS = {"algebra"}
+NEW_SUBJECT_SLUGS = {"algebra", "equacoes-2-grau", "geometria-basica"}
 
 
 # Purely cosmetic response-time rating shown per answer — never affects

@@ -17,6 +17,14 @@
     50% { box-shadow: 0 0 22px rgba(239,68,68,0.6); }
   }
   .diag-gap-callout { animation: diagGapPulse 2.4s ease-in-out infinite; }
+
+  .diag-radar-wrap { max-width: 420px; margin: 0 auto; }
+
+  .diag-prereq-warn {
+    display: flex; align-items: flex-start; gap: 6px;
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.35);
+    border-radius: 8px; padding: 6px 8px; font-size: 0.68rem; color: #fca5a5;
+  }
 </style>
 {% endblock %}
 
@@ -34,6 +42,14 @@
     Ainda não há conteúdo suficiente na trilha para gerar um diagnóstico.
   </div>
 {% else %}
+
+  {% if radar_svg %}
+    <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg mb-6">
+      <h2 class="text-lg font-medieval text-stone-100 mb-1"><i class="fa-solid fa-chart-area text-gold mr-2"></i>Forças e fraquezas</h2>
+      <p class="text-stone-500 font-sans text-xs mb-3">Quanto mais próximo da borda, maior o domínio naquela área — uma forma bem redonda indica equilíbrio.</p>
+      <div class="diag-radar-wrap">{{ radar_svg | safe }}</div>
+    </div>
+  {% endif %}
 
   {% if weakest %}
     <div class="diag-gap-callout bg-red-950/30 border-2 border-red-500 rounded-lg p-5 mb-6 flex flex-col sm:flex-row items-center gap-4">
@@ -69,6 +85,15 @@
         <div class="diag-bar-track">
           <div class="diag-bar-fill {{ bar_color }}" style="width: {{ area.mastery_pct }}%;"></div>
         </div>
+        {% if area.prereq_gaps %}
+          <div class="diag-prereq-warn">
+            <i class="fa-solid fa-triangle-exclamation mt-0.5 shrink-0"></i>
+            <span>
+              Antes de avançar aqui, vale reforçar:
+              {% for gap in area.prereq_gaps %}{{ gap.name }} ({{ gap.mastery_pct }}%){{ ", " if not loop.last }}{% endfor %}
+            </span>
+          </div>
+        {% endif %}
         <div class="flex items-center justify-between text-xs font-sans text-stone-500">
           <span>{{ area.topics_practiced }}/{{ area.topics_total }} tópicos praticados</span>
           <a href="{{ url_for('mathematics.practice', topic_slug=area.weakest_topic.slug) }}"

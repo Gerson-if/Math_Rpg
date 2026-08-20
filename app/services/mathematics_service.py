@@ -90,6 +90,10 @@ def generate_question(topic_slug: str, difficulty: int) -> Question:
         "calculo-de-porcentagem": _gen_percentage_reverse,
         "equacoes-1-grau": _gen_linear_equation_basic,
         "equacoes-1-grau-avancado": _gen_linear_equation_both_sides,
+        "equacoes-2-grau-incompletas": _gen_quadratic_incomplete,
+        "equacoes-2-grau-fatoravel": _gen_quadratic_factorable,
+        "perimetro-de-figuras": _gen_perimeter,
+        "area-de-figuras": _gen_area,
     }
     generator = generators.get(topic_slug)
     if generator is None:
@@ -450,3 +454,115 @@ def _gen_linear_equation_both_sides(difficulty: int) -> Question:
         "answer": str(x),
         "meta": {"family": "algebra", "kind": "linear-dois-lados"},
     }
+
+
+# ---------------------------------------------------------------------------
+# Equações do 2º Grau — the natural next step after linear equations
+# (see app/services/lore.py). A *general* quadratic has two roots, which
+# doesn't fit this app's single-text-answer format (there's no clean way
+# to ask "which root" without an arbitrary tie-break rule that would just
+# feel like a trick). Both topics below are deliberately restricted to
+# forms with exactly one unambiguous answer instead: pure/incomplete
+# quadratics (no linear term) and perfect-square trinomials (a repeated
+# root) — real, honest subsets of the topic, not a simplification that
+# misleads about what a quadratic equation actually is.
+# ---------------------------------------------------------------------------
+
+# (a_lo, a_hi, x_lo, x_hi) per difficulty
+_QUADRATIC_INCOMPLETE_RANGES = {
+    1: (1, 3, 1, 5),
+    2: (1, 4, 1, 6),
+    3: (1, 5, 2, 8),
+    4: (1, 6, 2, 10),
+    5: (1, 8, 2, 12),
+}
+
+# (root_lo, root_hi) per difficulty
+_QUADRATIC_FACTORABLE_ROOT_RANGES = {1: (1, 5), 2: (1, 6), 3: (2, 8), 4: (2, 10), 5: (3, 12)}
+
+
+def _gen_quadratic_incomplete(difficulty: int) -> Question:
+    """ax² = b → x = ? (positive root) — "equação incompleta" (no linear
+    term), the introductory form before factoring is needed at all."""
+    a_lo, a_hi, x_lo, x_hi = _QUADRATIC_INCOMPLETE_RANGES[difficulty]
+    a = random.randint(a_lo, a_hi)
+    x = random.randint(x_lo, x_hi)
+    b = a * x * x
+    return {
+        "prompt": f"{a}x² = {b} → x = ? (raiz positiva)",
+        "answer": str(x),
+        "meta": {"family": "algebra", "kind": "quadratica-incompleta"},
+    }
+
+
+def _gen_quadratic_factorable(difficulty: int) -> Question:
+    """x² - 2rx + r² = 0 → x = ? — a perfect-square trinomial, i.e.
+    (x - r)², whose only root is r. Shown already expanded (not as
+    "(x-r)²=0") so the player practices recognizing/factoring it, the
+    actual skill this topic is teaching."""
+    r_lo, r_hi = _QUADRATIC_FACTORABLE_ROOT_RANGES[difficulty]
+    r = random.randint(r_lo, r_hi)
+    b, c = 2 * r, r * r
+    return {
+        "prompt": f"x² - {b}x + {c} = 0 → x = ?",
+        "answer": str(r),
+        "meta": {"family": "algebra", "kind": "quadratica-fatoravel"},
+    }
+
+
+# ---------------------------------------------------------------------------
+# Geometria Básica — perimeter and area of the three simplest plane
+# figures. Text word-problems rather than a rendered shape, consistent
+# with every other topic in this engine (no visual generation elsewhere),
+# and it still exercises real geometric reasoning: knowing *which*
+# formula applies to which figure.
+# ---------------------------------------------------------------------------
+
+_GEOMETRY_SIDE_RANGES = {1: (2, 10), 2: (2, 15), 3: (3, 25), 4: (3, 40), 5: (5, 60)}
+
+
+def _gen_perimeter(difficulty: int) -> Question:
+    lo, hi = _GEOMETRY_SIDE_RANGES[difficulty]
+    shape = random.choice(["quadrado", "retangulo", "triangulo-equilatero"])
+
+    if shape == "quadrado":
+        side = random.randint(lo, hi)
+        prompt = f"Um quadrado tem lado {side} cm. Qual é o perímetro (em cm)?"
+        answer = side * 4
+    elif shape == "triangulo-equilatero":
+        side = random.randint(lo, hi)
+        prompt = f"Um triângulo equilátero tem lado {side} cm. Qual é o perímetro (em cm)?"
+        answer = side * 3
+    else:
+        base = random.randint(lo, hi)
+        altura = random.randint(lo, hi)
+        while altura == base:  # a genuinely different side, not another square
+            altura = random.randint(lo, hi)
+        prompt = f"Um retângulo tem base {base} cm e altura {altura} cm. Qual é o perímetro (em cm)?"
+        answer = 2 * (base + altura)
+
+    return {"prompt": prompt, "answer": str(answer), "meta": {"family": "geometria", "kind": "perimetro", "shape": shape}}
+
+
+def _gen_area(difficulty: int) -> Question:
+    lo, hi = _GEOMETRY_SIDE_RANGES[difficulty]
+    shape = random.choice(["quadrado", "retangulo", "triangulo"])
+
+    if shape == "quadrado":
+        side = random.randint(lo, hi)
+        prompt = f"Um quadrado tem lado {side} cm. Qual é a área (em cm²)?"
+        answer = side * side
+    elif shape == "retangulo":
+        base = random.randint(lo, hi)
+        altura = random.randint(lo, hi)
+        prompt = f"Um retângulo tem base {base} cm e altura {altura} cm. Qual é a área (em cm²)?"
+        answer = base * altura
+    else:
+        base = random.randint(lo, hi)
+        altura = random.randint(lo, hi)
+        if (base * altura) % 2 != 0:
+            altura += 1  # nudge so base*altura/2 stays a clean integer
+        prompt = f"Um triângulo tem base {base} cm e altura {altura} cm. Qual é a área (em cm²)?"
+        answer = (base * altura) // 2
+
+    return {"prompt": prompt, "answer": str(answer), "meta": {"family": "geometria", "kind": "area", "shape": shape}}

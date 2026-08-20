@@ -29,6 +29,18 @@ def test_topic_areas_has_no_stale_entries_for_topics_no_longer_in_the_curriculum
     assert stale == [], f"math_areas.TOPIC_AREAS has entries for topics not in CURRICULUM: {stale}"
 
 
+def test_area_prerequisites_only_reference_real_area_slugs():
+    for area_slug, prereqs in math_areas.AREA_PREREQUISITES.items():
+        assert area_slug in math_areas.AREAS, f"AREA_PREREQUISITES has an unknown area key: {area_slug}"
+        for prereq_slug in prereqs:
+            assert prereq_slug in math_areas.AREAS, f"{area_slug} lists unknown prerequisite: {prereq_slug}"
+
+
+def test_area_prerequisites_has_no_self_reference():
+    for area_slug, prereqs in math_areas.AREA_PREREQUISITES.items():
+        assert area_slug not in prereqs
+
+
 def test_area_for_topic_returns_none_for_an_unmapped_slug():
     class _FakeTopic:
         slug = "not-a-real-topic"

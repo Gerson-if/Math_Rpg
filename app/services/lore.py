@@ -128,6 +128,28 @@ LORE: dict[str, Chronicle] = {
             "Nas comemorações que tomam Arith por dias, um mensageiro chega exausto das fronteiras mais distantes do reino, trazendo rumores de números ainda maiores, ruínas ainda mais antigas, e um mistério novo esperando por quem tiver coragem de segui-lo.",
         ],
     },
+    "equacoes-2-grau": {
+        "title": "O Enigma das Duas Raízes",
+        "stages": [
+            "O mensageiro das fronteiras trouxe um pergaminho selado com um símbolo que ninguém em Arith reconhecia: dois caminhos entrelaçados, partindo do mesmo ponto e nunca mais se cruzando de novo.",
+            "Nas terras além do Castelo Final vive a Esfinge das Duas Raízes — guardiã de um templo onde toda pergunta, dizem os viajantes, tem exatamente duas respostas verdadeiras, nunca uma só.",
+            "\"Toda escolha entre igual em toda parte tem um par escondido\", sussurra a Esfinge a quem se aproxima. \"Quem só enxerga uma resposta ainda não aprendeu a completar o quadrado da própria pergunta.\"",
+            "Você reconhece o padrão: é o mesmo tipo de incógnita do Castelo Final, mas dobrada sobre si mesma — como se resolver uma equação, agora, exigisse aceitar que a verdade às vezes se divide em duas sem deixar de ser uma só.",
+            "Quanto mais fundo você avança no templo, mais claro fica que a Esfinge não guarda um tesouro — guarda um método. E método, em Arith, sempre vale mais do que ouro.",
+            "No coração do templo, a última porta só se abre para quem aceita as duas raízes ao mesmo tempo, sem escolher uma e descartar a outra — a última lição da Esfinge antes de deixar o caminho livre.",
+        ],
+    },
+    "geometria-basica": {
+        "title": "As Ruínas Poligonais",
+        "stages": [
+            "A segunda metade do rumor do mensageiro falava de ruínas mais antigas que qualquer coisa já vista em Arith — não feitas de números soltos, mas de formas: quadrados, triângulos e retângulos entalhados em pedra há milênios.",
+            "Os arqueólogos do reino batizaram o lugar de Ruínas Poligonais, guardadas por um colosso de pedra que os viajantes chamam de Titã Geométrico — imóvel há tanto tempo que árvores cresceram entre suas juntas.",
+            "\"Antes de contar, antes de somar, seus ancestrais mediram\", ecoa uma voz de pedra quando o Titã finalmente desperta. \"Toda cidade de Arith começou como um perímetro traçado no chão, e toda colheita começou como uma área calculada com cuidado.\"",
+            "As paredes das ruínas escondem instruções antigas: como cercar um campo gastando a menor quantidade possível de muro, como dividir uma terra igualmente entre irmãos sem que ninguém saia perdendo.",
+            "Você entende, aos poucos, que essas ruínas não são um mistério novo — são a origem de tudo que Arith aprendeu depois. Os números vieram das formas, não o contrário.",
+            "Quando o Titã Geométrico finalmente se recolhe em silêncio, uma última inscrição se revela na pedra onde ele estava: um mapa de terras além das ruínas, ainda maiores, ainda por medir — a próxima crônica de Arith, ainda esperando para ser talhada.",
+        ],
+    },
 }
 
 

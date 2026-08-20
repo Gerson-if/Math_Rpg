@@ -23,6 +23,8 @@ GUARDIANS: dict[str, Guardian] = {
     "numeros-decimais": {"name": "Serpente de Cristal", "icon": "fa-worm", "color": "blue-400"},
     "porcentagem": {"name": "Mercador das Sombras", "icon": "fa-mask", "color": "yellow-400"},
     "algebra": {"name": "Guardião do Castelo Final", "icon": "fa-chess-rook", "color": "red-400"},
+    "equacoes-2-grau": {"name": "Esfinge das Duas Raízes", "icon": "fa-chess-queen", "color": "rose-400"},
+    "geometria-basica": {"name": "Titã Geométrico", "icon": "fa-draw-polygon", "color": "indigo-400"},
 }
 
 # Every topic in a subject used to fight the exact same named guardian at
@@ -53,6 +55,8 @@ MINION_NAME_POOLS: dict[str, list[str]] = {
     "numeros-decimais": ["Fragmento de Cristal"],
     "porcentagem": ["Batedor das Sombras"],
     "algebra": ["Sentinela do Castelo"],
+    "equacoes-2-grau": ["Sombra da Incógnita"],
+    "geometria-basica": ["Fragmento Poligonal"],
 }
 _MINION_FALLBACK = "Servo do Guardião"
 
@@ -69,6 +73,8 @@ ELITE_MINION_NAME_POOLS: dict[str, list[str]] = {
     "numeros-decimais": ["Lâmina de Cristal"],
     "porcentagem": ["Emissário das Sombras"],
     "algebra": ["Guarda-Costas do Castelo"],
+    "equacoes-2-grau": ["Guardiã das Raízes"],
+    "geometria-basica": ["Sentinela das Formas"],
 }
 _ELITE_FALLBACK = "Servo Veterano"
 
@@ -98,6 +104,8 @@ SUPREME_NAMES: dict[str, str] = {
     "numeros-decimais": "Serpente de Cristal Renascida",
     "porcentagem": "Mercador das Sombras Ressuscitado",
     "algebra": "Guardião do Castelo Final Imortal",
+    "equacoes-2-grau": "Esfinge das Duas Raízes Eterna",
+    "geometria-basica": "Titã Geométrico Colossal",
 }
 _SUPREME_FALLBACK = "Guardião Ressuscitado"
 
@@ -118,6 +126,8 @@ SPECIAL_ATTACKS: dict[str, list[str]] = {
     "numeros-decimais": ["Estilhaço de Cristal", "Corte Refratado"],
     "porcentagem": ["Golpe das Sombras", "Ilusão Sombria"],
     "algebra": ["Investida Real", "Golpe da Incógnita"],
+    "equacoes-2-grau": ["Enigma das Raízes", "Golpe Quadrático"],
+    "geometria-basica": ["Colapso Poligonal", "Investida Angular"],
 }
 _SPECIAL_ATTACK_FALLBACK = ["Investida Sombria", "Golpe Devastador"]
 
@@ -131,6 +141,8 @@ BATTLE_TAUNTS: dict[str, list[str]] = {
     "numeros-decimais": ["Precisão é minha arma!", "Nem uma casa decimal escapa!"],
     "porcentagem": ["As sombras sempre calculam a seu favor!", "Um desconto na sua sorte!"],
     "algebra": ["A incógnita sou eu!", "Resolva-me, se conseguir!"],
+    "equacoes-2-grau": ["Duas raízes, um só caminho!", "Complete o quadrado, se conseguir!"],
+    "geometria-basica": ["Nenhuma forma escapa da minha geometria!", "Meça sua chance contra mim!"],
 }
 _BATTLE_TAUNT_FALLBACK = ["Você não é páreo para mim!", "Tente de novo, aprendiz!"]
 

@@ -19,72 +19,117 @@ from typing import TypedDict
 
 class MathArea(TypedDict):
     name: str
+    short_name: str  # tight label for the radar chart's axis tips
     icon: str  # FontAwesome solid class
     color: str  # Tailwind color token, e.g. "purple-400"
     description: str  # what this skill actually is, one sentence
 
 
+# Insertion order here IS the canonical pedagogical order (roughly what
+# scripts/seed.py's Subject.order already encodes, split where one
+# Subject actually covers two different skills — see the module
+# docstring). diagnostics_service uses this order for the radar chart's
+# axes and AREA_PREREQUISITES below, instead of the diagnostic report's
+# own weakest-first sort, so the chart's shape stays stable between
+# visits regardless of which areas happen to be weakest today.
 AREAS: dict[str, MathArea] = {
     "senso-numerico": {
         "name": "Senso Numérico e Contagem",
+        "short_name": "Contagem",
         "icon": "fa-hashtag",
         "color": "stone-300",
         "description": "Reconhecer, contar e nomear quantidades.",
     },
     "comparacao": {
         "name": "Comparação e Ordenação",
+        "short_name": "Comparação",
         "icon": "fa-scale-balanced",
         "color": "slate-300",
         "description": "Comparar números e quantidades — maior, menor, igual.",
     },
     "calculo-mental": {
         "name": "Cálculo Mental e Tabuada",
+        "short_name": "Tabuada",
         "icon": "fa-brain",
         "color": "purple-400",
         "description": "Multiplicação memorizada e agilidade de cálculo mental.",
     },
     "operacoes-aritmeticas": {
         "name": "Operações Aritméticas Fundamentais",
+        "short_name": "Operações",
         "icon": "fa-plus-minus",
         "color": "emerald-400",
         "description": "Adição, subtração, multiplicação e divisão.",
     },
     "potenciacao": {
         "name": "Potenciação",
+        "short_name": "Potências",
         "icon": "fa-superscript",
         "color": "orange-400",
         "description": "Potências e suas propriedades.",
     },
     "radiciacao": {
         "name": "Radiciação",
+        "short_name": "Raízes",
         "icon": "fa-square-root-variable",
         "color": "cyan-300",
         "description": "Raízes quadradas e cúbicas.",
     },
     "fracoes": {
         "name": "Frações e Números Racionais",
+        "short_name": "Frações",
         "icon": "fa-divide",
         "color": "violet-400",
         "description": "Partes de um todo e operações com frações.",
     },
     "numeros-decimais": {
         "name": "Números Decimais",
+        "short_name": "Decimais",
         "icon": "fa-ellipsis",
         "color": "blue-400",
         "description": "Leitura e operações com números decimais.",
     },
     "porcentagem": {
         "name": "Porcentagem e Proporcionalidade",
+        "short_name": "Porcent.",
         "icon": "fa-percent",
         "color": "yellow-400",
         "description": "Porcentagens e raciocínio proporcional.",
     },
     "pensamento-algebrico": {
         "name": "Pensamento Algébrico",
+        "short_name": "Álgebra",
         "icon": "fa-equals",
         "color": "red-400",
         "description": "Equações e resolução de problemas com incógnitas.",
     },
+    "geometria-basica": {
+        "name": "Geometria: Perímetro e Área",
+        "short_name": "Geometria",
+        "icon": "fa-draw-polygon",
+        "color": "indigo-400",
+        "description": "Medir contornos e superfícies de figuras planas.",
+    },
+}
+
+# Which areas should ideally be solid *before* this one — advisory only,
+# same philosophy as progression_service.unmet_prerequisites (nothing is
+# ever hard-locked; this only powers a "reforce isto primeiro" hint on the
+# Diagnóstico de Domínio page). Roughly follows AREAS' own insertion
+# order above, hand-curated rather than derived from it so a reordering
+# there never silently changes the dependency graph.
+AREA_PREREQUISITES: dict[str, list[str]] = {
+    "senso-numerico": [],
+    "comparacao": ["senso-numerico"],
+    "calculo-mental": ["senso-numerico", "comparacao"],
+    "operacoes-aritmeticas": ["calculo-mental"],
+    "potenciacao": ["operacoes-aritmeticas"],
+    "radiciacao": ["potenciacao"],
+    "fracoes": ["operacoes-aritmeticas"],
+    "numeros-decimais": ["fracoes"],
+    "porcentagem": ["fracoes", "numeros-decimais"],
+    "pensamento-algebrico": ["operacoes-aritmeticas", "porcentagem"],
+    "geometria-basica": ["operacoes-aritmeticas"],
 }
 
 # topic slug -> area slug. Every *active* topic seeded by scripts/seed.py
@@ -121,6 +166,10 @@ TOPIC_AREAS: dict[str, str] = {
     "calculo-de-porcentagem": "porcentagem",
     "equacoes-1-grau": "pensamento-algebrico",
     "equacoes-1-grau-avancado": "pensamento-algebrico",
+    "equacoes-2-grau-incompletas": "pensamento-algebrico",
+    "equacoes-2-grau-fatoravel": "pensamento-algebrico",
+    "perimetro-de-figuras": "geometria-basica",
+    "area-de-figuras": "geometria-basica",
 }
 
 

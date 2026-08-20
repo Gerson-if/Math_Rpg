@@ -245,3 +245,76 @@ def test_linear_equation_both_sides_answer_solves_the_equation():
             a, b, c, d = (int(m.group(i)) for i in range(1, 5))
             assert a * x + b == c * x + d
             assert x > 0
+
+
+# --- Equações do 2º Grau -------------------------------------------------
+
+def test_quadratic_incomplete_answer_solves_the_equation():
+    import re
+
+    for _ in range(80):
+        for difficulty in range(1, 6):
+            q = generate_question("equacoes-2-grau-incompletas", difficulty)
+            x = int(q["answer"])
+            m = re.match(r"(\d+)x² = (\d+)", q["prompt"])
+            a, b = int(m.group(1)), int(m.group(2))
+            assert a * x * x == b
+            assert x > 0
+
+
+def test_quadratic_factorable_answer_is_the_repeated_root():
+    import re
+
+    for _ in range(80):
+        for difficulty in range(1, 6):
+            q = generate_question("equacoes-2-grau-fatoravel", difficulty)
+            r = int(q["answer"])
+            m = re.match(r"x² - (\d+)x \+ (\d+) = 0", q["prompt"])
+            b, c = int(m.group(1)), int(m.group(2))
+            # (x - r)² expanded is x² - 2r·x + r² — confirms r really is
+            # the (repeated) root of the equation shown.
+            assert b == 2 * r
+            assert c == r * r
+            assert r > 0
+
+
+# --- Geometria Básica ------------------------------------------------------
+
+def test_perimeter_answer_matches_the_shape_described():
+    for _ in range(150):
+        for difficulty in range(1, 6):
+            q = generate_question("perimetro-de-figuras", difficulty)
+            shape = q["meta"]["shape"]
+            nums = [int(n) for n in __import__("re").findall(r"\d+", q["prompt"])]
+            answer = int(q["answer"])
+            if shape == "quadrado":
+                side, = nums[:1]
+                assert answer == side * 4
+            elif shape == "triangulo-equilatero":
+                side, = nums[:1]
+                assert answer == side * 3
+            else:
+                base, altura = nums[:2]
+                assert base != altura
+                assert answer == 2 * (base + altura)
+
+
+def test_area_answer_matches_the_shape_described():
+    import re
+
+    for _ in range(150):
+        for difficulty in range(1, 6):
+            q = generate_question("area-de-figuras", difficulty)
+            shape = q["meta"]["shape"]
+            nums = [int(n) for n in re.findall(r"\d+", q["prompt"])]
+            answer = int(q["answer"])
+            if shape == "quadrado":
+                side, = nums[:1]
+                assert answer == side * side
+            elif shape == "retangulo":
+                base, altura = nums[:2]
+                assert answer == base * altura
+            else:  # triangulo
+                base, altura = nums[:2]
+                assert (base * altura) % 2 == 0
+                assert answer == (base * altura) // 2

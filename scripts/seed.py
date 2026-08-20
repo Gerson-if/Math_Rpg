@@ -46,6 +46,18 @@ CURRICULUM = [
     # about it is force-locked for lower-level players.
     ("algebra", "Álgebra", ["equacoes-1-grau", "equacoes-1-grau-avancado"],
      None, ["calculo-de-porcentagem"]),
+    # Two more regions past the castle, added to continue the trail
+    # instead of leaving Álgebra as a dead end (see progression_service.
+    # next_topic_for's cross-subject continuation). Equações do 2º Grau is
+    # the direct next step from Álgebra's own linear equations; Geometria
+    # Básica opens a new skill entirely (perímetro/área) rather than going
+    # deeper into algebra a third time in a row.
+    ("equacoes-2-grau", "Equações do 2º Grau",
+     ["equacoes-2-grau-incompletas", "equacoes-2-grau-fatoravel"],
+     None, ["equacoes-1-grau-avancado"]),
+    ("geometria-basica", "Geometria Básica",
+     ["perimetro-de-figuras", "area-de-figuras"],
+     None),
 ]
 
 # icon_key points at static/images/ranks/<slug>.png (Fase 5 art pack). The

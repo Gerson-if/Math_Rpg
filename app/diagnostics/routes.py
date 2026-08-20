@@ -15,8 +15,10 @@ diagnostics_bp = Blueprint("diagnostics", __name__, url_prefix="/diagnostico")
 def index():
     report = diagnostics_service.area_report(current_user.id)
     weakest = report[0] if report else None
+    radar_svg = diagnostics_service.radar_chart_svg({row["slug"]: row for row in report})
     return render_template(
         "diagnostics/index.html",
         report=report,
         weakest=weakest,
+        radar_svg=radar_svg,
     )
