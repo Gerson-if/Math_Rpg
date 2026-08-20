@@ -121,10 +121,12 @@ def list_topics():
     ])
 
 
-@mathematics_bp.route("/praticar/<topic_slug>")
-@login_required
-def practice(topic_slug):
-    topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
+def _practice_context(topic):
+    """Everything the story screen / battle config need for one topic —
+    factored out of practice() so the same data can also be served as JSON
+    (see practice_summary below), used to build the next topic's story
+    screen dynamically when advancing from a victory instead of a full
+    page reload."""
     display_guardian, boss_tier = guardians.for_topic(topic)
     if boss_tier == "boss":
         already_defeated = (
@@ -161,26 +163,85 @@ def practice(topic_slug):
         class_info = classes_service.CLASSES.get(class_key)
         ultimate_name = classes_service.ability_for(class_key, profile.class_tier_claimed) or ultimate_name
 
-    return render_template(
-        "mathematics/practice.html",
-        topic=topic,
-        guardian=display_guardian,
-        boss_tier=boss_tier,
-        recommend_first=progression_service.unmet_prerequisites(current_user.id, topic),
-        mentor_tip=mentor_tips.random_tip(),
-        ally=dungeon_service.active_ally(current_user.id, topic.id),
-        equipped=loot_service.list_equipped(current_user.id),
-        buffs=loot_service.compute_buffs(current_user.id),
-        chronicle=lore.for_subject(topic.subject.slug),
-        special_attacks=guardians.special_attacks_for(topic.subject.slug),
-        battle_taunts=guardians.battle_taunts_for(topic.subject.slug),
-        topic_mastery=topic_mastery,
-        best_stars=best_stars,
-        ultimate_name=ultimate_name,
-        class_info=class_info,
-        next_topic=progression_service.next_topic_for(topic),
-        mastery_threshold=progression_service.PREREQUISITE_MASTERY_THRESHOLD,
-    )
+    return {
+        "topic": topic,
+        "guardian": display_guardian,
+        "boss_tier": boss_tier,
+        "recommend_first": progression_service.unmet_prerequisites(current_user.id, topic),
+        "mentor_tip": mentor_tips.random_tip(),
+        "ally": dungeon_service.active_ally(current_user.id, topic.id),
+        "equipped": loot_service.list_equipped(current_user.id),
+        "buffs": loot_service.compute_buffs(current_user.id),
+        "chronicle": lore.for_subject(topic.subject.slug),
+        "special_attacks": guardians.special_attacks_for(topic.subject.slug),
+        "battle_taunts": guardians.battle_taunts_for(topic.subject.slug),
+        "topic_mastery": topic_mastery,
+        "best_stars": best_stars,
+        "ultimate_name": ultimate_name,
+        "class_info": class_info,
+        "next_topic": progression_service.next_topic_for(topic),
+        "mastery_threshold": progression_service.PREREQUISITE_MASTERY_THRESHOLD,
+    }
+
+
+@mathematics_bp.route("/praticar/<topic_slug>")
+@login_required
+def practice(topic_slug):
+    topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
+    return render_template("mathematics/practice.html", **_practice_context(topic))
+
+
+@mathematics_bp.route("/praticar/<topic_slug>/resumo")
+@login_required
+def practice_summary(topic_slug):
+    """JSON snapshot of a topic's story-screen data — used by the battle
+    arena to build the next phase's "resumo" screen dynamically (the exact
+    same data the story screen would render, generated on the fly instead
+    of a full page navigation) right after a victory, before playing the
+    invocation animation into the new fight. See advanceToNextTopic in
+    battle-arena.js."""
+    topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
+    ctx = _practice_context(topic)
+    topic_mastery = ctx["topic_mastery"]
+    ally = ctx["ally"]
+    next_topic = ctx["next_topic"]
+
+    return jsonify({
+        "topicSlug": topic.slug,
+        "topicName": topic.name,
+        "practiceUrl": url_for("mathematics.practice", topic_slug=topic.slug),
+        "victoryUrl": url_for("mathematics.claim_victory", topic_slug=topic.slug),
+        "newQuestionUrl": url_for("mathematics.new_question", topic_slug=topic.slug),
+        "guardian": ctx["guardian"],
+        "bossTier": ctx["boss_tier"],
+        "topicMastery": ({
+            "score": topic_mastery.mastery_score,
+            "pct": int(round(topic_mastery.mastery_score * 100)),
+            "correctCount": topic_mastery.correct_count,
+            "wrongCount": topic_mastery.wrong_count,
+        } if topic_mastery else None),
+        "bestStars": ctx["best_stars"],
+        "ally": ({"username": ally.username} if ally else None),
+        "recommendFirst": [
+            {"slug": t.slug, "name": t.name, "url": url_for("mathematics.practice", topic_slug=t.slug)}
+            for t in ctx["recommend_first"]
+        ],
+        "mentorTip": ctx["mentor_tip"],
+        "equippedCount": len([v for v in ctx["equipped"].values() if v]),
+        "equipamentosUrl": url_for("character.equipamentos"),
+        "buffs": ctx["buffs"],
+        "chronicle": ctx["chronicle"],
+        "specialAttacks": ctx["special_attacks"],
+        "battleTaunts": ctx["battle_taunts"],
+        "ultimateName": ctx["ultimate_name"],
+        "masteryThreshold": ctx["mastery_threshold"],
+        "nextTopic": ({
+            "slug": next_topic.slug,
+            "name": next_topic.name,
+            "url": url_for("mathematics.practice", topic_slug=next_topic.slug),
+            "resumoUrl": url_for("mathematics.practice_summary", topic_slug=next_topic.slug),
+        } if next_topic else None),
+    })
 
 
 @mathematics_bp.route("/praticar/<topic_slug>/questao")

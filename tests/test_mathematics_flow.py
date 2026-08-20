@@ -296,6 +296,46 @@ def test_answer_fragment_has_no_next_topic_for_the_last_topic_in_a_subject(clien
     assert 'data-next-topic-slug=""' in resp2.data.decode()
 
 
+def test_practice_summary_requires_login(client, db):
+    topic = _create_topic(db)
+    resp = client.get(f"/math/praticar/{topic.slug}/resumo")
+    assert resp.status_code in (302, 401)
+
+
+def test_practice_summary_includes_next_topic_urls_for_chaining(client, db):
+    from app.models import Subject
+
+    _create_and_login(client, db)
+    subject = Subject(slug="tabuada-summary", name="Tabuada", order=0)
+    db.session.add(subject)
+    db.session.flush()
+    first = Topic(slug="tabuada-do-1", name="Tabuada do 1", subject_id=subject.id, order=0, base_difficulty=1)
+    second = Topic(slug="tabuada-do-2", name="Tabuada do 2", subject_id=subject.id, order=1, base_difficulty=1)
+    db.session.add_all([first, second])
+    db.session.commit()
+
+    resp = client.get(f"/math/praticar/{first.slug}/resumo")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["topicSlug"] == "tabuada-do-1"
+    assert data["topicName"] == "Tabuada do 1"
+    assert data["guardian"]["name"]
+    assert data["nextTopic"]["slug"] == "tabuada-do-2"
+    assert data["nextTopic"]["url"].endswith("/math/praticar/tabuada-do-2")
+    assert data["nextTopic"]["resumoUrl"].endswith("/math/praticar/tabuada-do-2/resumo")
+    assert data["victoryUrl"].endswith(f"/math/praticar/{first.slug}/vitoria")
+    assert data["newQuestionUrl"].endswith(f"/math/praticar/{first.slug}/questao")
+
+
+def test_practice_summary_has_no_next_topic_for_the_last_topic_in_a_subject(client, db):
+    _create_and_login(client, db)
+    topic = _create_topic(db, slug="tabuada-do-10")
+
+    resp = client.get(f"/math/praticar/{topic.slug}/resumo")
+    data = resp.get_json()
+    assert data["nextTopic"] is None
+
+
 def test_a_single_correct_answer_never_carries_a_spurious_needs_review_flag(client, db, app):
     """Regression: needs_review used to mirror the *persisted* Mastery flag,
     which only ever flips after 5 attempts — a fresh topic's very first,

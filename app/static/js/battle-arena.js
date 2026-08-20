@@ -76,9 +76,10 @@ const MathBattle = (() => {
   const BATTLE_TAUNT_FALLBACK = ["Você não é páreo para mim!", "Tente de novo, aprendiz!"];
 
   let cfg = {
-    topicSlug: "", indexUrl: "/math/", buffs: {}, bossName: "O guardião", playerName: "aprendiz",
+    topicSlug: "", topicName: "", indexUrl: "/math/", buffs: {}, bossName: "O guardião", playerName: "aprendiz",
+    bossIcon: "fa-dragon", bossColor: "purple-400",
     specialAttacks: SPECIAL_ATTACK_NAMES_FALLBACK, battleTaunts: BATTLE_TAUNT_FALLBACK,
-    masteryThreshold: 0.5, nextTopicSlug: null, nextTopicName: null, nextTopicUrl: null,
+    masteryThreshold: 0.5, nextTopicSlug: null, nextTopicName: null, nextTopicUrl: null, nextTopicResumoUrl: null,
   };
   let maxHP = BASE_MAX_HP, playerHP = maxHP;
   let bossMaxHP = BOSS_HP_BY_TIER.boss, bossHP = bossMaxHP;
@@ -219,9 +220,13 @@ const MathBattle = (() => {
   }
 
   /* Doesn't auto-dismiss — there's a chronicle sliver to actually read —
-     it waits for the player to tap "Continuar", then fades out and hands
-     control back via onContinue (which reveals the victory-screen box). */
-  function showVictoryReveal(onContinue) {
+     it waits for the player to tap a button, then fades out and hands
+     control back via the matching callback (onAdvance for moving on to
+     the next topic, onPracticeAgain for rematching the one just won, to
+     build up more mastery before moving on). When there's no next topic
+     unlocked yet, only the practice-again option makes sense, so it's the
+     one button shown, labeled "Continuar" like before. */
+  function showVictoryReveal(onAdvance, onPracticeAgain) {
     const lore = nextLoreSnippet();
     const overlay = document.createElement("div");
     overlay.className = "victory-overlay";
@@ -236,24 +241,33 @@ const MathBattle = (() => {
     if (lore) {
       html += `<div class="victory-snippet"><strong>${escapeHtml(lore.title)} — Capítulo ${lore.stageNumber}</strong><br>${escapeHtml(lore.snippet)}${lore.isComplete ? " <em>(crônica completa — reveja em Crônicas do Reino)</em>" : ""}</div>`;
     }
-    // If a next topic in the trail is already unlocked, the win itself
-    // is the hand-off — no reason to make the player go back to the map
-    // and pick "tabuada do 2" manually when the game already knows
-    // that's next.
-    const continueLabel = cfg.nextTopicUrl
-      ? `Avançar para ${escapeHtml(cfg.nextTopicName)}`
-      : "Continuar";
-    html += `<button type="button" class="victory-continue-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> ${continueLabel}</button>`;
+    // If a next topic in the trail is already unlocked, offer both moving
+    // on AND replaying this one for more mastery — previously the win
+    // only ever offered whichever one made the game's own decision for
+    // the player. With nothing unlocked yet, replaying is the only
+    // sensible option, so it's the lone button, still labeled "Continuar".
+    if (cfg.nextTopicUrl) {
+      html += '<div class="victory-btn-row">' +
+        `<button type="button" class="victory-continue-btn" data-action="advance"><i class="fa-solid fa-wand-magic-sparkles"></i> Avançar para ${escapeHtml(cfg.nextTopicName)}</button>` +
+        `<button type="button" class="victory-secondary-btn" data-action="practice"><i class="fa-solid fa-arrows-rotate"></i> Praticar ${escapeHtml(cfg.topicName)} de novo</button>` +
+        "</div>";
+    } else {
+      html += `<button type="button" class="victory-continue-btn" data-action="practice"><i class="fa-solid fa-wand-magic-sparkles"></i> Continuar</button>`;
+    }
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
 
-    overlay.querySelector(".victory-continue-btn").addEventListener("click", () => {
+    const dismiss = (callback) => {
       overlay.classList.add("closing");
       setTimeout(() => {
         overlay.remove();
-        if (onContinue) onContinue();
+        if (callback) callback();
       }, 700);
-    });
+    };
+    const advanceBtn = overlay.querySelector('[data-action="advance"]');
+    if (advanceBtn) advanceBtn.addEventListener("click", () => dismiss(onAdvance));
+    const practiceBtn = overlay.querySelector('[data-action="practice"]');
+    if (practiceBtn) practiceBtn.addEventListener("click", () => dismiss(onPracticeAgain));
   }
 
   /* ---------------- screen flow (story -> arena -> victory/defeat) ---------------- */
@@ -272,7 +286,12 @@ const MathBattle = (() => {
       $("story-screen").classList.add("hidden");
       const arena = $("battle-arena");
       arena.classList.remove("hidden");
-      arena.classList.add("epic-enter");
+      // remove+reflow+add so the entrance animation replays on a second
+      // start() call (advancing to the next topic re-enters the arena
+      // without a page reload — see advanceToNextTopic below) instead of
+      // silently no-opping because the class was already present from the
+      // very first fight.
+      arena.classList.remove("epic-enter"); void arena.offsetWidth; arena.classList.add("epic-enter");
       spawnDust();
       resetCombatState();
       arena.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -860,33 +879,21 @@ const MathBattle = (() => {
 
     BattleAudio.sfx.victory();
     // The chapter-reveal overlay below IS the victory transition — it
-    // still waits for a manual "Continuar" since there's actual reading
-    // on it, but once dismissed the next fight starts right away. There
-    // used to be a "Novo desafio" / "Voltar ao mapa" box in between —
-    // showing a choice screen right after the player just confirmed they
-    // won read as a leftover decision gate, not a smooth transition,
-    // so it's gone; "Fugir" in the arena footer is the one bail-out now,
-    // same as during any other fight.
+    // still waits for a manual tap since there's actual reading on it,
+    // but once dismissed the next step starts right away. There used to
+    // be a "Novo desafio" / "Voltar ao mapa" box in between — showing a
+    // choice screen right after the player just confirmed they won read
+    // as a leftover decision gate, not a smooth transition, so it's gone;
+    // "Fugir" in the arena footer is the one bail-out now, same as during
+    // any other fight.
     //
-    // If defeating this boss already unlocked the next topic in the
-    // trail (same next_topic_for the mid-fight mastery bar tracks), go
-    // straight there instead of rematching the one just won — no reason
-    // to send the player back to the map to pick "tabuada do 2" by hand
-    // when the game already knows that's next.
-    showVictoryReveal(() => {
-      if (cfg.nextTopicUrl) {
-        // "Avançar" already IS the confirmation — the next page used to
-        // still gate the fight behind its own separate "Enfrentar"
-        // button, effectively asking the same question twice. The
-        // ?autoentrar=1 flag tells that page's bootstrap script (see the
-        // inline <script> at the bottom of practice.html) to skip the
-        // click and animate straight into battle instead.
-        const sep = cfg.nextTopicUrl.includes("?") ? "&" : "?";
-        window.location.href = cfg.nextTopicUrl + sep + "autoentrar=1";
-      } else {
-        nextChallenge();
-      }
-    });
+    // Two real choices now instead of the game picking one for the
+    // player: advance to the next unlocked topic (if any), or replay this
+    // one for more mastery before moving on. See showVictoryReveal.
+    showVictoryReveal(
+      () => advanceToNextTopic(),
+      () => nextChallenge()
+    );
 
     if (claimingVictory) return;
     claimingVictory = true;
@@ -965,6 +972,189 @@ const MathBattle = (() => {
 
   function flee() {
     showFarewell(() => { window.location.href = cfg.indexUrl; });
+  }
+
+  /* ---------------- advancing to the next topic without a page reload ---------------- */
+
+  // Same readable pause the old ?autoentrar=1 full-page-navigation flow
+  // used — long enough to actually read the freshly-built story screen
+  // before the invocation animation takes over.
+  const STORY_TRANSITION_DELAY_MS = 1400;
+
+  function progressColorClass(pct) {
+    if (pct >= 75) return "text-emerald-400";
+    if (pct >= 40) return "text-yellow-400";
+    return "text-blood";
+  }
+
+  // Applies one topic's battle config (fetched from .../resumo, see
+  // practice_summary in app/mathematics/routes.py) onto cfg — the same
+  // fields the inline <script> at the bottom of practice.html seeds on a
+  // normal page load, just arriving over fetch() instead of a server
+  // render, so the fight that follows behaves identically either way.
+  function applyTopicConfig(data) {
+    const prevBossColor = cfg.bossColor;
+
+    cfg.topicSlug = data.topicSlug;
+    cfg.topicName = data.topicName;
+    cfg.victoryUrl = data.victoryUrl;
+    cfg.newQuestionUrl = data.newQuestionUrl;
+    cfg.bossName = data.guardian.name;
+    cfg.bossIcon = data.guardian.icon;
+    cfg.bossColor = data.guardian.color;
+    cfg.bossTier = data.bossTier;
+    if (data.specialAttacks && data.specialAttacks.length) cfg.specialAttacks = data.specialAttacks;
+    if (data.battleTaunts && data.battleTaunts.length) cfg.battleTaunts = data.battleTaunts;
+    if (data.ultimateName) cfg.ultimateName = data.ultimateName;
+    cfg.masteryThreshold = data.masteryThreshold;
+    cfg.chronicle = data.chronicle;
+    if (data.buffs) cfg.buffs = data.buffs;
+    cfg.nextTopicSlug = data.nextTopic ? data.nextTopic.slug : null;
+    cfg.nextTopicName = data.nextTopic ? data.nextTopic.name : null;
+    cfg.nextTopicUrl = data.nextTopic ? data.nextTopic.url : null;
+    cfg.nextTopicResumoUrl = data.nextTopic ? data.nextTopic.resumoUrl : null;
+
+    const avatarIcon = $("boss-avatar-icon");
+    if (avatarIcon) avatarIcon.className = `fa-solid ${data.guardian.icon} text-${data.guardian.color}`;
+    const nameLabel = $("boss-name-label");
+    if (nameLabel) nameLabel.textContent = data.guardian.name;
+    const spriteIcon = $("boss-sprite-icon");
+    if (spriteIcon) spriteIcon.className = `fa-solid ${data.guardian.icon}`;
+    // #boss-sprite itself carries the color class (see practice.html) —
+    // same icon/color for every topic in a subject in practice (only the
+    // tier name changes, see for_topic's docstring), but this keeps it
+    // correct even if that ever stops being true.
+    const sprite = $("boss-sprite");
+    if (sprite) {
+      if (prevBossColor) sprite.classList.remove(`text-${prevBossColor}`);
+      sprite.classList.add(`text-${data.guardian.color}`);
+    }
+
+    const nextProgress = $("next-topic-progress");
+    if (nextProgress) nextProgress.style.display = data.nextTopic ? "" : "none";
+    const nextLabel = $("next-topic-name-label");
+    if (nextLabel) nextLabel.textContent = cfg.nextTopicName || "";
+    updateNextTopicProgress(data.topicMastery ? data.topicMastery.score : 0);
+  }
+
+  // Rebuilds the story screen's content from a .../resumo payload — the
+  // "nova template de dados daquela fase" the transition is supposed to
+  // show, generated on the fly instead of coming from a fresh page
+  // render, so advancing never has to leave the page (and never asks the
+  // player to confirm "Enfrentar" a second time — see start()'s own
+  // ?autoentrar=1 comment for the original version of that problem).
+  function renderStoryScreen(data) {
+    const screen = $("story-screen");
+    if (!screen) return;
+
+    let masteryHtml = "";
+    if (data.topicMastery) {
+      const pct = data.topicMastery.pct;
+      masteryHtml = `
+        <div class="inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-stone-900/70 border border-stone-700 rounded-lg px-4 py-2.5 text-sm font-sans text-stone-300">
+          <span class="flex items-center gap-1.5">
+            <i class="fa-solid fa-book-open text-stone-400"></i> Seu progresso:
+            <strong class="${progressColorClass(pct)}">${pct}% de domínio</strong>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <i class="fa-solid fa-check text-green-400"></i> ${data.topicMastery.correctCount} acertos
+            <i class="fa-solid fa-xmark text-red-400 ml-1"></i> ${data.topicMastery.wrongCount} erros
+          </span>
+          ${data.bestStars != null ? `<span class="flex items-center gap-1" title="Melhor tempo de resposta já registrado neste tópico">Recorde: ${starsHtml(data.bestStars)}</span>` : ""}
+        </div>`;
+    }
+
+    let allyHtml = "";
+    if (data.ally) {
+      allyHtml = `
+        <div class="inline-flex items-center gap-2 bg-purple-950/50 border border-purple-500 rounded-full px-4 py-1.5 text-purple-200 text-sm font-sans">
+          <i class="fa-solid fa-people-group text-purple-300"></i>
+          Lutando ao lado de <strong class="text-white">${escapeHtml(data.ally.username)}</strong> — respostas certas rendem bônus de dupla
+        </div>`;
+    }
+
+    let recommendHtml = "";
+    if (data.recommendFirst && data.recommendFirst.length) {
+      const links = data.recommendFirst.map((t) =>
+        `<a href="${t.url}" class="inline-flex items-center gap-1 bg-black/30 border border-gold/60 rounded-full px-3 py-0.5 text-gold hover:bg-gold hover:text-black transition-colors">
+          <i class="fa-solid fa-map-pin"></i> ${escapeHtml(t.name)}
+        </a>`
+      ).join("");
+      recommendHtml = `
+        <div class="flex flex-wrap items-center justify-center gap-2 bg-yellow-950/40 border border-gold rounded-full px-4 py-1.5 text-yellow-100 text-sm font-sans">
+          <i class="fa-solid fa-compass text-gold"></i>
+          Recomendado praticar primeiro: ${links}
+        </div>`;
+    }
+
+    const eqCount = data.equippedCount || 0;
+    const guardian = data.guardian;
+
+    screen.innerHTML = `
+      <h1 class="text-3xl sm:text-4xl font-medieval text-gold drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]">${escapeHtml(data.topicName)}</h1>
+      <p class="text-stone-300 italic font-serif max-w-xl mx-auto">
+        <strong class="text-${guardian.color}">${escapeHtml(guardian.name)}</strong> vigia esta trilha. Prove seu domínio de <strong class="text-gold">${escapeHtml(data.topicName)}</strong> para seguir em frente.
+      </p>
+      ${masteryHtml}
+      ${allyHtml}
+      ${recommendHtml}
+      <div class="inline-flex items-center gap-3 bg-stone-900/70 border border-stone-700 rounded-lg px-4 py-2 text-sm font-sans text-stone-300">
+        <i class="fa-solid fa-khanda text-purple-300"></i>
+        ${eqCount ? eqCount + " equipamento(s) ativo(s)" : "Nenhum equipamento ativo"}
+        <a href="${data.equipamentosUrl}" class="inline-flex items-center gap-1 bg-purple-950/50 border border-purple-500 rounded-full px-3 py-0.5 text-purple-200 hover:bg-purple-800 hover:text-white transition-colors">
+          <i class="fa-solid fa-shield-halved"></i> preparar
+        </a>
+      </div>
+      <div class="mentor-tip inline-flex items-start gap-3 bg-stone-900/70 border border-stone-700 rounded-lg p-4 text-left max-w-lg mx-auto">
+        <span class="text-2xl shrink-0" aria-hidden="true">🦉</span>
+        <div>
+          <strong class="text-gold font-medieval">${data.mentorTip.kind === "curiosidade" ? "Você sabia?" : "Regra do jogo"}</strong>
+          <p class="text-stone-300 text-sm mt-1 font-sans">${escapeHtml(data.mentorTip.text)}</p>
+        </div>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+        <a href="${cfg.indexUrl}" class="px-6 py-3 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
+          <i class="fa-solid fa-arrow-left mr-2"></i>Voltar ao mapa
+        </a>
+        <button type="button" onclick="MathBattle.start()" class="px-8 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval text-lg hover:scale-105 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] transition-all cursor-pointer">
+          <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Enfrentar ${escapeHtml(guardian.name)}
+        </button>
+      </div>`;
+    screen.classList.remove("epic-enter"); void screen.offsetWidth; screen.classList.add("epic-enter");
+  }
+
+  let advancingTopic = false;
+
+  function advanceToNextTopic() {
+    if (!cfg.nextTopicSlug || !cfg.nextTopicResumoUrl) { nextChallenge(); return; }
+    if (advancingTopic) return;
+    advancingTopic = true;
+
+    fetch(cfg.nextTopicResumoUrl)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("bad response"))))
+      .then((data) => {
+        advancingTopic = false;
+        applyTopicConfig(data);
+        if (window.history && window.history.pushState) {
+          window.history.pushState(null, "", data.practiceUrl);
+        }
+        document.title = data.topicName;
+
+        $("battle-arena").classList.add("hidden");
+        renderStoryScreen(data);
+        $("story-screen").classList.remove("hidden");
+
+        setTimeout(() => start(), STORY_TRANSITION_DELAY_MS);
+      })
+      .catch(() => {
+        advancingTopic = false;
+        // Network hiccup fetching the summary — fall back to the old,
+        // reliable full-page-navigation path rather than stranding the
+        // player on a dead victory screen.
+        const url = cfg.nextTopicUrl || cfg.indexUrl;
+        const sep = url.includes("?") ? "&" : "?";
+        window.location.href = url + sep + "autoentrar=1";
+      });
   }
 
   return {

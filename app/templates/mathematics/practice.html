@@ -208,6 +208,27 @@
   }
   @media (min-width: 640px) { .victory-continue-btn { font-size: 1.15rem; padding: 0.75rem 2.25rem; } }
 
+  /* Second choice on the victory screen — replay the phase just won for
+     more mastery, instead of only ever being offered the advance. Same
+     shape as the primary button, deliberately quieter (no pulse, cooler
+     border) so "Avançar" still reads as the suggested default. */
+  .victory-btn-row {
+    display: flex; flex-wrap: wrap; gap: 0.9rem; justify-content: center;
+    margin-top: 1.75rem;
+  }
+  .victory-btn-row .victory-continue-btn, .victory-btn-row .victory-secondary-btn { margin-top: 0; }
+  .victory-secondary-btn {
+    opacity: 0; pointer-events: auto; cursor: pointer;
+    padding: 0.65rem 1.75rem; border-radius: 9999px;
+    background: rgba(0,0,0,0.4); border: 2px solid #7dd3fc;
+    color: #e0f2fe; font-family: 'MedievalSharp', cursive; font-size: 1rem;
+    box-shadow: 0 0 12px rgba(125,211,252,0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: victoryTextIn 1s ease-out 1.3s forwards;
+  }
+  .victory-secondary-btn:hover { transform: scale(1.06); box-shadow: 0 0 22px rgba(125,211,252,0.7); }
+  @media (min-width: 640px) { .victory-secondary-btn { font-size: 1.15rem; padding: 0.75rem 2.25rem; } }
+
   /* Solo Leveling-style gate: a slim glowing rift instead of a screen-filling
      ring — opens in place, stays subtle, never covers the UI beneath it. */
   .gate-rift {
@@ -867,11 +888,11 @@
       <div class="flex-1 min-w-0">
         <div class="flex items-center flex-row-reverse gap-2 sm:gap-3">
           <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-stone-800 border-2 border-purple-500 flex items-center justify-center text-xl sm:text-3xl shrink-0">
-            <i class="fa-solid {{ guardian.icon }} text-{{ guardian.color }}"></i>
+            <i id="boss-avatar-icon" class="fa-solid {{ guardian.icon }} text-{{ guardian.color }}"></i>
           </div>
           <div class="flex-1 min-w-0 text-right">
             <div class="flex items-center gap-1 flex-wrap justify-end">
-              <h2 class="font-medieval text-purple-400 text-xs sm:text-lg truncate">{{ guardian.name }}</h2>
+              <h2 id="boss-name-label" class="font-medieval text-purple-400 text-xs sm:text-lg truncate">{{ guardian.name }}</h2>
               <span id="boss-phase-tag" class="phase-tag text-purple-200">Fase 1</span>
             </div>
             <div id="boss-hp-bar-wrap" class="w-full bg-stone-900 rounded-full h-3 sm:h-4 border border-stone-600 mt-1 relative overflow-hidden hp-bar-wrap">
@@ -890,7 +911,7 @@
       <div id="loot-toast-container" class="loot-toast-container"></div>
       <div id="boss-sprite" class="floating-boss text-[3rem] sm:text-[4.5rem] text-{{ guardian.color }} relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
         <div id="boss-aura" class="boss-aura"></div>
-        <i class="fa-solid {{ guardian.icon }}"></i>
+        <i id="boss-sprite-icon" class="fa-solid {{ guardian.icon }}"></i>
         <div id="impact-fx" class="absolute inset-0 flex items-center justify-center"></div>
       </div>
     </div>
@@ -901,7 +922,7 @@
         {% set progress_pct = ([100, ((current_mastery / mastery_threshold) * 100) | round | int] | min) %}
         <div id="next-topic-progress" class="max-w-xl mx-auto mb-3">
           <div class="flex items-center justify-between text-[0.65rem] sm:text-xs font-sans text-stone-400 mb-1">
-            <span><i class="fa-solid fa-unlock mr-1"></i> Domínio p/ <strong class="text-purple-300">{{ next_topic.name }}</strong></span>
+            <span><i class="fa-solid fa-unlock mr-1"></i> Domínio p/ <strong id="next-topic-name-label" class="text-purple-300">{{ next_topic.name }}</strong></span>
             <span id="next-topic-progress-pct">{{ progress_pct }}%</span>
           </div>
           <div class="w-full bg-stone-900 rounded-full h-2 border border-stone-700 overflow-hidden">
@@ -991,6 +1012,7 @@
   BattleFx.init("fx-canvas", "battle-arena");
   MathBattle.init({
     topicSlug: {{ topic.slug | tojson }},
+    topicName: {{ topic.name | tojson }},
     indexUrl: {{ url_for('mathematics.index') | tojson }},
     victoryUrl: {{ url_for('mathematics.claim_victory', topic_slug=topic.slug) | tojson }},
     newQuestionUrl: {{ url_for('mathematics.new_question', topic_slug=topic.slug) | tojson }},
@@ -1000,6 +1022,8 @@
     chronicle: {{ chronicle | tojson }},
     bossTier: {{ boss_tier | tojson }},
     bossName: {{ guardian.name | tojson }},
+    bossIcon: {{ guardian.icon | tojson }},
+    bossColor: {{ guardian.color | tojson }},
     playerName: {{ (current_user.profile.display_name if current_user.profile else current_user.username) | tojson }},
     specialAttacks: {{ special_attacks | tojson }},
     battleTaunts: {{ battle_taunts | tojson }},
@@ -1008,6 +1032,7 @@
     nextTopicSlug: {{ next_topic.slug | tojson if next_topic else 'null' }},
     nextTopicName: {{ next_topic.name | tojson if next_topic else 'null' }},
     nextTopicUrl: {{ url_for('mathematics.practice', topic_slug=next_topic.slug) | tojson if next_topic else 'null' }},
+    nextTopicResumoUrl: {{ url_for('mathematics.practice_summary', topic_slug=next_topic.slug) | tojson if next_topic else 'null' }},
   });
 </script>
 {% endblock %}
