@@ -747,6 +747,39 @@
     gap: 1.25rem; padding: 1.5rem; text-align: center;
   }
   .consumable-slot { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+
+  /* ---- transition screen's loading bar — replaces the manual
+     Enfrentar/Voltar decision with a purely informational "time left
+     before this starts on its own" indicator, since the auto-advance
+     timer fires whether or not those buttons would've been clicked. ---- */
+  .transition-loading { margin-top: 0.25rem; display: flex; flex-direction: column; align-items: center; gap: 0.65rem; }
+  .transition-loading-icon {
+    font-size: 1.6rem; color: #d4af37;
+    text-shadow: 0 0 12px rgba(212,175,55,0.6);
+    animation: transitionIconPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes transitionIconPulse {
+    0%, 100% { transform: scale(1); opacity: 0.75; }
+    50% { transform: scale(1.18); opacity: 1; }
+  }
+  .transition-loading-track {
+    width: min(280px, 80%); height: 8px; border-radius: 9999px; overflow: hidden;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(212,175,55,0.4);
+  }
+  .transition-loading-fill {
+    height: 100%; width: 0%; border-radius: 9999px;
+    background: linear-gradient(90deg, #d4af37, #a855f7);
+    box-shadow: 0 0 10px rgba(212,175,55,0.6);
+    transition-property: width; transition-timing-function: linear;
+  }
+  .transition-loading-label {
+    font-family: 'Cinzel', serif; font-size: 0.78rem; color: #d6c9a3; letter-spacing: 0.03em;
+  }
+  .transition-cancel-link {
+    display: inline-block; margin-top: 1rem;
+    font-family: sans-serif; font-size: 0.7rem; color: #78716c; text-decoration: underline;
+  }
+  .transition-cancel-link:hover { color: #d4af37; }
 </style>
 {% endblock %}
 
@@ -828,7 +861,7 @@
       </div>
     </div>
 
-    <div class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+    <div id="story-cta-row" class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
       <a href="{{ url_for('mathematics.index') }}"
          class="px-6 py-3 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
         <i class="fa-solid fa-arrow-left mr-2"></i>Voltar ao mapa
@@ -839,6 +872,13 @@
       </button>
     </div>
   </div>
+
+  <!-- TRANSITION SCREEN: shown only when advancing from a victory into the
+       next topic (see advanceToNextTopic in battle-arena.js) — presentation
+       only, no Enfrentar/Voltar decision, just the next phase's info and a
+       loading bar showing the time left before the fight starts on its
+       own. Content is filled in dynamically by renderTransitionScreen. -->
+  <div id="transition-screen" class="hidden epic-enter bg-black/70 border-2 border-purple-900 rounded-lg p-6 sm:p-10 text-center space-y-5"></div>
 
   <!-- BATTLE ARENA -->
   <div id="battle-arena" class="hidden relative bg-dungeon rounded-lg border-2 border-stone-800 overflow-hidden mt-4">

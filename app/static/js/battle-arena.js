@@ -100,17 +100,22 @@ const MathBattle = (() => {
   function init(config) {
     cfg = Object.assign(cfg, config);
 
-    // Arriving here via a confirmed "Avançar" from the previous fight's
-    // victory screen (see victory() below) — the player already said yes
-    // once; landing on a fresh story screen that then requires a
-    // *second* "Enfrentar" click to actually begin asked the same
-    // question twice. The story screen still shows briefly (same
-    // guardian/mastery/mentor-tip info it always has — that's the "dados
-    // que iria mostrar" the transition is supposed to carry over), just
-    // without waiting on a click: a short beat to read it, then straight
-    // into the same epic invocation start() already plays manually.
+    // Fallback path only — reached when advanceToNextTopic()'s own
+    // fetch-and-render-in-place transition (see below) fails and falls
+    // back to a real page navigation instead. Arriving here means the
+    // player already said "Avançar" once on the previous fight's victory
+    // screen; the manual Enfrentar/Voltar choice on this fresh page load
+    // would just be asking the same question again with no time to
+    // actually use it before the timer fires. Swap that choice out for
+    // the same presentation-only loading bar the normal (no-reload)
+    // transition uses, so this fallback reads the same way instead of
+    // flashing a decision screen it doesn't intend to honor.
     if (new URLSearchParams(window.location.search).get("autoentrar") === "1") {
-      setTimeout(() => start(), 1400);
+      const ctaRow = $("story-cta-row");
+      if (ctaRow) {
+        ctaRow.outerHTML = loadingBarHtml() + cancelLinkHtml();
+      }
+      runLoadingBar(() => start());
     }
   }
 
@@ -976,15 +981,55 @@ const MathBattle = (() => {
 
   /* ---------------- advancing to the next topic without a page reload ---------------- */
 
-  // Same readable pause the old ?autoentrar=1 full-page-navigation flow
-  // used — long enough to actually read the freshly-built story screen
-  // before the invocation animation takes over.
-  const STORY_TRANSITION_DELAY_MS = 1400;
+  // Long enough to read the transition screen's info AND watch the
+  // loading bar sweep across — a bare 1.4s was tuned for a screen with
+  // interactive buttons the player might've clicked early; a pure
+  // presentation screen wants a bit more room to actually register as
+  // "loading" rather than a flicker.
+  const STORY_TRANSITION_DELAY_MS = 2200;
 
   function progressColorClass(pct) {
     if (pct >= 75) return "text-emerald-400";
     if (pct >= 40) return "text-yellow-400";
     return "text-blood";
+  }
+
+  // The transition screen's one interactive element: a quiet escape
+  // hatch (styled as a plain underlined link, not a button) in case the
+  // player wants out before the timer commits them — same role "Fugir"
+  // plays mid-fight, just muted so it doesn't compete with the loading
+  // bar for attention.
+  function cancelLinkHtml() {
+    return `<a href="${cfg.indexUrl}" class="transition-cancel-link"><i class="fa-solid fa-arrow-left mr-1"></i>Cancelar e voltar ao mapa</a>`;
+  }
+
+  // Presentation only — no Enfrentar/Voltar choice, since the fight
+  // starts on its own regardless of whether either would've been
+  // clicked. This sweeping bar is what actually communicates "time
+  // remaining" instead of a decision the timer overrides anyway.
+  function loadingBarHtml() {
+    return `
+      <div class="transition-loading">
+        <div class="transition-loading-icon"><i class="fa-solid fa-dungeon"></i></div>
+        <div class="transition-loading-track"><div id="transition-loading-fill" class="transition-loading-fill"></div></div>
+        <p class="transition-loading-label">Preparando o confronto...</p>
+      </div>`;
+  }
+
+  // Animates #transition-loading-fill from 0 to 100% over
+  // STORY_TRANSITION_DELAY_MS and calls onDone once that time is up — the
+  // single timer both the visual bar and the actual transition are tied
+  // to, so the bar never lies about how long is actually left.
+  function runLoadingBar(onDone) {
+    const fill = $("transition-loading-fill");
+    if (fill) {
+      fill.style.transitionDuration = STORY_TRANSITION_DELAY_MS + "ms";
+      // Double rAF: without it the browser can coalesce the 0% starting
+      // width and the 100% target into the same paint, skipping the
+      // transition entirely instead of animating between them.
+      requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = "100%"; }));
+    }
+    setTimeout(onDone, STORY_TRANSITION_DELAY_MS);
   }
 
   // Applies one topic's battle config (fetched from .../resumo, see
@@ -1037,14 +1082,18 @@ const MathBattle = (() => {
     updateNextTopicProgress(data.topicMastery ? data.topicMastery.score : 0);
   }
 
-  // Rebuilds the story screen's content from a .../resumo payload — the
-  // "nova template de dados daquela fase" the transition is supposed to
-  // show, generated on the fly instead of coming from a fresh page
-  // render, so advancing never has to leave the page (and never asks the
-  // player to confirm "Enfrentar" a second time — see start()'s own
-  // ?autoentrar=1 comment for the original version of that problem).
-  function renderStoryScreen(data) {
-    const screen = $("story-screen");
+  // Rebuilds the dedicated transition screen's content from a .../resumo
+  // payload — the "nova template de dados daquela fase" the hand-off is
+  // supposed to show, generated on the fly instead of coming from a fresh
+  // page render, so advancing never has to leave the page. Deliberately a
+  // *different* screen from #story-screen (see the comment on that div in
+  // practice.html): #story-screen's Enfrentar/Voltar choice only makes
+  // sense when a person is actually being asked to decide something —
+  // here the fight starts on its own regardless, so this one swaps that
+  // choice out for a loading bar (see loadingBarHtml) instead of
+  // reusing buttons nobody has time to act on.
+  function renderTransitionScreen(data) {
+    const screen = $("transition-screen");
     if (!screen) return;
 
     let masteryHtml = "";
@@ -1112,14 +1161,8 @@ const MathBattle = (() => {
           <p class="text-stone-300 text-sm mt-1 font-sans">${escapeHtml(data.mentorTip.text)}</p>
         </div>
       </div>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-        <a href="${cfg.indexUrl}" class="px-6 py-3 rounded font-medieval text-stone-300 border-2 border-stone-600 hover:border-gold hover:text-gold transition-colors">
-          <i class="fa-solid fa-arrow-left mr-2"></i>Voltar ao mapa
-        </a>
-        <button type="button" onclick="MathBattle.start()" class="px-8 py-3 bg-mystic border-2 border-purple-400 text-white rounded font-medieval text-lg hover:scale-105 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)] transition-all cursor-pointer">
-          <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Enfrentar ${escapeHtml(guardian.name)}
-        </button>
-      </div>`;
+      ${loadingBarHtml()}
+      ${cancelLinkHtml()}`;
     screen.classList.remove("epic-enter"); void screen.offsetWidth; screen.classList.add("epic-enter");
   }
 
@@ -1141,16 +1184,23 @@ const MathBattle = (() => {
         document.title = data.topicName;
 
         $("battle-arena").classList.add("hidden");
-        renderStoryScreen(data);
-        $("story-screen").classList.remove("hidden");
+        renderTransitionScreen(data);
+        const screen = $("transition-screen");
+        screen.classList.remove("hidden");
 
-        setTimeout(() => start(), STORY_TRANSITION_DELAY_MS);
+        runLoadingBar(() => {
+          screen.classList.add("hidden");
+          start();
+        });
       })
       .catch(() => {
         advancingTopic = false;
         // Network hiccup fetching the summary — fall back to the old,
         // reliable full-page-navigation path rather than stranding the
-        // player on a dead victory screen.
+        // player on a dead victory screen. That fallback lands on a fresh
+        // page load with ?autoentrar=1, which init() (above) also treats
+        // as presentation-only — same loading bar, not the manual
+        // Enfrentar/Voltar screen.
         const url = cfg.nextTopicUrl || cfg.indexUrl;
         const sep = url.includes("?") ? "&" : "?";
         window.location.href = url + sep + "autoentrar=1";
