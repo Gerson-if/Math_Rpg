@@ -41,3 +41,41 @@ def test_diagnostics_page_renders_with_no_practice_history(client, db):
     _create_and_login(client, db)
     resp = client.get("/diagnostico/")
     assert resp.status_code == 200
+
+
+def test_diagnostics_page_shows_encouraging_message_instead_of_a_gap_callout_when_nothing_practiced(client, db, app):
+    _create_and_login(client, db)
+    with app.app_context():
+        subject = Subject(slug="fracoes", name="Frações", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        # Topic exists in the curriculum but the player never attempted
+        # it — area_report still reports 0% for it (see
+        # diagnostics_service), but the page shouldn't present that as a
+        # diagnosed "maior lacuna".
+        db.session.add(Topic(slug="fracoes-basicas", name="Frações básicas", subject_id=subject.id, order=0, base_difficulty=1))
+        db.session.commit()
+
+    resp = client.get("/diagnostico/")
+    body = resp.data.decode()
+    assert resp.status_code == 200
+    assert "Ainda sem dados suficientes" in body
+    assert "Sua maior lacuna agora" not in body
+
+
+def test_diagnostics_page_flags_low_confidence_on_a_barely_attempted_area(client, db, app):
+    user = _create_and_login(client, db)
+    with app.app_context():
+        subject = Subject(slug="fracoes", name="Frações", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        topic = Topic(slug="fracoes-basicas", name="Frações básicas", subject_id=subject.id, order=0, base_difficulty=1)
+        db.session.add(topic)
+        db.session.flush()
+        db.session.add(Mastery(user_id=user.id, topic_id=topic.id, mastery_score=0.3, correct_count=1, wrong_count=1))
+        db.session.commit()
+
+    resp = client.get("/diagnostico/")
+    body = resp.data.decode()
+    assert resp.status_code == 200
+    assert "Poucas respostas ainda" in body

@@ -77,7 +77,16 @@ def normalize_answer(value: str) -> str:
         return _strip_accents(value.lower().replace(" ", ""))
 
 
-def generate_question(topic_slug: str, difficulty: int, force_concept: bool = False) -> Question:
+_MAX_DEDUP_ATTEMPTS = 6
+
+
+def generate_question(
+    topic_slug: str,
+    difficulty: int,
+    force_concept: bool = False,
+    due_fingerprint: str | None = None,
+    avoid_prompts: "set[str] | None" = None,
+) -> Question:
     """force_concept asks for a vocabulary/terminology question instead of
     a numeric one — see concepts_service and app/mathematics/routes.py's
     _should_ask_concept_question, which decides *when* that's worth doing
@@ -86,7 +95,25 @@ def generate_question(topic_slug: str, difficulty: int, force_concept: bool = Fa
     other question kind, so it's trivially testable without touching the
     database). Silently falls back to a normal numeric question if the
     topic's math area has no concept content yet, so passing force_concept
-    for newly-added curriculum never raises."""
+    for newly-added curriculum never raises.
+
+    due_fingerprint asks for one *specific* previously-missed fact instead
+    of a fresh random draw — see app/services/recall_service, which is the
+    only intended source for this value. Only the tabuada family currently
+    understands it; every other topic just ignores it and generates
+    normally, so passing it for a topic without per-fact tracking is
+    harmless, not an error.
+
+    avoid_prompts is a set of recently-served prompt strings (see
+    app/mathematics/routes.py's session-backed recent-prompt tracking) —
+    the generator retries a few times to dodge landing on one of them
+    again. Generators have no memory of their own between calls, so this
+    is just "ask again and hope"; a topic with a genuinely tiny number
+    space (e.g. counting up to 5 at difficulty 1) can exhaust its distinct
+    prompts before _MAX_DEDUP_ATTEMPTS gives up, in which case the last
+    draw is returned as-is — a rare repeat beats an infinite retry loop or
+    a raised error over something this minor.
+    """
     difficulty = max(1, min(5, difficulty))
 
     if force_concept:
@@ -96,8 +123,6 @@ def generate_question(topic_slug: str, difficulty: int, force_concept: bool = Fa
             return {"prompt": concept["prompt"], "answer": concept["answer"], "meta": {"kind": "conceito", "area": area_slug}}
 
     tabuada_match = TABUADA_RE.match(topic_slug)
-    if tabuada_match:
-        return _gen_tabuada(int(tabuada_match.group(1)), difficulty)
 
     generators = {
         "numeros-e-contagem": _gen_numbers_counting,
@@ -124,14 +149,54 @@ def generate_question(topic_slug: str, difficulty: int, force_concept: bool = Fa
         "perimetro-de-figuras": _gen_perimeter,
         "area-de-figuras": _gen_area,
     }
-    generator = generators.get(topic_slug)
-    if generator is None:
-        raise ValueError(f"Sem gerador de questões para o tópico '{topic_slug}'")
-    return generator(difficulty)
+
+    def _generate_once(use_due: bool) -> Question:
+        if use_due and due_fingerprint and tabuada_match:
+            return _gen_tabuada(int(tabuada_match.group(1)), difficulty, due_fingerprint=due_fingerprint)
+        if use_due and due_fingerprint and topic_slug == "tabuada-mista":
+            return _gen_tabuada_mista(difficulty, due_fingerprint=due_fingerprint)
+        if tabuada_match:
+            return _gen_tabuada(int(tabuada_match.group(1)), difficulty)
+        generator = generators.get(topic_slug)
+        if generator is None:
+            raise ValueError(f"Sem gerador de questões para o tópico '{topic_slug}'")
+        return generator(difficulty)
+
+    question = _generate_once(use_due=True)
+    if not avoid_prompts:
+        return question
+
+    # A due-fact question is intentionally deterministic in *which fact*
+    # it's about (that's the whole point — surfacing a specific thing to
+    # review) but at low difficulty it's also deterministic in *prompt
+    # text* (no order-flip until difficulty 2+, see _tabuada_prompt) — so
+    # if that exact prompt happens to be one of the recent ones, retrying
+    # with use_due still on would just regenerate the identical prompt
+    # over and over until _MAX_DEDUP_ATTEMPTS gives up, defeating the
+    # point of avoid_prompts entirely. Once the due-fact draw is known to
+    # collide, later attempts drop it and fall back to a plain random
+    # question instead — still varied, and the due fact simply gets
+    # another chance to come up on a future question.
+    attempts = 1
+    while question["prompt"] in avoid_prompts and attempts < _MAX_DEDUP_ATTEMPTS:
+        question = _generate_once(use_due=False)
+        attempts += 1
+    return question
 
 
-def _gen_tabuada(base: int, difficulty: int) -> Question:
-    factor = random.randint(0, 10)
+def _parse_tabuada_fingerprint(fingerprint: str) -> tuple[int, int] | None:
+    match = re.match(r"^(\d{1,2})x(\d{1,2})$", fingerprint or "")
+    if not match:
+        return None
+    return int(match.group(1)), int(match.group(2))
+
+
+def _tabuada_prompt(base: int, factor: int, difficulty: int) -> Question:
+    """Shared by both the random draw and the due-fact-review path below —
+    same phrasing rules (order-flip from difficulty 2, missing-factor
+    variant from difficulty 4) either way, so a fact being reviewed reads
+    exactly like any other question instead of tipping the player off
+    that "this one's a retry"."""
     if difficulty <= 3:
         # From difficulty 2 onward, the printed order is randomly flipped
         # ("3 × 7" instead of always "7 × 3") — mastering a table means
@@ -150,15 +215,42 @@ def _gen_tabuada(base: int, difficulty: int) -> Question:
         result = base * factor
         prompt = f"{base} × ? = {result}"
         answer = factor
-    return {"prompt": prompt, "answer": str(answer), "meta": {"family": "tabuada", "base": base}}
+    fingerprint = f"{min(base, factor)}x{max(base, factor)}"
+    return {
+        "prompt": prompt, "answer": str(answer),
+        "meta": {"family": "tabuada", "base": base, "fingerprint": fingerprint},
+    }
 
 
-def _gen_tabuada_mista(difficulty: int) -> Question:
+def _gen_tabuada(base: int, difficulty: int, due_fingerprint: str | None = None) -> Question:
+    if due_fingerprint:
+        parsed = _parse_tabuada_fingerprint(due_fingerprint)
+        if parsed:
+            a, b = parsed
+            # Keep `base` anchored to this topic's own base (tabuada-do-N
+            # should still visually be "about" N) — use whichever side of
+            # the due fact ISN'T the base as the factor to ask about.
+            factor = b if a == base else a
+            return _tabuada_prompt(base, factor, difficulty)
+    factor = random.randint(0, 10)
+    return _tabuada_prompt(base, factor, difficulty)
+
+
+def _gen_tabuada_mista(difficulty: int, due_fingerprint: str | None = None) -> Question:
     """"Domínio completo": draws the base from the whole 1..10 range instead
     of a single fixed table, for the mixed-review topic that sits after all
     ten individual tabuada-do-N topics. Reuses _gen_tabuada so both the
     straightforward and missing-factor variants (and their difficulty
-    scaling) stay in one place."""
+    scaling) stay in one place.
+
+    due_fingerprint here can legitimately be about ANY base (not anchored
+    to one topic's own base like the tabuada-do-N generator) — so the
+    fingerprint's own pair is used directly as (base, factor) rather than
+    picking whichever side matches a fixed base."""
+    if due_fingerprint:
+        parsed = _parse_tabuada_fingerprint(due_fingerprint)
+        if parsed:
+            return _tabuada_prompt(parsed[0], parsed[1], difficulty)
     base = random.randint(1, 10)
     return _gen_tabuada(base, difficulty)
 

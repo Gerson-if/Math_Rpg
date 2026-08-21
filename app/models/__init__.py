@@ -1,6 +1,6 @@
 from app.models.user import User, Profile
 from app.models.mathematics import Subject, Topic, Question, Attempt
-from app.models.progression import Level, Rank, PlayerStats, Mastery
+from app.models.progression import Level, Rank, PlayerStats, Mastery, MissedFact
 from app.models.achievements import Achievement, UserAchievement
 from app.models.ranking import LeaderboardEntry
 from app.models.chat import ChatMessage, ChatReport, ChatModeration
@@ -20,6 +20,7 @@ __all__ = [
     "Rank",
     "PlayerStats",
     "Mastery",
+    "MissedFact",
     "Achievement",
     "UserAchievement",
     "LeaderboardEntry",

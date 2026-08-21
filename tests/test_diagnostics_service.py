@@ -18,8 +18,11 @@ def _make_topic(slug, subject, order):
     return topic
 
 
-def _set_mastery(user, topic, score):
-    db.session.add(Mastery(user_id=user.id, topic_id=topic.id, mastery_score=score, correct_count=1, wrong_count=0))
+def _set_mastery(user, topic, score, correct_count=1, wrong_count=0):
+    db.session.add(Mastery(
+        user_id=user.id, topic_id=topic.id, mastery_score=score,
+        correct_count=correct_count, wrong_count=wrong_count,
+    ))
     db.session.commit()
 
 
@@ -133,3 +136,91 @@ def test_radar_chart_svg_plots_every_area_axis():
 def test_radar_chart_svg_handles_an_empty_report():
     svg = diagnostics_service.radar_chart_svg({})
     assert svg.startswith("<svg")
+
+
+# --- confidence / "weakest with real data" -------------------------------
+#
+# An untouched topic reporting 0% mastery (see
+# test_area_report_treats_an_untouched_topic_as_zero_mastery above) is
+# indistinguishable from a genuinely-struggled-with topic by mastery_pct
+# alone — confidence and weakest_with_data are what let a caller tell
+# "never explored" apart from "actually weak".
+
+def test_confidence_is_none_for_a_never_attempted_area(app, db):
+    with app.app_context():
+        user = _make_user()
+        subject = Subject(slug="fundamentos", name="Fundamentos", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        _make_topic("numeros-e-contagem", subject, 0)  # never attempted
+
+        report = diagnostics_service.area_report(user.id)
+        area = next(r for r in report if r["slug"] == "senso-numerico")
+        assert area["confidence"] == "nenhum"
+        assert area["attempts_total"] == 0
+
+
+def test_confidence_is_baixa_with_only_a_couple_of_attempts(app, db):
+    with app.app_context():
+        user = _make_user()
+        subject = Subject(slug="fundamentos", name="Fundamentos", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        topic = _make_topic("numeros-e-contagem", subject, 0)
+        _set_mastery(user, topic, score=0.3, correct_count=1, wrong_count=1)
+
+        report = diagnostics_service.area_report(user.id)
+        area = next(r for r in report if r["slug"] == "senso-numerico")
+        assert area["confidence"] == "baixa"
+        assert area["attempts_total"] == 2
+
+
+def test_confidence_is_alta_with_plenty_of_attempts_across_every_topic(app, db):
+    with app.app_context():
+        user = _make_user()
+        subject = Subject(slug="operacoes-fundamentais", name="Operações Fundamentais", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        adicao = _make_topic("adicao", subject, 0)
+        subtracao = _make_topic("subtracao", subject, 1)
+        _set_mastery(user, adicao, score=0.9, correct_count=15, wrong_count=5)
+        _set_mastery(user, subtracao, score=0.9, correct_count=15, wrong_count=5)
+
+        report = diagnostics_service.area_report(user.id)
+        area = next(r for r in report if r["slug"] == "operacoes-aritmeticas")
+        assert area["confidence"] == "alta"
+
+
+def test_weakest_with_data_prefers_a_practiced_area_over_an_untouched_one(app, db):
+    with app.app_context():
+        user = _make_user()
+        subject = Subject(slug="fundamentos", name="Fundamentos", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        # senso-numerico: never touched (0%, but no real data).
+        _make_topic("numeros-e-contagem", subject, 0)
+        # comparacao: genuinely practiced and still weak (30%, real data).
+        comparacao = _make_topic("comparacao-de-quantidades", subject, 1)
+        _set_mastery(user, comparacao, score=0.3, correct_count=3, wrong_count=7)
+
+        report = diagnostics_service.area_report(user.id)
+        weakest = diagnostics_service.weakest_with_data(report)
+        assert weakest["slug"] == "comparacao"
+
+
+def test_weakest_with_data_falls_back_to_untouched_when_nothing_has_been_practiced(app, db):
+    with app.app_context():
+        user = _make_user()
+        subject = Subject(slug="fundamentos", name="Fundamentos", order=0)
+        db.session.add(subject)
+        db.session.flush()
+        _make_topic("numeros-e-contagem", subject, 0)
+
+        report = diagnostics_service.area_report(user.id)
+        weakest = diagnostics_service.weakest_with_data(report)
+        assert weakest is not None
+        assert weakest["attempts_total"] == 0
+
+
+def test_weakest_with_data_handles_an_empty_report():
+    assert diagnostics_service.weakest_with_data([]) is None

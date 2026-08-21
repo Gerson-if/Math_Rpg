@@ -75,6 +75,14 @@ const MathBattle = (() => {
   const BATTLE_TAUNT_CHANCE = 0.18;
   const BATTLE_TAUNT_FALLBACK = ["Você não é páreo para mim!", "Tente de novo, aprendiz!"];
 
+  // Fired on literally every single answer, hundreds of times a session —
+  // a fixed "Correto!"/"Quase — era X" would be the single most-repeated
+  // line in the whole game by far. Small pools, same no-immediate-repeat
+  // treatment as every other line of battle dialogue (see pickVaried
+  // above).
+  const CORRECT_PHRASES = ["Correto!", "Mandou bem!", "Isso aí!", "Na mosca!", "Show!", "Certeiro!"];
+  const WRONG_PHRASES = ["Quase — era", "Essa foi difícil — era", "Não foi dessa vez — era", "Por pouco — era"];
+
   let cfg = {
     topicSlug: "", topicName: "", indexUrl: "/math/", buffs: {}, bossName: "O guardião", playerName: "aprendiz",
     bossIcon: "fa-dragon", bossColor: "purple-400",
@@ -121,11 +129,29 @@ const MathBattle = (() => {
 
   /* ---------------- full-viewport invocation / rebirth overlays ---------------- */
 
+  // Shared "don't repeat the last one" memory for every pool of
+  // taunts/phrases below — keyed by a short role name (not by which
+  // array was passed, since cfg.specialAttacks/battleTaunts differ per
+  // subject but should still avoid repeating *within* that role across
+  // consecutive picks). A pool of exactly one item is returned as-is;
+  // there's nothing to vary.
+  const _lastPicked = {};
+  function pickVaried(arr, fallback, historyKey) {
+    const pool = arr && arr.length ? arr : fallback;
+    if (!pool || !pool.length) return null;
+    if (pool.length === 1) return pool[0];
+    const last = _lastPicked[historyKey];
+    const candidates = last == null ? pool : pool.filter((item) => item !== last);
+    const choice = candidates.length ? candidates[rand(0, candidates.length - 1)] : pool[rand(0, pool.length - 1)];
+    _lastPicked[historyKey] = choice;
+    return choice;
+  }
+
   const INTRO_PHRASES = ["A Provação Começa", "As Ruínas Despertam", "O Destino Convoca o Aprendiz"];
   const REBIRTH_PHRASES = ["A Chama Ascende Novamente", "Das Cinzas, a Vontade Retorna", "Um Novo Fôlego Desafia o Destino"];
 
   function showInvocation() {
-    const phrase = INTRO_PHRASES[rand(0, INTRO_PHRASES.length - 1)];
+    const phrase = pickVaried(INTRO_PHRASES, null, "intro");
     const overlay = document.createElement("div");
     overlay.className = "intro-overlay";
     overlay.innerHTML =
@@ -140,7 +166,7 @@ const MathBattle = (() => {
   }
 
   function showRebirth() {
-    const phrase = REBIRTH_PHRASES[rand(0, REBIRTH_PHRASES.length - 1)];
+    const phrase = pickVaried(REBIRTH_PHRASES, null, "rebirth");
     const overlay = document.createElement("div");
     overlay.className = "rebirth-overlay";
     overlay.innerHTML =
@@ -156,7 +182,7 @@ const MathBattle = (() => {
      "moving forward" (next challenge) so the two moments read as a pair,
      per the request to make these transitions feel like the opening one. */
   function showAdvanceOverlay() {
-    const phrase = ADVANCE_PHRASES[rand(0, ADVANCE_PHRASES.length - 1)];
+    const phrase = pickVaried(ADVANCE_PHRASES, null, "advance");
     const overlay = document.createElement("div");
     overlay.className = "intro-overlay";
     overlay.innerHTML =
@@ -444,7 +470,7 @@ const MathBattle = (() => {
       // ones landed after the boss is already low on HP.
       totalStars += parseInt(d.stars || "0", 10) || 0;
       starRatingsCount++;
-      queueBubble(`<i class="fa-solid fa-check"></i> Correto! +${escapeHtml(d.xp || "0")} XP <span class="ml-1">${starsHtml(d.stars)}</span>`, "correct");
+      queueBubble(`<i class="fa-solid fa-check"></i> ${pickVaried(CORRECT_PHRASES, null, "correctPhrase")} +${escapeHtml(d.xp || "0")} XP <span class="ml-1">${starsHtml(d.stars)}</span>`, "correct");
       if (d.bonusXp) {
         queueBubble(`<i class="fa-solid fa-people-arrows"></i> +${escapeHtml(d.bonusXp)} XP de dupla com ${escapeHtml(d.allyName)}`, "correct");
       }
@@ -453,7 +479,7 @@ const MathBattle = (() => {
       }
     } else if (d.correct === "false") {
       onMiss();
-      queueBubble(`<i class="fa-solid fa-xmark"></i> Quase — era <strong>${escapeHtml(d.correctAnswer)}</strong>`, "wrong");
+      queueBubble(`<i class="fa-solid fa-xmark"></i> ${pickVaried(WRONG_PHRASES, null, "wrongPhrase")} <strong>${escapeHtml(d.correctAnswer)}</strong>`, "wrong");
     }
     if (d.achievements) {
       d.achievements.split("||").forEach((name) => {
@@ -595,7 +621,7 @@ const MathBattle = (() => {
       BattleFx.triggerCritFlash("crit-flash", true);
       BattleFx.spawnShockwave(boss, "#f87171");
       BattleFx.spawnBurst(boss, "#f87171", 46);
-      showEnemyBubble(DEFEAT_TAUNTS[rand(0, DEFEAT_TAUNTS.length - 1)], true);
+      showEnemyBubble(pickVaried(DEFEAT_TAUNTS, null, "defeatTaunt"), true);
       setTimeout(() => boss.classList.add("boss-dead"), 250);
       setTimeout(victory, 1900);
     }
@@ -652,7 +678,7 @@ const MathBattle = (() => {
     }, 400);
 
     setTimeout(() => {
-      const taunt = ENRAGE_TAUNTS[rand(0, ENRAGE_TAUNTS.length - 1)];
+      const taunt = pickVaried(ENRAGE_TAUNTS, null, "enrageTaunt");
       showEnemyBubble(taunt, true);
     }, 1550);
   }
@@ -668,11 +694,6 @@ const MathBattle = (() => {
     // (speech bubbles, battle alerts) are.
     $("battle-arena").appendChild(banner);
     setTimeout(() => banner.remove(), 2600);
-  }
-
-  function randomFrom(arr, fallback) {
-    const pool = arr && arr.length ? arr : fallback;
-    return pool && pool.length ? pool[rand(0, pool.length - 1)] : null;
   }
 
   /* Enemy "speech" floating above its own sprite — same technique as
@@ -709,12 +730,12 @@ const MathBattle = (() => {
 
     const boss = $("boss-sprite"), hero = $("hero-avatar");
     if (isSpecial) {
-      const name = randomFrom(cfg.specialAttacks, SPECIAL_ATTACK_NAMES_FALLBACK);
+      const name = pickVaried(cfg.specialAttacks, SPECIAL_ATTACK_NAMES_FALLBACK, "specialAttack");
       showBattleAlert("💥 " + name + "!", "danger");
-      showEnemyBubble(randomFrom(cfg.battleTaunts, BATTLE_TAUNT_FALLBACK));
+      showEnemyBubble(pickVaried(cfg.battleTaunts, BATTLE_TAUNT_FALLBACK, "battleTaunt"));
       BattleFx.spawnShockwave(boss, "#ef4444");
     } else if (Math.random() < BATTLE_TAUNT_CHANCE) {
-      showEnemyBubble(randomFrom(cfg.battleTaunts, BATTLE_TAUNT_FALLBACK));
+      showEnemyBubble(pickVaried(cfg.battleTaunts, BATTLE_TAUNT_FALLBACK, "battleTaunt"));
     }
     BattleFx.launchProjectile(boss, hero, "#ef4444", () => applyPlayerDamage(dmg, isSpecial), isSpecial);
 

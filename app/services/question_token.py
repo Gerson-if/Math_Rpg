@@ -22,8 +22,11 @@ def _serializer() -> URLSafeTimedSerializer:
     return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt=_SALT)
 
 
-def make_token(topic_slug: str, difficulty: int, answer: str) -> str:
-    return _serializer().dumps({"topic": topic_slug, "difficulty": difficulty, "answer": answer})
+def make_token(topic_slug: str, difficulty: int, answer: str, fingerprint: str | None = None) -> str:
+    payload = {"topic": topic_slug, "difficulty": difficulty, "answer": answer}
+    if fingerprint:
+        payload["fp"] = fingerprint
+    return _serializer().dumps(payload)
 
 
 def read_token(token: str, max_age: int = 1800, return_timestamp: bool = False):

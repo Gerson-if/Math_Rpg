@@ -80,3 +80,40 @@ class Mastery(db.Model, TimestampMixin):
 
     user = db.relationship("User", back_populates="mastery_records")
     topic = db.relationship("Topic", back_populates="mastery_records")
+
+
+class MissedFact(db.Model, TimestampMixin):
+    """Per (user, topic, fingerprint) spaced-repetition memory — deliberately
+    separate from Mastery, which is a per-*topic* aggregate score and can't
+    tell "still shaky on 7×8 specifically" apart from "just missed 3×2 by
+    accident". Only populated for question families with a genuinely
+    discrete, enumerable fact space (currently the tabuada family — see
+    mathematics_service._tabuada_prompt's fingerprint and
+    app.services.recall_service); a continuous range like "adição até
+    10000" has too large a space for "the exact same fact" to mean much,
+    so those topics rely on generate_question's plain recent-repeat
+    avoidance instead, with no row here at all.
+
+    A row existing at all means "still due for review" — see
+    recall_service.record_result: enough correct answers in a row against
+    this specific fingerprint deletes the row rather than leaving it
+    around at a decayed weight, so this table only ever holds today's
+    actual trouble spots, not a lifetime log.
+    """
+
+    __tablename__ = "missed_facts"
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "topic_id", "fingerprint", name="uq_missed_fact"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey("topics.id"), nullable=False, index=True)
+    fingerprint = db.Column(db.String(64), nullable=False)
+
+    miss_count = db.Column(db.Integer, default=1, nullable=False)
+    correct_streak = db.Column(db.Integer, default=0, nullable=False)
+    last_seen_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship("User")
+    topic = db.relationship("Topic")

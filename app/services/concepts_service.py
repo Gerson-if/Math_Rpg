@@ -107,6 +107,23 @@ def pool_for_areas(area_slugs: list[str]) -> list[ConceptQuestion]:
     return pool
 
 
-def random_concept_question_for_areas(area_slugs: list[str]) -> ConceptQuestion | None:
+def random_concept_question_for_areas(
+    area_slugs: list[str], avoid_prompts: "set[str] | None" = None
+) -> ConceptQuestion | None:
+    """avoid_prompts (recently-served prompts — see
+    app/mathematics/routes.py's session-backed tracking) is filtered out
+    of the pool *before* picking, not retried after — these pools are
+    small and fixed (a handful of questions per area), so a filter
+    guarantees no repeat until the whole pool has actually been seen,
+    instead of a retry loop that could still land on the same one a few
+    times before giving up. Falls back to the full pool if filtering
+    would leave nothing to ask (small pool, most of it recently shown) —
+    a rare repeat beats returning None and ending the exercise early."""
     pool = pool_for_areas(area_slugs)
-    return random.choice(pool) if pool else None
+    if not pool:
+        return None
+    if avoid_prompts:
+        filtered = [q for q in pool if q["prompt"] not in avoid_prompts]
+        if filtered:
+            pool = filtered
+    return random.choice(pool)

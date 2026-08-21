@@ -9,7 +9,7 @@ centralized in one service" requirement from the spec.
 """
 from datetime import datetime, timezone
 
-from flask import Blueprint, render_template, request, abort, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, abort, jsonify, flash, redirect, url_for, session
 from flask_login import login_required, current_user
 
 import random
@@ -27,6 +27,7 @@ from app.services import (
     lore,
     concepts_service,
     math_areas,
+    recall_service,
 )
 from app.services import classes as classes_service
 
@@ -36,6 +37,25 @@ mathematics_bp = Blueprint("mathematics", __name__, url_prefix="/math")
 # progressive advanced content — purely a visual badge, never a gate (see
 # scripts/seed.py's entry_prereqs for the advisory recommendation instead).
 NEW_SUBJECT_SLUGS = {"algebra", "equacoes-2-grau", "geometria-basica"}
+
+# How many of the most-recently-served prompts (per topic/subject, kept in
+# the session — no DB row for something this disposable) generate_question
+# tries to avoid repeating immediately. Small on purpose: the goal is
+# killing the "same '2×3=?' twice in a row" feeling, not building a full
+# history — a topic with a genuinely small number space still needs room
+# to legitimately reuse a prompt after a few others have gone by.
+_RECENT_PROMPTS_LIMIT = 4
+
+
+def _recent_prompts(session_key: str) -> set[str]:
+    return set(session.get(session_key, []))
+
+
+def _remember_prompt(session_key: str, prompt: str) -> None:
+    recent = session.get(session_key, [])
+    recent.append(prompt)
+    session[session_key] = recent[-_RECENT_PROMPTS_LIMIT:]
+    session.modified = True
 
 
 # Purely cosmetic response-time rating shown per answer — never affects
@@ -184,10 +204,14 @@ def concepts(subject_slug):
     progression for the player's attention."""
     subject = Subject.query.filter_by(slug=subject_slug, is_active=True).first_or_404()
     area_slugs = math_areas.area_slugs_for_subject(subject)
-    question = concepts_service.random_concept_question_for_areas(area_slugs)
+    session_key = f"recent_q:concepts:{subject.slug}"
+    question = concepts_service.random_concept_question_for_areas(
+        area_slugs, avoid_prompts=_recent_prompts(session_key)
+    )
     if question is None:
         flash("Esta trilha ainda não tem conceitos cadastrados.", "info")
         return redirect(url_for("mathematics.index"))
+    _remember_prompt(session_key, question["prompt"])
 
     token = question_token.make_token(subject.slug, 0, question["answer"])
     return render_template(
@@ -216,7 +240,12 @@ def concepts_answer(subject_slug):
 
     is_correct = _normalize(submitted_answer) == _normalize(payload["answer"])
 
-    next_question = concepts_service.random_concept_question_for_areas(area_slugs)
+    session_key = f"recent_q:concepts:{subject.slug}"
+    next_question = concepts_service.random_concept_question_for_areas(
+        area_slugs, avoid_prompts=_recent_prompts(session_key)
+    )
+    if next_question:
+        _remember_prompt(session_key, next_question["prompt"])
     next_token = (
         question_token.make_token(subject.slug, 0, next_question["answer"])
         if next_question
@@ -360,12 +389,18 @@ def practice_summary(topic_slug):
 def new_question(topic_slug):
     topic = Topic.query.filter_by(slug=topic_slug, is_active=True).first_or_404()
     difficulty = progression_service.get_effective_difficulty(current_user.id, topic)
+    session_key = f"recent_q:{topic.slug}"
     try:
-        q = mathematics_service.generate_question(topic.slug, difficulty)
+        q = mathematics_service.generate_question(
+            topic.slug, difficulty,
+            due_fingerprint=recall_service.due_fingerprint(current_user.id, topic.id),
+            avoid_prompts=_recent_prompts(session_key),
+        )
     except ValueError:
         abort(404)
+    _remember_prompt(session_key, q["prompt"])
 
-    token = question_token.make_token(topic.slug, difficulty, q["answer"])
+    token = question_token.make_token(topic.slug, difficulty, q["answer"], fingerprint=q["meta"].get("fingerprint"))
     return render_template(
         "mathematics/_question.html", topic=topic, prompt=q["prompt"], token=token,
     )
@@ -389,6 +424,14 @@ def answer_question(topic_slug):
         abort(400)
 
     is_correct = _normalize(submitted_answer) == _normalize(payload["answer"])
+
+    # Per-fact memory (see app/services/recall_service) — separate from,
+    # and read alongside, the per-topic Mastery row updated by
+    # process_attempt below. Only ever set on the token when the question
+    # came from a family that tracks individual facts (currently just
+    # tabuada — see mathematics_service._tabuada_prompt); a bare .get
+    # keeps this a no-op for every other topic.
+    recall_service.record_result(current_user.id, topic.id, payload.get("fp"), is_correct)
 
     elapsed_ms = int((datetime.now(timezone.utc) - signed_at).total_seconds() * 1000)
     elapsed_ms = max(0, min(elapsed_ms, 10 * 60 * 1000))  # clamp to [0, 10min]
@@ -418,10 +461,20 @@ def answer_question(topic_slug):
     # Keep the loop going: hand back feedback + the next question in one
     # response so practicing doesn't require a full page reload per item.
     # next_difficulty is re-read *after* process_attempt() above, so it
-    # already reflects the update from the answer just submitted.
+    # already reflects the update from the answer just submitted — and so
+    # does due_fingerprint: a fact just missed becomes eligible for review
+    # on THIS same next question rather than waiting a full round-trip.
     next_difficulty = progression_service.get_effective_difficulty(current_user.id, topic)
-    next_q = mathematics_service.generate_question(topic.slug, next_difficulty)
-    next_token = question_token.make_token(topic.slug, next_difficulty, next_q["answer"])
+    session_key = f"recent_q:{topic.slug}"
+    next_q = mathematics_service.generate_question(
+        topic.slug, next_difficulty,
+        due_fingerprint=recall_service.due_fingerprint(current_user.id, topic.id),
+        avoid_prompts=_recent_prompts(session_key),
+    )
+    _remember_prompt(session_key, next_q["prompt"])
+    next_token = question_token.make_token(
+        topic.slug, next_difficulty, next_q["answer"], fingerprint=next_q["meta"].get("fingerprint")
+    )
 
     next_topic = progression_service.next_topic_for(topic)
 

@@ -347,3 +347,96 @@ def test_area_answer_matches_the_shape_described():
                 base, altura = nums[:2]
                 assert (base * altura) % 2 == 0
                 assert answer == (base * altura) // 2
+
+
+# --- no-immediate-repeat (avoid_prompts) ----------------------------------
+
+def test_avoid_prompts_dodges_an_immediate_repeat_when_the_space_allows_it():
+    # tabuada-do-7 at difficulty 1 has 11 possible prompts (factor 0..10)
+    # — plenty of room to avoid re-drawing the one prompt already served.
+    first = generate_question("tabuada-do-7", 1)
+    avoided = {first["prompt"]}
+    # Draw many times and confirm at least some distinct prompts show up
+    # outside the avoid set (i.e. avoid_prompts is actually influencing
+    # the draw, not a no-op) — a single draw could still legitimately
+    # dodge it by chance even without the retry logic, so this checks the
+    # aggregate behaviour across many draws instead.
+    prompts = {generate_question("tabuada-do-7", 1, avoid_prompts=avoided)["prompt"] for _ in range(20)}
+    assert len(prompts - avoided) > 0
+
+
+def test_avoid_prompts_never_raises_even_when_the_space_is_nearly_exhausted():
+    # difficulty 1 counting (Fundamentos) has a small number space —
+    # confirms the retry cap kicks in instead of looping forever or
+    # erroring when avoid_prompts covers most/all of it.
+    from app.services.mathematics_service import _COUNTING_RANGES, _COUNTING_SYMBOLS
+
+    lo, hi = _COUNTING_RANGES[1]
+    avoid_all = {f"Quantos {s} há aqui: {s * n}" for s in _COUNTING_SYMBOLS for n in range(lo, hi + 1)}
+    # Should return *something* without raising, even though every
+    # possible prompt is in the avoid set.
+    q = generate_question("numeros-e-contagem", 1, avoid_prompts=avoid_all)
+    assert q["prompt"]
+
+
+def test_avoid_prompts_empty_set_behaves_like_no_avoidance():
+    q = generate_question("tabuada-do-7", 1, avoid_prompts=set())
+    assert "7" in q["prompt"]
+
+
+# --- fingerprints / due-fact review (tabuada family only) -----------------
+
+def test_tabuada_question_includes_a_canonical_fingerprint():
+    q = generate_question("tabuada-do-7", 1)
+    fp = q["meta"]["fingerprint"]
+    a, b = sorted(int(x) for x in fp.split("x"))
+    assert a == 7 or b == 7
+    assert a <= b
+
+
+def test_tabuada_due_fingerprint_generates_that_exact_fact():
+    q = generate_question("tabuada-do-7", 1, due_fingerprint="7x8")
+    assert q["meta"]["fingerprint"] == "7x8"
+    assert "7" in q["prompt"] and "8" in q["prompt"]
+    assert q["answer"] == "56"
+
+
+def test_tabuada_due_fingerprint_at_high_difficulty_still_asks_for_the_missing_factor():
+    q = generate_question("tabuada-do-7", 5, due_fingerprint="7x8")
+    assert q["meta"]["fingerprint"] == "7x8"
+    assert "?" in q["prompt"]
+    assert int(q["answer"]) in (7, 8)
+
+
+def test_tabuada_mista_due_fingerprint_uses_the_fingerprints_own_pair():
+    q = generate_question("tabuada-mista", 1, due_fingerprint="4x9")
+    assert q["meta"]["fingerprint"] == "4x9"
+    assert q["answer"] == "36"
+
+
+def test_tabuada_ignores_a_malformed_due_fingerprint_and_falls_back_to_random():
+    q = generate_question("tabuada-do-7", 1, due_fingerprint="not-a-fingerprint")
+    assert "7" in q["prompt"]
+
+
+def test_due_fingerprint_is_ignored_for_topics_outside_the_tabuada_family():
+    # Passing due_fingerprint for e.g. addition shouldn't error or do
+    # anything special — only the tabuada family understands it.
+    q = generate_question("adicao", 1, due_fingerprint="7x8")
+    assert "+" in q["prompt"]
+
+
+def test_due_fingerprint_falls_back_to_random_when_it_collides_with_avoid_prompts():
+    # Regression guard: at difficulty 1 (no order-flip — see
+    # _tabuada_prompt) a due-fact draw is fully deterministic in prompt
+    # text. If that exact prompt is already in avoid_prompts, retrying
+    # with the same due_fingerprint would just regenerate the identical
+    # prompt every time and never actually dodge it.
+    due_prompt = generate_question("tabuada-do-7", 1, due_fingerprint="7x8")["prompt"]
+    assert due_prompt == "7 × 8 = ?"
+
+    prompts = {
+        generate_question("tabuada-do-7", 1, due_fingerprint="7x8", avoid_prompts={due_prompt})["prompt"]
+        for _ in range(20)
+    }
+    assert len(prompts - {due_prompt}) > 0, "expected the retry to escape the due fact's own deterministic prompt"

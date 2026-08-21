@@ -51,7 +51,18 @@
     </div>
   {% endif %}
 
-  {% if weakest %}
+  {% if not has_any_data %}
+    <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 mb-6 flex flex-col sm:flex-row items-center gap-4">
+      <div class="w-14 h-14 rounded-full bg-stone-800 border-2 border-gold flex items-center justify-center text-2xl text-gold shrink-0">
+        <i class="fa-solid fa-compass"></i>
+      </div>
+      <div class="flex-1 text-center sm:text-left">
+        <p class="text-gold font-sans text-xs uppercase tracking-wide font-bold mb-0.5">Ainda sem dados suficientes</p>
+        <h2 class="font-medieval text-lg text-white">Pratique algumas trilhas primeiro</h2>
+        <p class="text-stone-400 font-sans text-sm">O diagnóstico fica preciso depois que você já respondeu algumas perguntas — os números abaixo ainda são só o ponto de partida.</p>
+      </div>
+    </div>
+  {% elif weakest %}
     <div class="diag-gap-callout bg-red-950/30 border-2 border-red-500 rounded-lg p-5 mb-6 flex flex-col sm:flex-row items-center gap-4">
       <div class="w-14 h-14 rounded-full bg-stone-900 border-2 border-red-400 flex items-center justify-center text-2xl text-red-300 shrink-0">
         <i class="fa-solid {{ weakest.icon }}"></i>
@@ -80,11 +91,22 @@
             <strong class="font-sans text-sm text-stone-100">{{ area.name }}</strong>
             <div class="text-stone-500 font-sans text-xs mt-0.5">{{ area.description }}</div>
           </div>
-          <span class="font-medieval text-sm text-stone-200 shrink-0">{{ area.mastery_pct }}%</span>
+          {% if area.confidence == 'nenhum' %}
+            <span class="font-sans text-[0.65rem] text-stone-500 shrink-0 whitespace-nowrap" title="Nenhuma pergunta respondida nesta área ainda">
+              <i class="fa-regular fa-circle-question mr-0.5"></i> sem dados
+            </span>
+          {% else %}
+            <span class="font-medieval text-sm text-stone-200 shrink-0">{{ area.mastery_pct }}%</span>
+          {% endif %}
         </div>
         <div class="diag-bar-track">
           <div class="diag-bar-fill {{ bar_color }}" style="width: {{ area.mastery_pct }}%;"></div>
         </div>
+        {% if area.confidence == 'baixa' %}
+          <p class="text-stone-500 font-sans text-[0.65rem] -mt-1">
+            <i class="fa-solid fa-triangle-exclamation mr-0.5"></i> Poucas respostas ainda — esse número deve mudar bastante com mais prática.
+          </p>
+        {% endif %}
         {% if area.prereq_gaps %}
           <div class="diag-prereq-warn">
             <i class="fa-solid fa-triangle-exclamation mt-0.5 shrink-0"></i>

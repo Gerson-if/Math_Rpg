@@ -17,6 +17,37 @@ from app.services.progression_service import PREREQUISITE_MASTERY_THRESHOLD
 # does everywhere else in the app.
 _PREREQ_GAP_THRESHOLD_PCT = round(PREREQUISITE_MASTERY_THRESHOLD * 100)
 
+# How much real practice backs an area's percentage before that number
+# means something — total Attempts across every topic in the area, not
+# just "was it tried at all". A topic answered twice and a topic answered
+# fifty times both count as "attempted" for topics_practiced, but they
+# very much don't carry the same statistical weight, and the report
+# shouldn't imply otherwise by showing both as an equally confident
+# number. Mirrors the spirit of progression_service's own
+# _DIFFICULTY_MIN_ATTEMPTS gate (don't act on a number until there's
+# enough behind it), just applied to the report's *display*, not to
+# mastery_score's own EMA math.
+_CONFIDENCE_LOW_ATTEMPTS = 8
+_CONFIDENCE_HIGH_ATTEMPTS = 20
+
+
+def _confidence_label(attempts_total: int, topics_practiced: int, topics_total: int) -> str:
+    """"nenhum": literally never touched — the percentage is a placeholder
+    (0%), not a measurement, and the UI should say so instead of
+    presenting it as a diagnosed weakness. "baixa"/"media"/"alta" beyond
+    that scale with both raw attempt volume AND how much of the area's
+    own topic list has been sampled at all — an area with 20 attempts all
+    piled onto one topic out of five still doesn't really tell you about
+    the other four."""
+    if attempts_total == 0:
+        return "nenhum"
+    coverage = topics_practiced / topics_total if topics_total else 0.0
+    if attempts_total < _CONFIDENCE_LOW_ATTEMPTS or coverage < 0.34:
+        return "baixa"
+    if attempts_total < _CONFIDENCE_HIGH_ATTEMPTS or coverage < 0.67:
+        return "media"
+    return "alta"
+
 
 def area_report(user_id: int) -> list[dict]:
     """One row per math sub-area actually covered by the curriculum,
@@ -26,7 +57,14 @@ def area_report(user_id: int) -> list[dict]:
     player happens to try it. Each row also carries `prereq_gaps`: the
     areas math_areas.AREA_PREREQUISITES says should come first, filtered
     to just the ones still below _PREREQ_GAP_THRESHOLD_PCT — "what you
-    need to know before advancing here", not just "what's weak"."""
+    need to know before advancing here", not just "what's weak".
+
+    `confidence` (see _confidence_label) and `attempts_total` let a
+    caller/template tell "genuinely weak after real practice" apart from
+    "just never explored yet" — both show up as a low mastery_pct, but
+    they call for different framing (and, per
+    diagnostics/routes.py:index, a different pick for "your biggest gap
+    right now")."""
     topics = Topic.query.filter_by(is_active=True).all()
     masteries = {
         m.topic_id: m
@@ -38,13 +76,16 @@ def area_report(user_id: int) -> list[dict]:
         area_slug = math_areas.area_slug_for_topic(topic)
         if area_slug is None:
             continue
-        bucket = buckets.setdefault(area_slug, {"topics": [], "mastery_sum": 0.0, "attempted": 0})
+        bucket = buckets.setdefault(
+            area_slug, {"topics": [], "mastery_sum": 0.0, "attempted": 0, "attempts_total": 0}
+        )
         mastery = masteries.get(topic.id)
         score = mastery.mastery_score if mastery else 0.0
         bucket["topics"].append((topic, score))
         bucket["mastery_sum"] += score
         if mastery is not None:
             bucket["attempted"] += 1
+            bucket["attempts_total"] += mastery.correct_count + mastery.wrong_count
 
     report = []
     for area_slug, bucket in buckets.items():
@@ -62,6 +103,8 @@ def area_report(user_id: int) -> list[dict]:
             "mastery_pct": round(avg * 100),
             "topics_practiced": bucket["attempted"],
             "topics_total": topic_count,
+            "attempts_total": bucket["attempts_total"],
+            "confidence": _confidence_label(bucket["attempts_total"], bucket["attempted"], topic_count),
             "weakest_topic": weakest_topic,
         })
 
@@ -80,6 +123,21 @@ def area_report(user_id: int) -> list[dict]:
 
     report.sort(key=lambda row: row["mastery_pct"])
     return report
+
+
+# "Never touched" and "genuinely struggled with despite real practice"
+# both surface as a low mastery_pct in the report above, but they're not
+# the same finding — pointing the single "sua maior lacuna agora" callout
+# at whatever the player simply hasn't gotten around to yet (which,
+# early on, is nearly everything) isn't a diagnosis, it's just the
+# curriculum order. Prefer an area with real attempts behind it; only
+# fall back to an untouched one if literally nothing has been attempted
+# anywhere yet.
+def weakest_with_data(report: list[dict]) -> dict | None:
+    practiced = [row for row in report if row["attempts_total"] > 0]
+    if practiced:
+        return min(practiced, key=lambda row: row["mastery_pct"])
+    return report[0] if report else None
 
 
 # ---------------------------------------------------------------------------
