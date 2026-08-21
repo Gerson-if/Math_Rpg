@@ -359,9 +359,21 @@
   @keyframes floatBoss { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
   .floating-boss { animation: floatBoss 3s ease-in-out infinite; transition: filter 0.8s ease; }
 
+  /* display:flex used to live in this custom rule too — but this <style>
+     block is injected after app/static/css/tailwind.css's <link> in
+     <head>, so at equal specificity it silently beat Tailwind's own
+     .hidden{display:none} utility whenever the element carried both
+     classes (later rule in the cascade wins). That let #defeat-screen
+     render visible even while "hidden" was correctly present in its
+     class list — a fresh battle could start with the previous fight's
+     defeat overlay still stuck on top, looking like the fight never
+     began. flex/items-center/justify-center now live as plain Tailwind
+     utility classes directly on the element instead, so toggling
+     "hidden" (which Tailwind's own generated CSS orders after "flex",
+     see tailwind.config.js) actually wins, the same way it does
+     anywhere else in the app. */
   .battle-overlay {
     position: absolute; inset: 0; z-index: 50;
-    display: flex; align-items: center; justify-content: center;
     background: rgba(5, 5, 5, 0.92);
     border-radius: 0.5rem;
   }
@@ -1035,7 +1047,7 @@
     </div>
 
     <!-- DEFEAT -->
-    <div id="defeat-screen" class="battle-overlay hidden">
+    <div id="defeat-screen" class="battle-overlay hidden flex items-center justify-center">
       <div class="text-center space-y-4 max-w-md p-6 sm:p-8">
         <i class="fa-solid fa-book-dead text-5xl sm:text-6xl text-stone-500"></i>
         <h2 class="text-2xl sm:text-3xl font-medieval text-red-600 tracking-wide">Sua energia se esgotou</h2>

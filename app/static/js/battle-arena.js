@@ -317,6 +317,18 @@ const MathBattle = (() => {
     potions = CONFIG.potionsStart; furyScrolls = CONFIG.furyScrollsStart;
     $("arena-content").classList.remove("player-dead");
     $("boss-sprite").classList.remove("boss-dead");
+    // Defensive: #defeat-screen is a persistent, pre-rendered overlay
+    // toggled via this one "hidden" class (unlike the victory reveal,
+    // which is created/destroyed fresh each time — see showVictoryReveal)
+    // — so it's the one piece of UI that can get stuck visible across a
+    // fresh start() if it was ever shown and, for whatever reason, never
+    // went through revive()'s explicit re-hide (e.g. the player left
+    // mid-defeat and came back into a new fight some other way). Without
+    // this, a brand-new battle can render with last fight's "Sua energia
+    // se esgotou" overlay still covering the arena — looking exactly like
+    // the fight never started, even though HP/combat state underneath is
+    // actually fine.
+    $("defeat-screen").classList.add("hidden");
     updateHpBar("player-hp", playerHP, maxHP);
     updateHpBar("boss-hp", bossHP, bossMaxHP);
     updateFuryUi();

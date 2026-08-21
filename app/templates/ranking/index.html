@@ -130,12 +130,19 @@
           {{ ui.avatar_icon(user.profile) }}
         </div>
         {{ ui.rank_badge(stats.rank, size='sm') }}
-        <span class="inline-flex items-center gap-1 max-w-full">
-          {{ ui.class_badge(class_display_by_user_id.get(user.id)) }}
-          <span class="font-sans text-sm font-bold truncate" title="{{ user.profile.display_name if user.profile else user.username }}">
+        <!-- Name row gets the card's full width to itself, class badge as a
+             small icon (not the full label) — the label version used to sit
+             inline with the name inside a narrow flex item with no min-w-0,
+             so on most cards the badge alone ate the available width and
+             the name just overflowed invisibly past the card edge instead
+             of truncating. min-w-0 on the name span is what actually lets
+             `truncate` kick in inside a flex row. -->
+        <div class="flex items-center gap-1 w-full min-w-0 justify-center">
+          {{ ui.class_badge(class_display_by_user_id.get(user.id), label=False) }}
+          <span class="font-sans text-sm font-bold truncate min-w-0" title="{{ user.profile.display_name if user.profile else user.username }}">
             {{ user.profile.display_name if user.profile else user.username }}
           </span>
-        </span>
+        </div>
         <span class="font-sans text-xs text-stone-400"><i class="fa-solid fa-coins text-gold mr-1"></i>{{ stats.xp }} XP</span>
       </div>
     {% endfor %}
