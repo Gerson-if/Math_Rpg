@@ -42,6 +42,7 @@
   .chron-nav-btn:hover { transform: translateY(-50%) scale(1.12); box-shadow: 0 0 20px rgba(212,175,55,0.8); }
   .chron-nav-prev { left: 4px; }
   .chron-nav-next { right: 4px; }
+  .chron-nav-icon { width: 55%; height: 55%; object-fit: contain; image-rendering: pixelated; }
 
   .chron-node {
     --ty: 0px;
@@ -104,10 +105,10 @@
 
   <div class="chron-path-wrap">
     <button type="button" id="chron-nav-prev" class="chron-nav-btn chron-nav-prev" aria-label="Crônicas anteriores">
-      <i class="fa-solid fa-chevron-left"></i>
+      <img src="{{ url_for('static', filename='images/icons/ui/nav-play.png') }}" alt="" class="chron-nav-icon" style="transform: scaleX(-1);">
     </button>
     <button type="button" id="chron-nav-next" class="chron-nav-btn chron-nav-next" aria-label="Próximas crônicas">
-      <i class="fa-solid fa-chevron-right"></i>
+      <img src="{{ url_for('static', filename='images/icons/ui/nav-play.png') }}" alt="" class="chron-nav-icon">
     </button>
     <div class="chron-path" id="chron-path">
       {% for subject, chronicle, discovered, unlocked in chronicles %}

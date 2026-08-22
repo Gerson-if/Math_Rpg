@@ -22,3 +22,16 @@ in your own project" assumption as the Raven Fantasy Icons pack (see
                              (the sheet also has PLAY/LOAD/EXIT scroll
                              buttons, small icon buttons, gem badges, and
                              colored candles not currently used anywhere).
+
+  nav-play.png              small carved wooden "play" triangle button
+                             (source region: x 65-79, y 177-191 of the
+                             same freefantasy.png sheet) — used as the
+                             prev/next icon for the two chapter/chronicle
+                             carousels (mathematics/chronicles.html's map
+                             carousel and chronicle_detail.html's chapter
+                             reader), replacing the generic FontAwesome
+                             chevron. "prev" reuses the same image
+                             mirrored via CSS (transform: scaleX(-1))
+                             rather than a separate asset — it's a
+                             symmetric-enough triangle that mirroring
+                             reads cleanly as "point the other way".

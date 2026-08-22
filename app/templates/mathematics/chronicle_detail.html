@@ -59,6 +59,7 @@
   }
   .reader-nav-btn:hover:not(:disabled) { transform: scale(1.1); box-shadow: 0 0 18px rgba(212,175,55,0.7); }
   .reader-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .reader-nav-icon { width: 55%; height: 55%; object-fit: contain; image-rendering: pixelated; }
 
   .reader-dots { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
   .reader-dot { width: 0.55rem; height: 0.55rem; border-radius: 9999px; background: rgba(139,107,31,0.4); transition: background 0.2s ease, transform 0.2s ease; cursor: pointer; border: none; padding: 0; }
@@ -108,11 +109,11 @@
   </div>
   <div class="reader-nav">
     <button type="button" id="reader-prev" class="reader-nav-btn" aria-label="Capítulo anterior" disabled>
-      <i class="fa-solid fa-chevron-left"></i>
+      <img src="{{ url_for('static', filename='images/icons/ui/nav-play.png') }}" alt="" class="reader-nav-icon" style="transform: scaleX(-1);">
     </button>
     <div class="reader-dots" id="reader-dots"></div>
     <button type="button" id="reader-next" class="reader-nav-btn" aria-label="Próximo capítulo">
-      <i class="fa-solid fa-chevron-right"></i>
+      <img src="{{ url_for('static', filename='images/icons/ui/nav-play.png') }}" alt="" class="reader-nav-icon">
     </button>
   </div>
 </div>
