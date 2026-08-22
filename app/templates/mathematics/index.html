@@ -113,6 +113,21 @@
   }
   .map-topic-dot:hover { transform: scale(1.25) translateY(-2px); filter: drop-shadow(0 0 8px currentColor) !important; animation: none; }
 
+  /* Small badge showing the subject's own curated artwork (see
+     scripts/seed.py's icon_key + app/static/images/icons/subjects/ —
+     real licensed art, distinct from the guardian's FontAwesome glyph,
+     which represents *who guards the trail*, not *what subject it is*).
+     Purely additive: a subject without curated art yet (icon_key is
+     None — the three newest subjects, see CURRICULUM in scripts/seed.py)
+     just renders its landmark exactly as before, no missing-image icon. */
+  .subject-icon-badge {
+    position: absolute; top: -9px; left: -9px; z-index: 2;
+    width: 1.75rem; height: 1.75rem; border-radius: 9999px;
+    border: 2px solid rgba(212,175,55,0.85); background: #1c1917;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6); object-fit: cover; padding: 2px;
+  }
+  @media (min-width: 640px) { .subject-icon-badge { width: 2.15rem; height: 2.15rem; } }
+
   .new-badge {
     position: absolute; top: -12px; right: -10px; background: #7f1d1d; color: #fde68a;
     font-size: 0.55rem; padding: 1px 7px; border-radius: 9999px; border: 1px solid #fbbf24;
@@ -235,6 +250,9 @@
            class="relative"
            title="{% if boss_ready %}Enfrentar {{ g.name }}{% elif boss_topic %}Complete {{ unmet_boss | map(attribute='name') | join(', ') }} antes de enfrentar {{ g.name }}{% else %}{{ subject.name }} — guardado por {{ g.name }}{% endif %}">
           {% if subject.slug in new_subjects %}<span class="new-badge">Novo!</span>{% endif %}
+          {% if subject.icon_key %}
+            <img class="subject-icon-badge" src="{{ url_for('static', filename=subject.icon_key) }}" alt="" title="{{ subject.name }}">
+          {% endif %}
           <div class="map-landmark border-{{ g.color }} text-{{ g.color }} {{ 'boss-locked' if boss_topic and not boss_ready else '' }}"><i class="fa-solid {{ g.icon }}"></i></div>
           {% if boss_ready %}
             <span class="boss-action-badge ready"><i class="fa-solid fa-khanda"></i></span>

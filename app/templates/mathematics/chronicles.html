@@ -68,6 +68,18 @@
     transform: scale(1.14) rotate(-3deg); filter: drop-shadow(0 0 12px currentColor);
     box-shadow: 0 6px 20px rgba(0,0,0,0.7);
   }
+
+  /* Same curated-art badge as the adventure map (see mathematics/index.html)
+     — the subject's own icon, not the guardian's FontAwesome glyph. Only
+     shown once a chronicle is discovered, matching this page's own
+     "don't reveal what's still locked" pattern. */
+  .chron-node .subject-icon-badge {
+    position: absolute; top: -7px; left: -7px; z-index: 2;
+    width: 1.5rem; height: 1.5rem; border-radius: 9999px;
+    border: 2px solid rgba(212,175,55,0.85); background: #1c1917;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6); object-fit: cover; padding: 2px;
+  }
+  @media (min-width: 640px) { .chron-node .subject-icon-badge { width: 1.75rem; height: 1.75rem; } }
   .chron-label {
     font-family: 'MedievalSharp', cursive; font-size: 0.72rem; text-align: center;
     color: #f4e8c1; text-shadow: 0 1px 3px #000; margin-top: 0.4rem; line-height: 1.2;
@@ -106,7 +118,10 @@
         <div class="chron-node {{ 'up' if loop.index0 % 2 == 0 else 'down' }} {{ 'is-open' if discovered else '' }}">
           <div class="stem"></div>
           {% if discovered %}
-            <a href="{{ url_for('mathematics.chronicle_detail', subject_slug=subject.slug) }}" class="flex flex-col items-center" title="{{ chronicle.title }}">
+            <a href="{{ url_for('mathematics.chronicle_detail', subject_slug=subject.slug) }}" class="relative flex flex-col items-center" title="{{ chronicle.title }}">
+              {% if subject.icon_key %}
+                <img class="subject-icon-badge" src="{{ url_for('static', filename=subject.icon_key) }}" alt="">
+              {% endif %}
               <div class="chron-landmark border-{{ color }} text-{{ color }}"><i class="fa-solid {{ icon }}"></i></div>
               <span class="chron-label text-{{ color }}">{{ chronicle.title }}</span>
               <span class="chron-meta">

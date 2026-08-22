@@ -181,7 +181,11 @@
   </div>
   <div class="flex flex-wrap gap-4">
     {% for subject, guardian, discovered in hero_gallery %}
-      <a href="{{ url_for('mathematics.chronicles') }}" class="hero-node flex flex-col items-center gap-1 w-16 text-center" title="{{ subject.name }}">
+      <a href="{{ url_for('mathematics.chronicles') }}" class="hero-node relative flex flex-col items-center gap-1 w-16 text-center" title="{{ subject.name }}">
+        {% if discovered and subject.icon_key %}
+          <img class="absolute -top-1.5 -left-1.5 z-10 w-5 h-5 rounded-full border-2 border-gold/85 bg-stone-900 shadow object-cover p-0.5"
+               src="{{ url_for('static', filename=subject.icon_key) }}" alt="">
+        {% endif %}
         <div class="w-12 h-12 rounded-full border-2 flex items-center justify-center text-lg
                     {{ 'border-' + guardian.color + ' text-' + guardian.color if discovered else 'border-stone-700 text-stone-600' }}">
           <i class="fa-solid {{ guardian.icon if discovered else 'fa-lock' }}"></i>

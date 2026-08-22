@@ -1110,6 +1110,21 @@ const MathBattle = (() => {
     cfg.nextTopicUrl = data.nextTopic ? data.nextTopic.url : null;
     cfg.nextTopicResumoUrl = data.nextTopic ? data.nextTopic.resumoUrl : null;
 
+    // This screen never actually reloads when advancing — #question-slot
+    // still holds whichever question (and, crucially, whichever topic's
+    // /responder URL is baked into its <form>) was last loaded for the
+    // PREVIOUS topic. Without forcing a fresh fetch here, the fight LOOKED
+    // like it moved on (new boss name/icon/lore, updated cfg above) but
+    // every answer kept silently posting to the old topic's endpoint —
+    // grading, XP and mastery all still applying to the topic just
+    // defeated instead of the new one. That's the "vai para o próximo e
+    // fica no mesmo" bug: visually you're elsewhere, mechanically you
+    // never left. Fired now (in parallel with the transition screen's
+    // loading bar — see advanceToNextTopic) so the new question is
+    // already sitting there by the time the arena reappears, same as a
+    // real page load's own hx-trigger="load" would have done.
+    if (window.htmx) htmx.ajax("GET", cfg.newQuestionUrl, { target: "#question-slot", swap: "outerHTML" });
+
     const avatarIcon = $("boss-avatar-icon");
     if (avatarIcon) avatarIcon.className = `fa-solid ${data.guardian.icon} text-${data.guardian.color}`;
     const nameLabel = $("boss-name-label");
