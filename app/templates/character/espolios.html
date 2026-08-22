@@ -89,7 +89,7 @@
               <i class="fa-solid fa-star"></i>
             </span>
           {% endif %}
-          <i class="fa-solid {{ item.icon_key }} text-2xl mb-1 {{ 'grayscale opacity-50' if locked else '' }}" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
+          {{ ui.item_icon(item.icon_key, rc, size_rem=1.5, extra_cls='mb-1 ' + ('grayscale opacity-50' if locked else '')) }}
           <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ item.name }}</p>
         </a>
       {% endfor %}
@@ -110,7 +110,7 @@
            class="inline-flex items-center gap-1 text-stone-500 hover:text-stone-300 text-xs font-sans mb-3">
           <i class="fa-solid fa-xmark"></i> Fechar
         </a>
-        <i class="fa-solid {{ item.icon_key }} text-6xl mb-3" style="color: {{ rc }}; filter: drop-shadow(0 0 12px {{ rc }});"></i>
+        {{ ui.item_icon(item.icon_key, rc, size_rem=3.75, extra_cls='mb-3') }}
         <p class="font-medieval text-white text-lg">{{ item.name }}</p>
         <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ item.rarity | capitalize }}</p>
         <p class="font-sans text-stone-300 text-sm">{{ ui.passive_label(item) }}</p>

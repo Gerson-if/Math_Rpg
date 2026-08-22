@@ -45,19 +45,28 @@ PASSIVE_BASE = {
     "vampirismo": 0.05,
 }
 
+# icon_key here is a path under static/ (see app/static/images/icons/items/
+# and its CREDITS.txt) — real curated art, not a FontAwesome class, same
+# convention as Subject/Rank/Achievement.icon_key. Every template that
+# renders an item's icon (equipamentos.html, espolios.html, market/index.html,
+# profile.html, mathematics/_question.html's loot popup) checks for this by
+# testing whether the value starts with "images/" — see ui.item_icon in
+# app/templates/_macros.html, the one place that decision is made, so a
+# future item added with a bare FontAwesome class (e.g. while no curated
+# art exists for it yet) still renders correctly without special-casing.
 ITEM_TEMPLATES = [
-    {"slot": "arma", "name": "Lâmina Encantada", "icon_key": "fa-khanda", "passive_type": "dano"},
-    {"slot": "arma", "name": "Cajado Arcano", "icon_key": "fa-wand-magic-sparkles", "passive_type": "critico"},
-    {"slot": "anel", "name": "Anel do Encadeamento", "icon_key": "fa-ring", "passive_type": "combo"},
-    {"slot": "anel", "name": "Anel da Fúria", "icon_key": "fa-ring", "passive_type": "furia"},
-    {"slot": "amuleto", "name": "Amuleto da Vitalidade", "icon_key": "fa-gem", "passive_type": "vida"},
-    {"slot": "amuleto", "name": "Relicário Vampírico", "icon_key": "fa-droplet", "passive_type": "vampirismo"},
-    {"slot": "armadura", "name": "Couraça de Ferro", "icon_key": "fa-shield", "passive_type": "vida"},
-    {"slot": "armadura", "name": "Manto das Sombras", "icon_key": "fa-mask", "passive_type": "critico"},
-    {"slot": "capacete", "name": "Elmo do Guardião", "icon_key": "fa-hat-wizard", "passive_type": "vida"},
-    {"slot": "capacete", "name": "Coroa Arcana", "icon_key": "fa-crown", "passive_type": "furia"},
-    {"slot": "botas", "name": "Botas Élficas", "icon_key": "fa-shoe-prints", "passive_type": "combo"},
-    {"slot": "botas", "name": "Grevas Flamejantes", "icon_key": "fa-shoe-prints", "passive_type": "dano"},
+    {"slot": "arma", "name": "Lâmina Encantada", "icon_key": "images/icons/items/lamina-encantada.png", "passive_type": "dano"},
+    {"slot": "arma", "name": "Cajado Arcano", "icon_key": "images/icons/items/cajado-arcano.png", "passive_type": "critico"},
+    {"slot": "anel", "name": "Anel do Encadeamento", "icon_key": "images/icons/items/anel-encadeamento.png", "passive_type": "combo"},
+    {"slot": "anel", "name": "Anel da Fúria", "icon_key": "images/icons/items/anel-furia.png", "passive_type": "furia"},
+    {"slot": "amuleto", "name": "Amuleto da Vitalidade", "icon_key": "images/icons/items/amuleto-vitalidade.png", "passive_type": "vida"},
+    {"slot": "amuleto", "name": "Relicário Vampírico", "icon_key": "images/icons/items/relicario-vampirico.png", "passive_type": "vampirismo"},
+    {"slot": "armadura", "name": "Couraça de Ferro", "icon_key": "images/icons/items/couraca-de-ferro.png", "passive_type": "vida"},
+    {"slot": "armadura", "name": "Manto das Sombras", "icon_key": "images/icons/items/manto-das-sombras.png", "passive_type": "critico"},
+    {"slot": "capacete", "name": "Elmo do Guardião", "icon_key": "images/icons/items/elmo-do-guardiao.png", "passive_type": "vida"},
+    {"slot": "capacete", "name": "Coroa Arcana", "icon_key": "images/icons/items/coroa-arcana.png", "passive_type": "furia"},
+    {"slot": "botas", "name": "Botas Élficas", "icon_key": "images/icons/items/botas-elficas.png", "passive_type": "combo"},
+    {"slot": "botas", "name": "Grevas Flamejantes", "icon_key": "images/icons/items/grevas-flamejantes.png", "passive_type": "dano"},
 ]
 
 # How much bonus crit chance the "critico" passive grants per point of raw

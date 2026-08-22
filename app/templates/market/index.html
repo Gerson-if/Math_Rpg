@@ -105,7 +105,7 @@
           <a href="#offer-{{ offer.id }}" class="market-thumb border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
              style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
             <div class="market-icon-badge mx-auto mb-1" style="--rc: {{ rc }};">
-              <i class="fa-solid {{ offer.icon_key }}" style="color: {{ rc }};"></i>
+              {{ ui.item_icon(offer.icon_key, rc) }}
             </div>
             <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ offer.name }}</p>
             <p class="text-gold font-sans text-[0.6rem]"><i class="fa-solid fa-coins"></i> {{ offer.price }}</p>
@@ -123,7 +123,7 @@
           {% set affordable = gold >= offer.price %}
           <div id="offer-{{ offer.id }}" class="item-detail-content text-center">
             <div class="market-icon-badge lg mx-auto mb-3" style="--rc: {{ rc }};">
-              <i class="fa-solid {{ offer.icon_key }}" style="color: {{ rc }};"></i>
+              {{ ui.item_icon(offer.icon_key, rc) }}
             </div>
             <p class="font-medieval text-white text-lg">{{ offer.name }}</p>
             <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ offer.rarity | capitalize }}</p>
@@ -163,7 +163,7 @@
           <a href="#listing-{{ item.id }}" class="market-thumb border-2 rounded-lg p-3 text-center transition-all hover:brightness-125"
              style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
             <div class="market-icon-badge mx-auto mb-1" style="--rc: {{ rc }};">
-              <i class="fa-solid {{ item.icon_key }}" style="color: {{ rc }};"></i>
+              {{ ui.item_icon(item.icon_key, rc) }}
             </div>
             <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ item.name }}</p>
             <p class="text-gold font-sans text-[0.6rem]"><i class="fa-solid fa-coins"></i> {{ item.list_price }}</p>
@@ -180,7 +180,7 @@
           {% set affordable = gold >= item.list_price %}
           <div id="listing-{{ item.id }}" class="item-detail-content text-center">
             <div class="market-icon-badge lg mx-auto mb-3" style="--rc: {{ rc }};">
-              <i class="fa-solid {{ item.icon_key }}" style="color: {{ rc }};"></i>
+              {{ ui.item_icon(item.icon_key, rc) }}
             </div>
             <p class="font-medieval text-white text-lg">{{ item.name }}</p>
             <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ item.rarity | capitalize }}</p>
@@ -228,7 +228,7 @@
           {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
           <div class="border-2 rounded-lg p-3 text-center" style="border-color: {{ rc }};">
             <div class="market-icon-badge mx-auto mb-2" style="--rc: {{ rc }};">
-              <i class="fa-solid {{ item.icon_key }}" style="color: {{ rc }};"></i>
+              {{ ui.item_icon(item.icon_key, rc) }}
             </div>
             <p class="font-sans font-bold text-white text-xs">{{ item.name }}</p>
             <p class="font-sans text-[0.65rem] mt-1 text-gold">{{ item.list_price }} Ouro</p>

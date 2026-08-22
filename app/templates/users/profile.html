@@ -106,7 +106,7 @@
       {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity if item else '', '#3f3a33') %}
       <div class="gear-slot" title="{{ item.name if item else 'Vazio' }}"
            style="border-color: {{ rc }};{{ ' background: color-mix(in srgb, ' + rc + ' 14%, #0c0a0f); box-shadow: 0 0 10px color-mix(in srgb, ' + rc + ' 35%, transparent);' if item else '' }}">
-        <i class="fa-solid {{ item.icon_key if item else icon }}" style="color: {{ rc if item else '#57534e' }};{{ ' filter: drop-shadow(0 0 5px ' + rc + ');' if item else '' }}"></i>
+        {{ ui.item_icon(item.icon_key if item else none, rc if item else '#57534e', fallback=icon) }}
       </div>
     {% endfor %}
   </div>

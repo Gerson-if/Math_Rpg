@@ -103,3 +103,35 @@
     {% endif %}
   </span>
 {% endmacro %}
+
+{# Equipment/loot icon — dual-mode, same idea as rank_badge/achievement_badge
+   above but for ItemInstance/ShopOffer.icon_key, which (as of the Raven
+   Fantasy Icons items/ set — see images/icons/items/CREDITS.txt) can now be
+   EITHER a real image path ("images/icons/items/...") for the 12 curated
+   item templates, OR a bare FontAwesome class for anything without curated
+   art yet (kept working on purpose — see loot_service.py's ITEM_TEMPLATES
+   comment — so a future item template needs zero template changes even if
+   it ships before its own art does).
+
+   size_rem: pass a number when the icon has NO sized wrapper of its own
+   (e.g. equipamentos.html's bare `text-4xl` icon) so both the <img> and the
+   <i> come out the same visual size either way. Leave it unset when the
+   icon already sits inside a fixed-size badge (market-icon-badge,
+   gear-slot) — it then just fills that container (`w-full h-full`),
+   matching how a sized <i> with no explicit font-size already inherits the
+   wrapper's own font-size.
+
+   fallback: a FontAwesome class shown when there's no icon_key at all
+   (an empty gear slot) — never image-based, since an empty slot isn't a
+   real item with curated art. #}
+{% macro item_icon(icon_key, rarity_color='#94a3b8', size_rem=none, extra_cls='', fallback='fa-circle-question') %}
+  {% set key = icon_key or fallback %}
+  {% if key.startswith('images/') %}
+    <img src="{{ url_for('static', filename=key) }}" alt=""
+         class="inline-block object-contain {{ 'w-full h-full' if not size_rem else '' }} {{ extra_cls }}"
+         style="{{ ('width:' ~ size_rem ~ 'rem;height:' ~ size_rem ~ 'rem;') if size_rem else '' }} filter: drop-shadow(0 0 6px {{ rarity_color }}); image-rendering: pixelated; vertical-align: middle;">
+  {% else %}
+    <i class="fa-solid {{ key }} {{ extra_cls }}"
+       style="{{ ('font-size:' ~ size_rem ~ 'rem;') if size_rem else '' }} color: {{ rarity_color }}; filter: drop-shadow(0 0 6px {{ rarity_color }});"></i>
+  {% endif %}
+{% endmacro %}

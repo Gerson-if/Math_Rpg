@@ -25,7 +25,7 @@
            style="border-color: {{ rc }};{{ ' background: color-mix(in srgb, ' + rc + ' 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, ' + rc + ' 35%, transparent);' if item else '' }}">
         <p class="text-stone-400 font-medieval text-xs uppercase tracking-widest mb-2">{{ label }}</p>
         {% if item %}
-          <i class="fa-solid {{ item.icon_key }} text-4xl mb-2" style="color: {{ rc }}; filter: drop-shadow(0 0 6px {{ rc }});"></i>
+          {{ ui.item_icon(item.icon_key, rc, size_rem=2.25, extra_cls='mb-2') }}
           <p class="font-sans font-bold text-white text-sm">{{ item.name }}</p>
           <p class="font-sans text-xs mt-1" style="color: {{ rc }};">
             {{ item.rarity | capitalize }} · {{ ui.passive_label(item) }}

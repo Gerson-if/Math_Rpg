@@ -1,9 +1,31 @@
-Icons under subjects/, and the badges in ranks/ and achievements/, are
-extracted from "Raven Fantasy Icons" by Clockwork Raven Studios
-(Caio), purchased on itch.io. No explicit license text shipped with
-the pack beyond a thank-you note from the artist — itch.io "buy once,
-use in your projects" packs of this kind typically allow embedding in
-a shipped game/app but forbid reselling the raw assets standalone.
-Double-check the itch.io purchase terms before shipping to production.
+Icons under subjects/, items/, and the badges in ranks/ and
+achievements/, are extracted from "Raven Fantasy Icons" by Clockwork
+Raven Studios (Caio), purchased on itch.io. No explicit license text
+shipped with the pack beyond a thank-you note from the artist —
+itch.io "buy once, use in your projects" packs of this kind typically
+allow embedding in a shipped game/app but forbid reselling the raw
+assets standalone. Double-check the itch.io purchase terms before
+shipping to production.
+
+items/ (see loot_service.py's ITEM_TEMPLATES) — 12 icons, one per
+weapon/ring/amulet/armor/helmet/boot template, picked by hand from the
+pack's ~2200-icon full spritesheet (see app/static/assets/, kept local
+only — not committed, same as every other raw pack) to match each
+item's name/theme:
+  lamina-encantada.png       Lâmina Encantada     (spritesheet #1605)
+  cajado-arcano.png          Cajado Arcano        (#1710)
+  anel-encadeamento.png      Anel do Encadeamento (#1847)
+  anel-furia.png             Anel da Fúria        (#1845)
+  amuleto-vitalidade.png     Amuleto da Vitalidade(#2065)
+  relicario-vampirico.png    Relicário Vampírico  (#1849)
+  couraca-de-ferro.png       Couraça de Ferro     (#2049)
+  manto-das-sombras.png      Manto das Sombras    (#1969)
+  elmo-do-guardiao.png       Elmo do Guardião     (#1905)
+  coroa-arcana.png           Coroa Arcana         (#1838)
+  botas-elficas.png          Botas Élficas        (#1855)
+  grevas-flamejantes.png     Grevas Flamejantes   (#2164)
+(#N = 1-indexed position, row-major, in the pack's own 16-column
+64x64 full spritesheet — handy if a future item template wants a
+different pick from the same source pack.)
 
 Patreon: https://www.patreon.com/clockworkravenstudios

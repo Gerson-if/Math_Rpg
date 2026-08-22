@@ -20,11 +20,21 @@ const BattleLoot = (() => {
     const label = RARITY_LABEL[item.rarity] || item.rarity;
     const passiveText = (PASSIVE_LABEL[item.passive_type] || (() => ""))(item.passive_value);
 
+    // icon_key is a real image path ("images/icons/items/...") for the
+    // curated Raven Fantasy Icons item set, or a bare FontAwesome class
+    // for anything without curated art yet — same dual-mode convention as
+    // the server-side ui.item_icon macro (see _macros.html), duplicated
+    // here only because this toast is built client-side from data
+    // attributes rather than rendered by Jinja.
+    const iconHtml = item.icon_key && item.icon_key.indexOf("images/") === 0
+      ? `<img src="/static/${item.icon_key}" alt="" class="loot-icon-img">`
+      : `<i class="fa-solid ${item.icon_key} loot-icon"></i>`;
+
     const el = document.createElement("div");
     el.className = "loot-toast";
     el.style.setProperty("--rc", color);
     el.innerHTML =
-      `<i class="fa-solid ${item.icon_key} loot-icon"></i>` +
+      iconHtml +
       '<div class="loot-info">' +
       `<span class="loot-name">${item.name}</span>` +
       `<span class="loot-rarity">${label} · ${passiveText}</span>` +
