@@ -1,0 +1,91 @@
+{# Shared "ver detalhes do item" modal — used by character/espolios.html,
+   market/index.html and character/equipamentos.html. Each page keeps
+   rendering its own per-item detail block server-side exactly as before
+   (name, rarity, passive stat, and whichever forms that page needs —
+   equipar/vender/descartar/anunciar, or comprar, or desequipar) but as a
+   permanently-hidden node instead of a `:target`-toggled one; clicking a
+   thumbnail/card no longer follows a URL fragment into a fixed side
+   panel — it clones that hidden block into this one shared modal and
+   shows it centered over the page instead. Content and every form inside
+   it are the same server-rendered HTML as before (CSRF token included),
+   so submitting them works exactly like it always did — only the
+   *display mechanism* changed.
+
+   A trigger element just needs: `data-item-modal-target="some-id"` where
+   `some-id` is the id of the hidden source block to clone. #}
+<div id="item-modal-backdrop" class="item-modal-backdrop hidden" aria-hidden="true">
+  <div id="item-modal" class="item-modal" role="dialog" aria-modal="true">
+    <button type="button" id="item-modal-close" class="item-modal-close" aria-label="Fechar">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div id="item-modal-slot"></div>
+  </div>
+</div>
+
+<style>
+  .item-modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(5,5,8,0.78); backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+    animation: itemModalBackdropIn 0.15s ease-out;
+  }
+  .item-modal-backdrop.hidden { display: none; }
+  @keyframes itemModalBackdropIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+  .item-modal {
+    position: relative; background: #14110d; border: 2px solid #57534e; border-radius: 0.75rem;
+    padding: 1.75rem 1.5rem 1.5rem; max-width: 26rem; width: 100%; max-height: 85vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    animation: itemModalIn 0.2s ease-out;
+  }
+  @keyframes itemModalIn { 0% { opacity: 0; transform: scale(0.95) translateY(10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+  .item-modal-close {
+    position: absolute; top: 0.6rem; right: 0.6rem; width: 2rem; height: 2rem; z-index: 1;
+    border-radius: 9999px; background: rgba(255,255,255,0.06); color: #a8a29e; border: none;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .item-modal-close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+</style>
+
+<script>
+(function () {
+  var backdrop = document.getElementById("item-modal-backdrop");
+  var slot = document.getElementById("item-modal-slot");
+  if (!backdrop || !slot) return;
+
+  function openModalFor(sourceId) {
+    var source = document.getElementById(sourceId);
+    if (!source) return;
+    var clone = source.cloneNode(true);
+    clone.removeAttribute("id");
+    clone.classList.remove("hidden");
+    slot.innerHTML = "";
+    slot.appendChild(clone);
+    backdrop.classList.remove("hidden");
+    backdrop.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeModal() {
+    backdrop.classList.add("hidden");
+    backdrop.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  document.body.addEventListener("click", function (evt) {
+    var trigger = evt.target.closest("[data-item-modal-target]");
+    if (trigger) {
+      evt.preventDefault();
+      openModalFor(trigger.getAttribute("data-item-modal-target"));
+      return;
+    }
+    if (evt.target === backdrop || evt.target.closest("#item-modal-close")) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener("keydown", function (evt) {
+    if (evt.key === "Escape" && !backdrop.classList.contains("hidden")) closeModal();
+  });
+})();
+</script>

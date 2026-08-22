@@ -4,21 +4,11 @@
 
 {% block extra_head %}
 <style>
-  /* Thumbnail grid + a dedicated detail panel, linked by URL fragment
-     (#item-N) — clicking a thumbnail shows that item large in the panel
-     instead of cramming more text into the small grid card. Pure CSS
-     (:target), no JS, no modal: bookmarkable and back-button friendly,
-     same as the rest of the app's real-page navigation. */
-  .loot-thumb { cursor: pointer; text-decoration: none; display: block; }
-  .loot-thumb.is-selected { outline: 2px solid #d4af37; outline-offset: 2px; }
-
-  .item-detail-panel { position: sticky; top: 1rem; }
-  .item-detail-content { display: none; }
-  .item-detail-content:target { display: block; animation: detailIn 0.35s ease-out; }
-  @keyframes detailIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
-  .item-detail-placeholder { display: block; }
-  .item-detail-content:target ~ .item-detail-placeholder,
-  .item-detail-panel:has(.item-detail-content:target) .item-detail-placeholder { display: none; }
+  /* Grid of thumbnails; clicking one opens the shared item-details modal
+     (see _item_modal.html) instead of a fixed side panel — each item's
+     detail block below stays hidden in the DOM and gets cloned into that
+     modal on click. */
+  .loot-thumb { cursor: pointer; text-decoration: none; display: block; width: 100%; border: none; font: inherit; }
 
   /* Rarity filter — used to be bare text links with a thin border, easy to
      mistake for a caption instead of a control. Now a proper chip: icon,
@@ -70,93 +60,84 @@
 </div>
 
 {% if items %}
-<div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
-  <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
-    <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
-      {% for item in items %}
-        {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
-        {% set min_level = min_level_by_rarity.get(item.rarity, 1) %}
-        {% set locked = player_level < min_level %}
-        <a href="#item-{{ item.id }}" class="loot-thumb relative border-2 rounded-lg p-3 text-center transition-all hover:brightness-125 hover:-translate-y-0.5"
-           style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
-          {% if locked %}
-            <span class="absolute top-1.5 right-1.5 text-[0.55rem] bg-black/70 border border-stone-600 text-stone-400 rounded-full px-1.5 py-0.5">
-              <i class="fa-solid fa-lock"></i> Nv {{ min_level }}
-            </span>
-          {% endif %}
-          {% if class_buff_type and item.passive_type == class_buff_type %}
-            <span class="absolute top-1.5 left-1.5 text-[0.6rem] text-gold" title="Ideal para sua classe">
-              <i class="fa-solid fa-star"></i>
-            </span>
-          {% endif %}
-          {{ ui.item_icon(item.icon_key, rc, size_rem=1.5, extra_cls='mb-1 ' + ('grayscale opacity-50' if locked else '')) }}
-          <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ item.name }}</p>
-        </a>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="item-detail-panel bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg min-h-[220px]">
-    <p class="item-detail-placeholder text-stone-500 font-sans text-sm text-center py-8">
-      <i class="fa-solid fa-hand-pointer text-2xl block mb-2"></i>
-      Clique num item para ver os detalhes.
-    </p>
+<div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg">
+  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
     {% for item in items %}
       {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
       {% set min_level = min_level_by_rarity.get(item.rarity, 1) %}
       {% set locked = player_level < min_level %}
-      <div id="item-{{ item.id }}" class="item-detail-content text-center">
-        <a href="{{ url_for('character.espolios', raridade=selected_rarity) if selected_rarity else url_for('character.espolios') }}"
-           class="inline-flex items-center gap-1 text-stone-500 hover:text-stone-300 text-xs font-sans mb-3">
-          <i class="fa-solid fa-xmark"></i> Fechar
-        </a>
-        {{ ui.item_icon(item.icon_key, rc, size_rem=3.75, extra_cls='mb-3') }}
-        <p class="font-medieval text-white text-lg">{{ item.name }}</p>
-        <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ item.rarity | capitalize }}</p>
-        <p class="font-sans text-stone-300 text-sm">{{ ui.passive_label(item) }}</p>
-        {% if class_buff_type and item.passive_type == class_buff_type %}
-          <p class="font-sans text-gold text-xs mt-1"><i class="fa-solid fa-star mr-1"></i>Ideal para sua classe</p>
-        {% endif %}
-
+      <button type="button" data-item-modal-target="item-detail-{{ item.id }}"
+              class="loot-thumb relative border-2 rounded-lg p-3 text-center transition-all hover:brightness-125 hover:-translate-y-0.5"
+              style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
         {% if locked %}
-          <p class="text-stone-500 font-sans text-xs mt-3"><i class="fa-solid fa-lock"></i> Equipar exige nível {{ min_level }} — você está no {{ player_level }}.</p>
-        {% else %}
-          <form method="POST" action="{{ url_for('character.equipar', item_id=item.id) }}" class="mt-3">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="px-4 py-2 rounded font-medieval text-sm bg-mystic border-2 border-purple-400 text-white hover:scale-105 transition-transform cursor-pointer">
-              <i class="fa-solid fa-hand-fist mr-1"></i> Equipar
-            </button>
-          </form>
+          <span class="absolute top-1.5 right-1.5 text-[0.55rem] bg-black/70 border border-stone-600 text-stone-400 rounded-full px-1.5 py-0.5">
+            <i class="fa-solid fa-lock"></i> Nv {{ min_level }}
+          </span>
         {% endif %}
-
-        <div class="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-white/10">
-          <form method="POST" action="{{ url_for('character.vender', item_id=item.id) }}" title="Vender ao Mercado do Reino, na hora">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="text-gold hover:text-yellow-200 text-sm font-sans cursor-pointer">
-              <i class="fa-solid fa-coins"></i> Vender por {{ gold_by_rarity.get(item.rarity, 0) }}
-            </button>
-          </form>
-          <form method="POST" action="{{ url_for('character.descartar', item_id=item.id) }}"
-                onsubmit="return confirm('Descartar {{ item.name }} para sempre?');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="text-stone-500 hover:text-blood text-sm font-sans cursor-pointer">
-              <i class="fa-solid fa-trash mr-1"></i> Descartar
-            </button>
-          </form>
-        </div>
-        <form method="POST" action="{{ url_for('market.anunciar', item_id=item.id) }}"
-              class="flex items-center justify-center gap-2 mt-3" title="Anunciar na Loja dos Jogadores">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="number" name="price" min="1" value="{{ gold_by_rarity.get(item.rarity, 10) * 2 }}"
-                 class="w-20 bg-black/50 border border-stone-700 rounded text-sm text-stone-200 text-center py-1">
-          <button type="submit" class="text-purple-300 hover:text-purple-200 text-sm font-sans cursor-pointer">
-            <i class="fa-solid fa-tag mr-1"></i> Anunciar na Loja
-          </button>
-        </form>
-      </div>
+        {% if class_buff_type and item.passive_type == class_buff_type %}
+          <span class="absolute top-1.5 left-1.5 text-[0.6rem] text-gold" title="Ideal para sua classe">
+            <i class="fa-solid fa-star"></i>
+          </span>
+        {% endif %}
+        {{ ui.item_icon(item.icon_key, rc, size_rem=1.5, extra_cls='mb-1 ' + ('grayscale opacity-50' if locked else '')) }}
+        <p class="font-sans font-bold text-white text-[0.65rem] truncate">{{ item.name }}</p>
+      </button>
     {% endfor %}
   </div>
 </div>
+
+{% for item in items %}
+  {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
+  {% set min_level = min_level_by_rarity.get(item.rarity, 1) %}
+  {% set locked = player_level < min_level %}
+  <div id="item-detail-{{ item.id }}" class="hidden text-center">
+    {{ ui.item_icon(item.icon_key, rc, size_rem=3.75, extra_cls='mb-3') }}
+    <p class="font-medieval text-white text-lg">{{ item.name }}</p>
+    <p class="font-sans text-sm mb-1" style="color: {{ rc }};">{{ item.rarity | capitalize }}</p>
+    <p class="font-sans text-stone-300 text-sm">{{ ui.passive_label(item) }}</p>
+    {% if class_buff_type and item.passive_type == class_buff_type %}
+      <p class="font-sans text-gold text-xs mt-1"><i class="fa-solid fa-star mr-1"></i>Ideal para sua classe</p>
+    {% endif %}
+
+    {% if locked %}
+      <p class="text-stone-500 font-sans text-xs mt-3"><i class="fa-solid fa-lock"></i> Equipar exige nível {{ min_level }} — você está no {{ player_level }}.</p>
+    {% else %}
+      <form method="POST" action="{{ url_for('character.equipar', item_id=item.id) }}" class="mt-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="px-4 py-2 rounded font-medieval text-sm bg-mystic border-2 border-purple-400 text-white hover:scale-105 transition-transform cursor-pointer">
+          <i class="fa-solid fa-hand-fist mr-1"></i> Equipar
+        </button>
+      </form>
+    {% endif %}
+
+    <div class="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-white/10">
+      <form method="POST" action="{{ url_for('character.vender', item_id=item.id) }}" title="Vender ao Mercado do Reino, na hora">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="text-gold hover:text-yellow-200 text-sm font-sans cursor-pointer">
+          <i class="fa-solid fa-coins"></i> Vender por {{ gold_by_rarity.get(item.rarity, 0) }}
+        </button>
+      </form>
+      <form method="POST" action="{{ url_for('character.descartar', item_id=item.id) }}"
+            onsubmit="return confirm('Descartar {{ item.name }} para sempre?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="text-stone-500 hover:text-blood text-sm font-sans cursor-pointer">
+          <i class="fa-solid fa-trash mr-1"></i> Descartar
+        </button>
+      </form>
+    </div>
+    <form method="POST" action="{{ url_for('market.anunciar', item_id=item.id) }}"
+          class="flex items-center justify-center gap-2 mt-3" title="Anunciar na Loja dos Jogadores">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="number" name="price" min="1" value="{{ gold_by_rarity.get(item.rarity, 10) * 2 }}"
+             class="w-20 bg-black/50 border border-stone-700 rounded text-sm text-stone-200 text-center py-1">
+      <button type="submit" class="text-purple-300 hover:text-purple-200 text-sm font-sans cursor-pointer">
+        <i class="fa-solid fa-tag mr-1"></i> Anunciar na Loja
+      </button>
+    </form>
+  </div>
+{% endfor %}
+
+{% include "_item_modal.html" %}
 {% else %}
   <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-10 sm:p-14 shadow-lg text-center">
     <i class="fa-solid fa-sack-dollar empty-loot-chest text-5xl text-stone-600 mb-4"></i>

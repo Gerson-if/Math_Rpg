@@ -21,32 +21,50 @@
     {% for slot, label, icon in [('arma', 'Arma', 'fa-khanda'), ('anel', 'Anel', 'fa-ring'), ('amuleto', 'Amuleto', 'fa-gem'), ('armadura', 'Armadura', 'fa-shield'), ('capacete', 'Capacete', 'fa-hat-wizard'), ('botas', 'Botas', 'fa-shoe-prints')] %}
       {% set item = equipped[slot] %}
       {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity if item else '', '#57534e') %}
-      <div class="item-slot border-2 rounded-lg p-4 text-center transition-all hover:brightness-125"
-           style="border-color: {{ rc }};{{ ' background: color-mix(in srgb, ' + rc + ' 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, ' + rc + ' 35%, transparent);' if item else '' }}">
-        <p class="text-stone-400 font-medieval text-xs uppercase tracking-widest mb-2">{{ label }}</p>
-        {% if item %}
+      {% if item %}
+        <button type="button" data-item-modal-target="slot-detail-{{ slot }}"
+                class="item-slot border-2 rounded-lg p-4 text-center transition-all hover:brightness-125 hover:-translate-y-0.5 cursor-pointer"
+                style="border-color: {{ rc }}; background: color-mix(in srgb, {{ rc }} 12%, #0c0a0f); box-shadow: 0 0 14px color-mix(in srgb, {{ rc }} 35%, transparent);">
+          <p class="text-stone-400 font-medieval text-xs uppercase tracking-widest mb-2">{{ label }}</p>
           {{ ui.item_icon(item.icon_key, rc, size_rem=2.25, extra_cls='mb-2') }}
-          <p class="font-sans font-bold text-white text-sm">{{ item.name }}</p>
-          <p class="font-sans text-xs mt-1" style="color: {{ rc }};">
-            {{ item.rarity | capitalize }} · {{ ui.passive_label(item) }}
-          </p>
-          <form method="POST" action="{{ url_for('character.desequipar', slot=slot) }}" class="mt-3">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="text-stone-400 hover:text-blood text-xs font-sans cursor-pointer">
-              <i class="fa-solid fa-hand"></i> Desequipar
-            </button>
-          </form>
-        {% else %}
+          <p class="font-sans font-bold text-white text-sm truncate">{{ item.name }}</p>
+        </button>
+      {% else %}
+        <div class="item-slot border-2 rounded-lg p-4 text-center border-stone-700">
+          <p class="text-stone-400 font-medieval text-xs uppercase tracking-widest mb-2">{{ label }}</p>
           <i class="fa-solid {{ icon }} text-3xl text-stone-700 mb-2"></i>
           <p class="font-sans text-stone-500 text-sm">Vazio</p>
           <a href="{{ url_for('character.espolios') }}" class="text-purple-300 hover:text-purple-200 text-xs font-sans mt-3 inline-block">
             Ver espólios
           </a>
-        {% endif %}
-      </div>
+        </div>
+      {% endif %}
     {% endfor %}
   </div>
 </div>
+
+{% for slot, label, icon in [('arma', 'Arma', 'fa-khanda'), ('anel', 'Anel', 'fa-ring'), ('amuleto', 'Amuleto', 'fa-gem'), ('armadura', 'Armadura', 'fa-shield'), ('capacete', 'Capacete', 'fa-hat-wizard'), ('botas', 'Botas', 'fa-shoe-prints')] %}
+  {% set item = equipped[slot] %}
+  {% if item %}
+    {% set rc = {'comum': '#cbd5e1', 'magico': '#60a5fa', 'raro': '#c084fc', 'lendario': '#fbbf24'}.get(item.rarity, '#57534e') %}
+    <div id="slot-detail-{{ slot }}" class="hidden text-center">
+      <p class="text-stone-400 font-medieval text-xs uppercase tracking-widest mb-2">{{ label }}</p>
+      {{ ui.item_icon(item.icon_key, rc, size_rem=3.75, extra_cls='mb-3') }}
+      <p class="font-medieval text-white text-lg">{{ item.name }}</p>
+      <p class="font-sans text-sm mb-1" style="color: {{ rc }};">
+        {{ item.rarity | capitalize }} · {{ ui.passive_label(item) }}
+      </p>
+      <form method="POST" action="{{ url_for('character.desequipar', slot=slot) }}" class="mt-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="px-4 py-2 rounded font-medieval text-sm bg-stone-800 border-2 border-stone-600 text-stone-300 hover:border-blood hover:text-blood transition-colors cursor-pointer">
+          <i class="fa-solid fa-hand mr-1"></i> Desequipar
+        </button>
+      </form>
+    </div>
+  {% endif %}
+{% endfor %}
+
+{% include "_item_modal.html" %}
 
 <div class="bg-stone-900/60 border border-stone-700 rounded-lg p-5 sm:p-6 shadow-lg mb-4">
   <h2 class="text-xl font-medieval text-stone-100 mb-3">Bônus ativos</h2>
