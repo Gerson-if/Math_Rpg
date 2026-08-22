@@ -35,3 +35,16 @@ in your own project" assumption as the Raven Fantasy Icons pack (see
                              rather than a separate asset — it's a
                              symmetric-enough triangle that mirroring
                              reads cleanly as "point the other way".
+
+  check-icon.png,           small carved wooden check/X badges (same
+  x-icon.png                sheet, rows just below nav-play.png) — used
+                             in the concept-exercise answer feedback
+                             banner (mathematics/_concept_question.html)
+                             instead of a small inline FontAwesome glyph.
+                             Deliberately NOT used in the main battle
+                             loop's correct/wrong bubbles (battle-arena.js)
+                             — that fires on every single answer in the
+                             game's highest-traffic screen, where a
+                             misaligned inline image would be far more
+                             noticeable/annoying than in the concept
+                             exercise's dedicated, lower-traffic banner.

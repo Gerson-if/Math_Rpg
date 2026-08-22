@@ -218,6 +218,7 @@ def concepts(subject_slug):
         "mathematics/concepts.html",
         subject=subject,
         prompt=question["prompt"],
+        options=concepts_service.build_options(question),
         token=token,
     )
 
@@ -256,8 +257,13 @@ def concepts_answer(subject_slug):
         "mathematics/_concept_question.html",
         subject=subject,
         prompt=next_question["prompt"] if next_question else None,
+        options=concepts_service.build_options(next_question) if next_question else None,
         token=next_token,
-        feedback={"is_correct": is_correct, "correct_answer": payload["answer"]},
+        feedback={
+            "is_correct": is_correct,
+            "correct_answer": payload["answer"],
+            "picked_answer": submitted_answer,
+        },
     )
 
 

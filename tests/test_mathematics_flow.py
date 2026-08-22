@@ -525,6 +525,10 @@ def test_concepts_page_shows_a_prompt_for_a_subject_with_concept_content(client,
     assert resp.status_code == 200
     assert "Grimório de Conceitos" in body
     assert 'name="token"' in body
+    # Multiple choice: four labeled option buttons, not a free-text input.
+    assert body.count('data-key="') == 4
+    assert ">A<" in body and ">B<" in body and ">C<" in body and ">D<" in body
+    assert 'type="text"' not in body
 
 
 def test_answering_a_concept_question_accepts_the_answer_without_accents(client, db, app):
@@ -544,7 +548,9 @@ def test_answering_a_concept_question_accepts_the_answer_without_accents(client,
     real_answer = payload["answer"]
 
     # Strip accents and mangle the case the way a player typing fast on a
-    # phone might -- normalize_answer's accent-folding should still match.
+    # phone might -- normalize_answer's accent-folding should still match,
+    # even though answers now arrive as a fixed option value rather than
+    # free text.
     import unicodedata
     deaccented = "".join(c for c in unicodedata.normalize("NFKD", real_answer) if not unicodedata.combining(c))
 
@@ -552,7 +558,49 @@ def test_answering_a_concept_question_accepts_the_answer_without_accents(client,
         "/math/conceitos/fracoes/responder",
         data={"token": token, "answer": deaccented.upper()},
     )
-    assert 'data-correct="true"' in resp2.data.decode()
+    body2 = resp2.data.decode()
+    assert "is-correct" in body2
+    assert "Isso mesmo" in body2
+
+
+def test_answering_a_concept_question_with_a_wrong_option_shows_the_correct_one(client, db, app):
+    _create_and_login(client, db)
+    subject = Subject(slug="fracoes", name="Frações", order=0)
+    db.session.add(subject)
+    db.session.flush()
+    topic = Topic(slug="fracoes-basicas", name="Frações básicas", subject_id=subject.id, order=0, base_difficulty=1)
+    db.session.add(topic)
+    db.session.commit()
+
+    resp = client.get("/math/conceitos/fracoes")
+    token = _extract_token(resp.data.decode())
+    with app.app_context():
+        payload = question_token.read_token(token)
+    real_answer = payload["answer"]
+
+    resp2 = client.post(
+        "/math/conceitos/fracoes/responder",
+        data={"token": token, "answer": "definitivamente-nao-e-isso"},
+    )
+    body2 = resp2.data.decode()
+    assert "is-wrong" in body2
+    assert real_answer in body2
+
+
+def test_concept_options_include_the_correct_answer_and_three_distractors(client, db):
+    _create_and_login(client, db)
+    subject = Subject(slug="fracoes", name="Frações", order=0)
+    db.session.add(subject)
+    db.session.flush()
+    topic = Topic(slug="fracoes-basicas", name="Frações básicas", subject_id=subject.id, order=0, base_difficulty=1)
+    db.session.add(topic)
+    db.session.commit()
+
+    resp = client.get("/math/conceitos/fracoes")
+    body = resp.data.decode()
+    values = re.findall(r'name="answer" value="([^"]+)"', body)
+    assert len(values) == 4
+    assert len(set(values)) == 4  # no duplicate options
 
 
 def test_concepts_page_redirects_when_the_subject_has_no_concept_content(client, db):

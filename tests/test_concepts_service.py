@@ -50,3 +50,36 @@ def test_random_concept_question_for_areas_draws_from_the_combined_pool():
     for _ in range(30):
         q = concepts_service.random_concept_question_for_areas(["fracoes"])
         assert q in concepts_service.CONCEPT_QUESTIONS["fracoes"]
+
+
+# --- multiple-choice options -----------------------------------------------
+
+def test_every_concept_question_has_exactly_three_distractors():
+    for area_slug, questions in concepts_service.CONCEPT_QUESTIONS.items():
+        for q in questions:
+            assert len(q["distractors"]) == 3, f"{area_slug}: {q['prompt']!r} doesn't have 3 distractors"
+
+
+def test_no_concept_question_has_a_distractor_matching_its_own_answer():
+    for area_slug, questions in concepts_service.CONCEPT_QUESTIONS.items():
+        for q in questions:
+            assert q["answer"] not in q["distractors"], f"{area_slug}: {q['prompt']!r} has the answer as a distractor"
+
+
+def test_build_options_returns_four_unique_options_including_the_answer():
+    question = concepts_service.CONCEPT_QUESTIONS["fracoes"][0]
+    for _ in range(20):
+        options = concepts_service.build_options(question)
+        assert len(options) == 4
+        assert len(set(options)) == 4
+        assert question["answer"] in options
+        assert set(options) == {question["answer"], *question["distractors"]}
+
+
+def test_build_options_shuffles_the_correct_answers_position():
+    question = concepts_service.CONCEPT_QUESTIONS["fracoes"][0]
+    positions = {concepts_service.build_options(question).index(question["answer"]) for _ in range(60)}
+    # With 60 draws across 4 slots, landing in every slot at least once is
+    # a near-certainty if shuffle is actually happening (not just always
+    # returning the same fixed order).
+    assert len(positions) > 1

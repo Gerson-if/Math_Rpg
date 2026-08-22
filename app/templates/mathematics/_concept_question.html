@@ -1,45 +1,48 @@
-<div id="concept-question-slot"
-     data-correct="{{ 'true' if feedback and feedback.is_correct else ('false' if feedback else '') }}"
-     data-correct-answer="{{ feedback.correct_answer if feedback and not feedback.is_correct else '' }}"
-     class="space-y-3">
+<div id="concept-question-slot" class="space-y-3">
 
   {% if feedback %}
-    <div class="text-center text-sm font-sans rounded-lg p-2 border
-                {{ 'border-emerald-700 bg-emerald-950/50 text-emerald-300' if feedback.is_correct else 'border-red-800 bg-red-950/50 text-red-300' }}">
-      {% if feedback.is_correct %}
-        <i class="fa-solid fa-circle-check mr-1"></i> Isso mesmo!
-      {% else %}
-        <i class="fa-solid fa-circle-xmark mr-1"></i> Quase — a resposta certa era
-        <strong>{{ feedback.correct_answer }}</strong>.
-      {% endif %}
+    <div class="concept-feedback {{ 'is-correct' if feedback.is_correct else 'is-wrong' }}" role="status">
+      <img src="{{ url_for('static', filename='images/icons/ui/' ~ ('check-icon.png' if feedback.is_correct else 'x-icon.png')) }}"
+           alt="" class="concept-feedback-icon">
+      <div class="concept-feedback-text">
+        {% if feedback.is_correct %}
+          <strong>Isso mesmo!</strong>
+          <span>{{ feedback.correct_answer }} está certo.</span>
+        {% else %}
+          <strong>Quase lá!</strong>
+          <span>{{ feedback.picked_answer }} não é — a resposta certa era <strong>{{ feedback.correct_answer }}</strong>.</span>
+        {% endif %}
+      </div>
     </div>
   {% endif %}
 
   {% if prompt %}
-    <div class="w-full bg-black/60 border-2 border-amber-700/60 rounded-lg p-3 sm:p-4 text-center shadow-inner">
+    <div class="w-full bg-black/60 border-2 border-amber-700/60 rounded-lg p-3 sm:p-4 text-center shadow-inner concept-prompt-enter">
       <p class="font-medieval text-xs uppercase tracking-widest mb-1 text-amber-400">
         <i class="fa-solid fa-lightbulb mr-1"></i> Conceito
       </p>
       <div class="text-lg sm:text-xl font-serif text-white font-bold tracking-wide">{{ prompt }}</div>
     </div>
 
-    <form hx-post="{{ url_for('mathematics.concepts_answer', subject_slug=subject.slug) }}"
-          hx-target="#concept-question-slot"
-          hx-swap="outerHTML"
-          hx-disabled-elt="find input[name='answer'], find button"
-          class="w-full">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="token" value="{{ token }}">
-      <div class="flex gap-2 sm:gap-3">
-        <input type="text" name="answer" inputmode="text" autocomplete="off" autofocus required
-               placeholder="Sua resposta (uma palavra)"
-               class="w-full bg-stone-800 border-2 border-stone-600 rounded-lg p-2 sm:p-3 text-base sm:text-lg text-center text-white font-bold focus:border-amber-500 focus:outline-none transition-colors disabled:opacity-50">
-        <button type="submit"
-                class="bg-amber-800 text-white border-2 border-amber-400 font-bold px-4 sm:px-6 rounded-lg text-lg hover:bg-amber-600 transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
-          <i class="fa-solid fa-feather"></i>
-        </button>
-      </div>
-    </form>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 concept-options" data-concept-options>
+      {% for option in options %}
+        <form hx-post="{{ url_for('mathematics.concepts_answer', subject_slug=subject.slug) }}"
+              hx-target="#concept-question-slot"
+              hx-swap="outerHTML"
+              hx-disabled-elt="find button">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="token" value="{{ token }}">
+          <input type="hidden" name="answer" value="{{ option }}">
+          <button type="submit" class="concept-option-btn" data-key="{{ loop.index }}">
+            <span class="concept-option-letter">{{ ['A', 'B', 'C', 'D'][loop.index0] }}</span>
+            <span class="concept-option-text">{{ option }}</span>
+          </button>
+        </form>
+      {% endfor %}
+    </div>
+    <p class="text-center text-stone-600 font-sans text-[0.65rem]">
+      <i class="fa-regular fa-keyboard mr-1"></i> Dica: as teclas 1-4 também escolhem uma opção.
+    </p>
   {% else %}
     <p class="text-center text-stone-400 font-sans text-sm">
       Você revisou todos os conceitos cadastrados desta trilha por enquanto — volte mais tarde para mais.

@@ -14,6 +14,86 @@
     box-shadow: 0 12px 30px rgba(0,0,0,0.6), inset 0 0 50px rgba(0,0,0,0.5);
   }
   .grimoire-title { font-family: 'MedievalSharp', cursive; color: #f4e8c1; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+
+  /* Feedback banner: distinct, animated pop/glow, uses the pixel-art
+     check/x badges from the UI pack (see images/icons/ui/CREDITS.txt)
+     instead of a small inline FontAwesome glyph — this banner is a
+     dedicated, low-traffic UI moment (concept exercises, not the main
+     battle loop), so a slightly bigger celebratory treatment fits here
+     without competing for attention the way it would mid-battle. */
+  .concept-feedback {
+    display: flex; align-items: center; gap: 0.75rem;
+    border-radius: 0.6rem; padding: 0.75rem 1rem;
+    animation: conceptFeedbackIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .concept-feedback.is-correct {
+    background: rgba(6, 78, 59, 0.35); border: 2px solid #10b981;
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.35);
+  }
+  .concept-feedback.is-wrong {
+    background: rgba(127, 29, 29, 0.35); border: 2px solid #ef4444;
+    animation: conceptFeedbackIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), conceptShake 0.4s ease 0.4s;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.3);
+  }
+  .concept-feedback-icon {
+    width: 2.25rem; height: 2.25rem; flex-shrink: 0;
+    image-rendering: pixelated;
+    animation: conceptIconPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+  }
+  .concept-feedback.is-correct .concept-feedback-icon { filter: drop-shadow(0 0 6px #10b981); }
+  .concept-feedback.is-wrong .concept-feedback-icon { filter: drop-shadow(0 0 6px #ef4444); }
+  .concept-feedback-text { text-align: left; font-family: sans-serif; font-size: 0.85rem; line-height: 1.35; }
+  .concept-feedback.is-correct .concept-feedback-text strong:first-child { color: #6ee7b7; }
+  .concept-feedback.is-wrong .concept-feedback-text strong:first-child { color: #fca5a5; }
+  .concept-feedback-text span { color: #e7e5e4; display: block; }
+  .concept-feedback-text strong { color: #fef3c7; }
+
+  @keyframes conceptFeedbackIn {
+    0% { opacity: 0; transform: scale(0.9) translateY(-6px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes conceptIconPop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+  @keyframes conceptShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(2px); }
+  }
+  @keyframes conceptPromptIn {
+    0% { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .concept-prompt-enter { animation: conceptPromptIn 0.3s ease-out; }
+
+  /* Multiple-choice options — see concepts_service.py's module docstring
+     for why these replaced the old free-text input: one exact term to
+     recall, presented as fixed choices instead of something to spell
+     correctly. */
+  .concept-option-btn {
+    width: 100%; display: flex; align-items: center; gap: 0.6rem;
+    background: #1c1611; border: 2px solid #57534e; border-radius: 0.6rem;
+    padding: 0.65rem 0.85rem; text-align: left; cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .concept-option-btn:hover:not(:disabled) {
+    border-color: #d4af37; background: #2a2015; transform: translateY(-1px);
+  }
+  .concept-option-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+  .concept-option-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .concept-option-letter {
+    display: flex; align-items: center; justify-content: center;
+    width: 1.6rem; height: 1.6rem; border-radius: 9999px; flex-shrink: 0;
+    background: #3f2f18; border: 1.5px solid #92702f; color: #d4af37;
+    font-family: 'Cinzel', serif; font-weight: 700; font-size: 0.8rem;
+  }
+  .concept-option-text {
+    font-family: sans-serif; font-weight: 600; color: #f4e8c1; font-size: 0.95rem;
+  }
 </style>
 {% endblock %}
 
@@ -38,4 +118,40 @@
   <p class="grimoire-title text-center text-lg mb-4"><i class="fa-solid fa-feather-pointed mr-1"></i> Grimório de Conceitos</p>
   {% include "mathematics/_concept_question.html" %}
 </div>
+
+<script>
+  // Event delegation on document (not per-question binding) — the whole
+  // #concept-question-slot gets replaced by htmx after every answer, so
+  // anything bound directly to the old buttons would be gone after the
+  // first swap. document itself never gets replaced, so this keeps
+  // working across every question without rebinding.
+  document.addEventListener("keydown", function (evt) {
+    if (evt.key < "1" || evt.key > "4") return;
+    if (evt.target.matches("input, textarea, select")) return;
+    var container = document.querySelector("[data-concept-options]");
+    if (!container) return;
+    var buttons = container.querySelectorAll(".concept-option-btn");
+    var btn = buttons[parseInt(evt.key, 10) - 1];
+    if (btn && !btn.disabled) btn.click();
+  });
+
+  // Belt-and-suspenders against a fast double-click landing on two
+  // different options before the first request's response swaps the
+  // slot out — hx-disabled-elt only disables the *submitting* form's own
+  // button, not its three siblings (each option is its own <form>).
+  // Deferred with setTimeout(0): disabling the clicked button
+  // *synchronously* inside its own click handler can cancel the click's
+  // own default action (submitting its form) in some browsers — this
+  // runs on the next tick instead, after the browser/htmx has already
+  // started that submission.
+  document.addEventListener("click", function (evt) {
+    var btn = evt.target.closest(".concept-option-btn");
+    if (!btn) return;
+    var container = document.querySelector("[data-concept-options]");
+    if (!container) return;
+    setTimeout(function () {
+      container.querySelectorAll(".concept-option-btn").forEach(function (b) { b.disabled = true; });
+    }, 0);
+  });
+</script>
 {% endblock %}
