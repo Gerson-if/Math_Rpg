@@ -2,7 +2,10 @@
 {% block title %}Criar conta{% endblock %}
 {% block content %}
 <div class="flex justify-center py-4">
-  <div class="parchment-bg w-full max-w-md rounded-sm border-8 border-double border-yellow-900/60 p-8 text-parchment-900">
+  <div class="w-full max-w-md">
+    <img src="{{ url_for('static', filename='images/icons/ui/pergaminho-suspenso.png') }}" alt=""
+         class="mx-auto mb-2" style="width: 96px; image-rendering: pixelated; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.6));">
+    <div class="parchment-bg w-full rounded-sm border-8 border-double border-yellow-900/60 p-8 text-parchment-900">
     <div class="flex justify-center mb-6">
       <div class="w-16 h-16 rounded-full border-2 border-yellow-800 flex items-center justify-center text-3xl bg-red-900 text-gold shadow-inner">
         <i class="fa-solid fa-dragon"></i>
@@ -54,6 +57,7 @@
       Já é um aventureiro? <br>
       <a href="{{ url_for('auth.login') }}" class="text-blood hover:text-red-600 hover:underline text-base font-medieval mt-1 inline-block"><i class="fa-solid fa-dungeon mr-1"></i>Entrar no Reino</a>
     </div>
+  </div>
   </div>
 </div>
 {% endblock %}

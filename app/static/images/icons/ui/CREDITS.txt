@@ -1,0 +1,24 @@
+Icons under ui/ are extracted from the "UI Bundle Free" pack (itch.io,
+free asset bundle covering several UI themes — casino, horror, pastel,
+cozy-café, bamboo/nature, and this one: a medieval fantasy set). Only
+the medieval-fantasy-themed sheet was used, since it's the only one
+that actually matches this app's own visual language; the others
+(casino, horror, etc.) were left untouched — not appropriate for an
+educational app aimed at kids. No explicit license file shipped beyond
+the bundle itself; treat under the same "buy once/free download, use
+in your own project" assumption as the Raven Fantasy Icons pack (see
+../CREDITS.txt) — double-check before shipping to production.
+
+  pergaminho-suspenso.png   hanging wooden scroll/sign, used as a small
+                             decorative flourish above the login/register
+                             panel (see app/templates/auth/login.html and
+                             register.html) — cropped from the pack's
+                             "freefantasy.png" full spritesheet (source
+                             region: x 87-156, y 41-163, out of a 256x256
+                             sheet). The raw spritesheet is kept locally
+                             at app/static/assets/uibundlefree/ (not
+                             committed — see .gitignore) in case a future
+                             pass wants to pull more elements from it
+                             (the sheet also has PLAY/LOAD/EXIT scroll
+                             buttons, small icon buttons, gem badges, and
+                             colored candles not currently used anywhere).

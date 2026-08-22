@@ -105,7 +105,10 @@
             <div class="flex justify-center relative order-1 lg:order-2">
                 <div class="absolute inset-0 bg-gold opacity-10 blur-[100px] rounded-full"></div>
 
-                <div class="parchment-bg w-full max-w-md rounded-sm border-8 border-double border-yellow-900/60 p-8 relative z-10 text-parchment-900">
+                <div class="w-full max-w-md relative z-10">
+                    <img src="{{ url_for('static', filename='images/icons/ui/pergaminho-suspenso.png') }}" alt=""
+                         class="mx-auto mb-2 relative" style="width: 96px; image-rendering: pixelated; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.6));">
+                    <div class="parchment-bg w-full rounded-sm border-8 border-double border-yellow-900/60 p-8 text-parchment-900">
 
                     <div class="flex justify-center mb-6">
                         <div class="w-16 h-16 rounded-full border-2 border-yellow-800 flex items-center justify-center text-3xl bg-red-900 text-gold shadow-inner">
@@ -164,6 +167,7 @@
                     <div class="mt-6 text-center border-t border-yellow-800/30 pt-4 font-sans text-sm font-semibold">
                         Ainda não é um aventureiro? <br>
                         <a href="{{ url_for('auth.register') }}" class="text-blood hover:text-red-600 hover:underline text-base font-medieval mt-1 inline-block"><i class="fa-solid fa-feather-pointed mr-1"></i>Assinar o Livro de Registro (Criar Conta)</a>
+                    </div>
                     </div>
                 </div>
             </div>
